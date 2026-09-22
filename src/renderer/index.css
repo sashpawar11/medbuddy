@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Dark Mode Palette (Refined for high contrast & clinical legibility) */
+  --color-canvas: 9 10 13;             /* #090a0d deep clinical dark canvas */
+  --color-surface: 17 19 24;           /* #111318 card surface */
+  --color-surface-elevated: 24 27 34;  /* #181b22 elevated panels & inputs */
+  --color-surface-card: 30 34 42;      /* #1e222a active row & keycap */
+  --color-surface-button: 36 41 51;    /* #242933 button fill */
+
+  --color-hairline: 43 48 59;          /* #2b303b crisp 1px borders */
+  --color-hairline-soft: rgba(255, 255, 255, 0.08);
+  --color-hairline-strong: rgba(255, 255, 255, 0.18);
+
+  --color-ink: 248 250 252;            /* #f8fafc primary headlines (16:1 contrast) */
+  --color-body: 203 213 225;           /* #cbd5e1 readable body copy (10:1 contrast) */
+  --color-charcoal: 226 232 240;       /* #e2e8f0 crisp emphasis body */
+  --color-mute: 148 163 184;           /* #94a3b8 metadata & secondary labels (6:1 contrast) */
+  --color-ash: 100 116 139;            /* #64748b utility text */
+  --color-stone: 100 116 139;          /* #64748b high-contrast labels (WCAG compliant) */
+
+  --color-primary: 255 255 255;        /* #ffffff white primary pill */
+  --color-primary-pressed: 226 232 240;
+  --color-primary-text: 15 23 42;      /* #0f172a near-black text on white button */
+
+  --color-accent-blue: 56 189 248;     /* #38bdf8 sky-400 */
+  --color-accent-blue-soft: rgba(56, 189, 248, 0.15);
+  --color-accent-red: 248 113 113;     /* #f87171 red-400 */
+  --color-accent-red-soft: rgba(248, 113, 113, 0.15);
+  --color-accent-green: 74 222 128;    /* #4ade80 green-400 */
+  --color-accent-green-soft: rgba(74, 222, 128, 0.15);
+  --color-accent-yellow: 251 191 36;   /* #fbbf24 amber-400 */
+  --color-accent-yellow-soft: rgba(251, 191, 36, 0.15);
+
+  --scrollbar-track: #090a0d;
+  --scrollbar-thumb: #2b303b;
+  --scrollbar-thumb-hover: #3e4656;
+
+  --keycap-start: #1e222a;
+  --keycap-end: #14171d;
+  --keycap-border: #2b303b;
+  --keycap-shadow: rgba(0, 0, 0, 0.4);
+}
+
+html.light {
+  /* Light Mode Palette (Crisp, modern, clinical-grade) */
+  --color-canvas: 248 250 252;         /* #f8fafc clean clinical canvas */
+  --color-surface: 255 255 255;        /* #ffffff pristine white cards */
+  --color-surface-elevated: 241 245 249; /* #f1f5f9 elevated inputs & panels */
+  --color-surface-card: 248 250 252;   /* #f8fafc card nested background */
+  --color-surface-button: 226 232 240; /* #e2e8f0 button fill */
+
+  --color-hairline: 226 232 240;       /* #e2e8f0 crisp hairline borders */
+  --color-hairline-soft: rgba(15, 23, 42, 0.05);
+  --color-hairline-strong: rgba(15, 23, 42, 0.12);
+
+  --color-ink: 15 23 42;               /* #0f172a deep near-black headlines */
+  --color-body: 51 65 85;              /* #334155 readable dark slate body */
+  --color-charcoal: 30 41 59;          /* #1e293b dark slate emphasis */
+  --color-mute: 100 116 139;           /* #64748b secondary metadata */
+  --color-ash: 148 163 184;            /* #94a3b8 utility labels */
+  --color-stone: 100 116 139;          /* #64748b high-contrast labels */
+
+  --color-primary: 15 23 42;           /* #0f172a sleek solid dark CTA pill */
+  --color-primary-pressed: 30 41 59;   /* #1e293b pressed state */
+  --color-primary-text: 255 255 255;   /* #ffffff pure white text on dark button */
+
+  --color-accent-blue: 2 132 199;      /* #0284c7 sky-600 */
+  --color-accent-blue-soft: rgba(2, 132, 199, 0.10);
+  --color-accent-red: 220 38 38;       /* #dc2626 red-600 */
+  --color-accent-red-soft: rgba(220, 38, 38, 0.10);
+  --color-accent-green: 22 163 74;     /* #16a34a green-600 */
+  --color-accent-green-soft: rgba(22, 163, 74, 0.10);
+  --color-accent-yellow: 217 119 6;    /* #d97706 amber-600 */
+  --color-accent-yellow-soft: rgba(217, 119, 6, 0.10);
+
+  --scrollbar-track: #f8fafc;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+
+  --keycap-start: #ffffff;
+  --keycap-end: #f1f5f9;
+  --keycap-border: #e2e8f0;
+  --keycap-shadow: rgba(0, 0, 0, 0.06);
+}
+
+@layer base {
+  body {
+    background-color: rgb(var(--color-canvas));
+    color: rgb(var(--color-ink));
+    font-feature-settings: "calt" 1, "kern" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Raycast-style Keycap */
+.keycap-glyph {
+  background: linear-gradient(180deg, var(--keycap-start) 0%, var(--keycap-end) 100%);
+  border: 1px solid var(--keycap-border);
+  box-shadow: 0 1px 0 var(--keycap-shadow);
+}
+
+/* Hero Diagonal Stripe Accent */
+.hero-stripe-accent {
+  background: repeating-linear-gradient(
+    -45deg,
+    #ff5757 0,
+    #ff5757 8px,
+    #a1131a 8px,
+    #a1131a 16px
+  );
+  opacity: 0.85;
+}
