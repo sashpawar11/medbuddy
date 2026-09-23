@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, Clock, Loader2, Minus, Eye } from 'lucide-react';
+import { Check, AlertTriangle, Clock, Loader2, Sparkles } from 'lucide-react';
 import type { DocumentItem, OcrProgressEvent, OcrStatus } from '../../../shared/types';
 
 interface OcrStatusBadgeProps {
@@ -7,38 +7,31 @@ interface OcrStatusBadgeProps {
   doc: DocumentItem;
   /** Live progress event from useOcrProgress() — overrides DB status when present */
   liveEvent?: OcrProgressEvent;
-  /** Show compact icon-only badge (for table rows). Default: false (show label too). */
+  /** Show compact icon-only badge (for table rows). Default: false */
   compact?: boolean;
 }
 
 /**
- * Inline badge showing the current OCR extraction status of a document.
- *
- * Status hierarchy (live event overrides DB status):
- *   pending     → ⚪ Queued
- *   processing  → 🔵 Spinner + label + optional page progress
- *   done        → ✅ subtle (or 🔮 if via LLM Vision)
- *   failed      → 🟠 Warning + tooltip
- *   skipped     → ─ (no badge — plain text files)
+ * Inline badge showing the current OCR extraction status of a document
+ * Conforms to Designv2 token rules & Lucide 1.75px outline style.
  */
 export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, compact = false }) => {
-  // Live event takes precedence over persisted status
   const status: OcrStatus = liveEvent?.status ?? doc.ocr_status ?? 'pending';
   const stage = liveEvent?.stage ?? doc.ocr_stage;
   const detail = liveEvent?.detail;
   const pct = liveEvent?.progressPercent;
   const errorMsg = doc.ocr_error;
 
-  // Plain-text docs: no badge needed
+  // Plain-text files: no badge needed
   if (status === 'skipped') return null;
 
   if (status === 'pending') {
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-stone bg-surface-elevated border border-hairline"
-        title="Queued for OCR extraction"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-surface-recessed text-tertiary border border-border"
+        title="Queued for text extraction"
       >
-        <Clock className="w-2.5 h-2.5" />
+        <Clock className="w-3 h-3 text-tertiary" strokeWidth={1.75} />
         {!compact && <span>Queued</span>}
       </span>
     );
@@ -46,15 +39,15 @@ export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, 
 
   if (status === 'processing') {
     const label = stage === 'llm_vision'
-      ? (compact ? 'LLM' : 'LLM Vision…')
+      ? (compact ? 'Vision' : 'LLM Vision…')
       : (compact ? 'OCR' : pct ? `Extracting ${pct}%` : 'Extracting…');
 
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-accent-blue bg-surface-elevated border border-hairline"
-        title={detail || 'Running OCR extraction…'}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-vault-50 text-vault-600 border border-vault-200"
+        title={detail || 'Running extraction…'}
       >
-        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+        <Loader2 className="w-3 h-3 animate-spin text-vault-600" strokeWidth={1.75} />
         {!compact && <span>{label}</span>}
       </span>
     );
@@ -65,21 +58,21 @@ export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, 
     if (isVision) {
       return (
         <span
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-accent-blue bg-surface-elevated border border-hairline"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-violet-100 text-violet-600 border border-violet-300"
           title="Text extracted via LLM Vision (OCR had low confidence)"
         >
-          <Eye className="w-2.5 h-2.5" />
+          <Sparkles className="w-3 h-3 text-violet-600" strokeWidth={1.75} />
           {!compact && <span>Vision</span>}
         </span>
       );
     }
-    // Paddle success — very subtle, don't clutter the row
+    // Paddle/pdf success — subtle sage check
     return (
       <span
-        className="inline-flex items-center gap-0.5 text-[10px] text-accent-green opacity-70"
-        title="OCR extraction complete"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-sage-100 text-sage-600 border border-sage-300"
+        title="Text extraction complete"
       >
-        <CheckCircle className="w-3 h-3" />
+        <Check className="w-3 h-3 text-sage-600" strokeWidth={2} />
         {!compact && <span>Ready</span>}
       </span>
     );
@@ -88,11 +81,11 @@ export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, 
   if (status === 'failed') {
     return (
       <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-accent-yellow bg-surface-elevated border border-hairline cursor-help"
-        title={errorMsg ? `OCR failed: ${errorMsg}` : 'OCR extraction failed — analysis will use filename metadata only'}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-amber-100 text-amber-600 border border-amber-300 cursor-help"
+        title={errorMsg ? `Extraction failed: ${errorMsg}` : 'Extraction incomplete — will use metadata only'}
       >
-        <AlertTriangle className="w-2.5 h-2.5" />
-        {!compact && <span>OCR Failed</span>}
+        <AlertTriangle className="w-3 h-3 text-amber-600" strokeWidth={1.75} />
+        {!compact && <span>Extraction Failed</span>}
       </span>
     );
   }

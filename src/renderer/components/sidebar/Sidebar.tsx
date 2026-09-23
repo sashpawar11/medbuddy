@@ -9,17 +9,23 @@ import {
   Terminal,
   Settings,
   ChevronDown,
+  ChevronRight,
   ShieldCheck,
   Home,
   PanelLeftClose,
   PanelLeftOpen,
-  Cloud,
-  ChevronRight,
+  FileText,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
-import type { FamilyMember, Folder } from '../../../shared/types';
+import type { FamilyMember, Folder, AnalysisRecord } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { ThemeMode } from '../../hooks/useTheme';
+import { MEMBER_AVATAR_COLORS } from './MemberModal';
+import { MedBuddyLogo } from '../common/MedBuddyLogo';
 
 interface Props {
   members: FamilyMember[];
@@ -40,15 +46,17 @@ interface Props {
   onToggleCollapse?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  analyses?: AnalysisRecord[];
+  currentAnalysisId?: string | null;
+  onSelectAnalysis?: (analysis: AnalysisRecord) => void;
+  aiHealth?: {
+    status: 'idle' | 'checking' | 'active' | 'failure';
+    latencyMs?: number;
+    error?: string;
+    providerName?: string;
+  };
+  onCheckAiHealth?: () => void;
 }
-
-/** Shared nav item styles */
-const navItem = (active: boolean) =>
-  `w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-[background-color,color] ${
-    active
-      ? 'bg-surface-card text-ink border border-hairline'
-      : 'text-mute hover:bg-surface-elevated hover:text-ink'
-  }`;
 
 export const Sidebar: React.FC<Props> = ({
   members,
@@ -69,49 +77,78 @@ export const Sidebar: React.FC<Props> = ({
   onToggleCollapse,
   theme,
   onToggleTheme,
+  analyses = [],
+  currentAnalysisId,
+  onSelectAnalysis,
+  aiHealth = { status: 'idle' },
+  onCheckAiHealth,
 }) => {
   const [memberMenuOpen, setMemberMenuOpen] = useState(false);
+  const [reportsFolderExpanded, setReportsFolderExpanded] = useState(true);
+
+  // Helper for member avatar color deterministic lookup
+  const getMemberColor = (m: FamilyMember, idx: number) => {
+    if (m.avatar_color && MEMBER_AVATAR_COLORS.includes(m.avatar_color)) {
+      return m.avatar_color;
+    }
+    return MEMBER_AVATAR_COLORS[idx % MEMBER_AVATAR_COLORS.length];
+  };
+
+  // Filter analyses specifically belonging to active selected profile
+  const memberAnalyses = analyses.filter((a) => {
+    if (!selectedMember) return false;
+    if (a.member_id && a.member_id === selectedMember.id) return true;
+    if (!a.member_id && a.member_name === selectedMember.name) return true;
+    if (a.source_documents && a.source_documents.length > 0) {
+      const memberFolderIds = new Set(folders.map((f) => f.id));
+      return a.source_documents.some((doc) => memberFolderIds.has(doc.folder_id));
+    }
+    return false;
+  });
+
+  // Nav item helper per §9.5: active has vault-50 bg and vault-600 text
+  const navItemClass = (active: boolean) =>
+    `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-body transition-colors select-none ${
+      active
+        ? 'bg-vault-50 text-vault-600 font-medium'
+        : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
+    }`;
 
   // --------------------------------------------------------------------------
-  // Collapsed Sidebar (Icon strip mode)
+  // Collapsed Mode (Icon strip)
   // --------------------------------------------------------------------------
   if (isCollapsed) {
     return (
-      <aside className="w-14 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0">
-        {/* Hero Stripe */}
-        <div className="h-0.5 w-full hero-stripe-accent shrink-0" />
-
-        {/* Expand Button */}
-        <div className="p-2.5 border-b border-hairline flex flex-col items-center gap-2 shrink-0">
+      <aside className="w-14 bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0">
+        <div className="p-2.5 border-b border-border flex flex-col items-center gap-2 shrink-0">
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
+            className="p-1.5 rounded-sm hover:bg-surface-hover text-tertiary hover:text-primary transition-colors"
             title="Expand Sidebar (⌘B)"
             aria-label="Expand sidebar"
           >
-            <PanelLeftOpen className="w-4 h-4" />
+            <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Navigation Icons */}
         <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1.5">
           <button
             onClick={() => onNavigate('home')}
-            className={`p-2 rounded-md transition-[background-color,color] ${
+            className={`p-2 rounded-sm transition-colors ${
               activeView === 'home'
-                ? 'bg-surface-card text-ink border border-hairline'
-                : 'text-mute hover:bg-surface-elevated hover:text-ink'
+                ? 'bg-vault-50 text-vault-600'
+                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
             title="Home Dashboard"
           >
-            <Home className="w-4 h-4" />
+            <Home className="w-4 h-4" strokeWidth={1.75} />
           </button>
 
           {selectedMember ? (
             <button
               onClick={() => onNavigate('files')}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0 my-0.5"
-              style={{ backgroundColor: selectedMember.avatar_color }}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shrink-0 my-0.5"
+              style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
               title={`Active: ${selectedMember.name}`}
             >
               {selectedMember.name.slice(0, 1).toUpperCase()}
@@ -119,63 +156,64 @@ export const Sidebar: React.FC<Props> = ({
           ) : (
             <button
               onClick={onOpenAddMember}
-              className="p-2 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
+              className="p-2 rounded-sm hover:bg-surface-hover text-tertiary hover:text-primary"
               title="Add Family Member"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-4 h-4" strokeWidth={1.75} />
             </button>
           )}
 
-          <div className="w-5 h-px bg-hairline my-0.5" />
+          <div className="w-5 h-px bg-border my-1" />
 
           <button
             onClick={() => onNavigate('files')}
-            className={`p-2 rounded-md transition-[background-color,color] ${
+            className={`p-2 rounded-sm transition-colors ${
               activeView === 'files'
-                ? 'bg-surface-card text-ink border border-hairline'
-                : 'text-mute hover:bg-surface-elevated hover:text-ink'
+                ? 'bg-vault-50 text-vault-600'
+                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
             title="Medical Records"
           >
-            <FolderIcon className="w-4 h-4" />
+            <FolderIcon className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Bottom Utilities */}
-        <div className="p-2 border-t border-hairline flex flex-col items-center gap-1.5 shrink-0">
+        <div className="p-2 border-t border-border flex flex-col items-center gap-1.5 shrink-0">
+          {/* Generated Reports (first in footer list) */}
           <button
-            onClick={onOpenSync}
-            className="p-2 rounded-md relative text-mute hover:bg-surface-elevated hover:text-ink"
-            title="Google Drive Sync"
+            onClick={() => onNavigate('overviews_history')}
+            className={`p-2 rounded-md transition-all relative ${
+              activeView === 'overviews_history' || activeView === 'overview'
+                ? 'bg-vault-600 text-white shadow-xs'
+                : 'text-vault-600 dark:text-vault-400 bg-vault-50 dark:bg-vault-950/60 hover:bg-vault-100 hover:text-vault-700'
+            }`}
+            title="All Generated Reports"
           >
-            <Cloud className="w-4 h-4" />
-            {isSyncConnected && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent-green" />
+            <Activity className="w-4 h-4" strokeWidth={2} />
+            {analyses.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-teal-500" />
             )}
           </button>
 
           <button
-            onClick={() => onNavigate('overviews_history')}
-            className={`p-2 rounded-md transition-[background-color,color] ${
-              activeView === 'overviews_history'
-                ? 'bg-surface-card text-ink border border-hairline'
-                : 'text-mute hover:bg-surface-elevated hover:text-ink'
-            }`}
-            title="Health Overviews"
-          >
-            <Activity className="w-4 h-4" />
-          </button>
-
-          <button
             onClick={() => onNavigate('settings')}
-            className={`p-2 rounded-md transition-[background-color,color] ${
+            className={`p-2 rounded-sm relative transition-colors ${
               activeView === 'settings'
-                ? 'bg-surface-card text-ink border border-hairline'
-                : 'text-mute hover:bg-surface-elevated hover:text-ink'
+                ? 'bg-vault-50 text-vault-600'
+                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
-            title="AI Provider Setup"
+            title={`AI Engine: ${aiHealth.providerName || 'Configured'} (${aiHealth.status})`}
           >
-            <Cpu className="w-4 h-4" />
+            <Cpu className="w-4 h-4" strokeWidth={1.75} />
+            {aiHealth.status === 'active' && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-sage-600" />
+            )}
+            {aiHealth.status === 'failure' && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-clay-600" />
+            )}
+            {aiHealth.status === 'checking' && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-vault-500 animate-ping" />
+            )}
           </button>
 
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
@@ -185,76 +223,57 @@ export const Sidebar: React.FC<Props> = ({
   }
 
   // --------------------------------------------------------------------------
-  // Expanded Sidebar
+  // Standard Sidebar (240px fixed per §5.2)
   // --------------------------------------------------------------------------
   return (
-    <aside className="w-60 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0">
-      {/* Signature Red Hero Stripe */}
-      <div className="h-0.5 w-full hero-stripe-accent shrink-0" />
-
-      {/* Brand Header */}
-      <div className="px-3.5 py-3 border-b border-hairline flex items-center justify-between shrink-0">
+    <aside className="w-[240px] bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 font-sans">
+      {/* Brand Header - Spacious and Breathable */}
+      <div className="px-4 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-surface">
         <button
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-2.5 min-w-0 group"
-          title="Home Dashboard"
+          className="flex items-center min-w-0 text-left transition-opacity hover:opacity-90"
+          title="Return to Home Dashboard"
         >
-          {/* Logo mark — ShieldCheck in a pill, concentric with the sidebar radius */}
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-4 h-4 text-primary-text" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-semibold tracking-tight text-ink">MedBuddy</h1>
-              <span className="text-[10px] px-1.5 rounded-xs bg-surface-elevated text-stone border border-hairline font-medium">
-                v1
-              </span>
-            </div>
-            <p className="text-[10px] text-stone flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-green inline-block" />
-              Local Vault
-            </p>
-          </div>
+          <MedBuddyLogo size={32} showText={true} />
         </button>
 
         <div className="flex items-center gap-1 shrink-0">
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           {onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
+              className="p-1.5 rounded-md text-tertiary hover:text-primary hover:bg-surface-hover transition-colors"
               title="Collapse Sidebar (⌘B)"
               aria-label="Collapse sidebar"
             >
-              <PanelLeftClose className="w-4 h-4" />
+              <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Home nav item */}
-      <div className="px-2.5 pt-2.5 pb-1 shrink-0">
+      {/* Home Navigation Link */}
+      <div className="px-3 pt-3 pb-1.5 shrink-0">
         <button
           onClick={() => onNavigate('home')}
-          className={navItem(activeView === 'home')}
+          className={navItemClass(activeView === 'home')}
         >
-          <Home className="w-4 h-4 shrink-0" />
-          <span className="truncate">Home</span>
+          <Home className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+          <span className="truncate">Home Dashboard</span>
         </button>
       </div>
 
-      {/* Member Selector */}
-      <div className="px-2.5 py-2 border-b border-hairline relative shrink-0">
-        <div className="flex items-center justify-between mb-1.5 px-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-stone">
-            Family
+      {/* Member Switcher per §9.5 */}
+      <div className="px-3 py-2 border-b border-border relative shrink-0">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="text-caption font-medium uppercase tracking-wider text-tertiary">
+            Family Profile
           </span>
           <button
             onClick={onOpenAddMember}
-            className="text-[11px] text-stone hover:text-ink flex items-center gap-0.5 font-medium"
+            className="text-caption text-tertiary hover:text-primary flex items-center gap-0.5 font-medium transition-colors"
             title="Add Family Member"
           >
-            <Plus className="w-3 h-3" /> Add
+            <Plus className="w-3 h-3" strokeWidth={1.75} /> Add
           </button>
         </div>
 
@@ -262,42 +281,46 @@ export const Sidebar: React.FC<Props> = ({
           <div className="relative">
             <button
               onClick={() => setMemberMenuOpen(!memberMenuOpen)}
-              className="w-full flex items-center justify-between px-2.5 py-2 rounded-md bg-surface-elevated hover:bg-surface-card border border-hairline text-left"
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm bg-surface hover:bg-surface-hover border border-border text-left transition-colors"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0"
-                  style={{ backgroundColor: selectedMember.avatar_color }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shrink-0 shadow-xs"
+                  style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
                 >
                   {selectedMember.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-ink truncate">{selectedMember.name}</div>
-                  <div className="text-[10px] text-stone truncate">{selectedMember.relationship}</div>
+                  <div className="text-body font-medium text-primary truncate leading-tight">
+                    {selectedMember.name}
+                  </div>
+                  <div className="text-caption text-tertiary truncate leading-tight">
+                    {selectedMember.relationship}
+                  </div>
                 </div>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-stone shrink-0 ml-1" />
+              <ChevronDown className="w-3.5 h-3.5 text-tertiary shrink-0 ml-1" strokeWidth={1.75} />
             </button>
 
             {memberMenuOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-surface-card border border-hairline rounded-md z-30 py-1 max-h-48 overflow-y-auto">
-                {members.map((m) => (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-sm z-30 py-1 max-h-48 overflow-y-auto">
+                {members.map((m, idx) => (
                   <div
                     key={m.id}
-                    className="flex items-center justify-between px-2.5 py-1.5 hover:bg-surface-elevated cursor-pointer group"
+                    className="flex items-center justify-between px-3 py-2 hover:bg-surface-hover cursor-pointer group transition-colors"
                     onClick={() => {
                       onSelectMember(m);
                       setMemberMenuOpen(false);
                     }}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black shrink-0"
-                        style={{ backgroundColor: m.avatar_color }}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                        style={{ backgroundColor: getMemberColor(m, idx) }}
                       >
                         {m.name.slice(0, 1).toUpperCase()}
                       </div>
-                      <span className="text-xs text-ink truncate font-medium">{m.name}</span>
+                      <span className="text-body text-primary truncate font-medium">{m.name}</span>
                     </div>
                     <button
                       type="button"
@@ -306,10 +329,10 @@ export const Sidebar: React.FC<Props> = ({
                         setMemberMenuOpen(false);
                         onOpenEditMember(m);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-stone hover:text-ink"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-tertiary hover:text-primary transition-opacity"
                       title="Edit Member"
                     >
-                      <Settings className="w-3 h-3" />
+                      <Settings className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                   </div>
                 ))}
@@ -319,41 +342,129 @@ export const Sidebar: React.FC<Props> = ({
         ) : (
           <button
             onClick={onOpenAddMember}
-            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md border border-dashed border-hairline text-xs text-stone hover:text-ink hover:border-hairline-strong"
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm border border-dashed border-border-strong text-small text-tertiary hover:text-primary hover:border-vault-500 transition-colors"
           >
-            <UserPlus className="w-3.5 h-3.5" />
-            Add First Member
+            <UserPlus className="w-4 h-4" strokeWidth={1.75} />
+            Add First Profile
           </button>
         )}
       </div>
 
-      {/* Folders */}
-      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5">
-        <div className="flex items-center justify-between px-0.5 mb-1.5">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-stone">
+      {/* Folder Tree per §9.5 */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <div className="flex items-center justify-between px-1 mb-1">
+          <span className="text-caption font-medium uppercase tracking-wider text-tertiary">
             Folders
           </span>
           {selectedMember && (
             <button
               onClick={onOpenAddFolder}
-              className="text-[11px] text-stone hover:text-ink flex items-center gap-1 font-medium"
-              title="New Folder"
+              className="text-caption text-tertiary hover:text-primary flex items-center gap-1 font-medium transition-colors"
+              title="Create New Folder"
             >
-              <FolderPlus className="w-3 h-3" /> New
+              <FolderPlus className="w-3 h-3" strokeWidth={1.75} /> New
             </button>
           )}
         </div>
 
-        {folders.length === 0 ? (
+        {/* 1. Default 'Generated Reports' Folder for the Profile */}
+        {selectedMember && (
+          <div className="mb-1.5">
+            <div
+              onClick={() => setReportsFolderExpanded(!reportsFolderExpanded)}
+              className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-body cursor-pointer transition-colors ${
+                activeView === 'overviews_history' || (activeView === 'overview' && !selectedFolderId)
+                  ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold'
+                  : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportsFolderExpanded(!reportsFolderExpanded);
+                  }}
+                  className="p-0.5 text-tertiary hover:text-primary transition-transform"
+                  title={reportsFolderExpanded ? 'Collapse' : 'Expand'}
+                >
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                      reportsFolderExpanded ? '' : '-rotate-90'
+                    }`}
+                    strokeWidth={2}
+                  />
+                </button>
+                <div className="w-4 h-4 rounded flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                  <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
+                </div>
+                <span className="truncate text-small">
+                  {selectedMember ? `${selectedMember.name}'s Reports` : 'Profile Reports'}
+                </span>
+              </div>
+              <span className="text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/80 shrink-0">
+                {memberAnalyses.length}
+              </span>
+            </div>
+
+            {/* Expanded items list: reports for this profile */}
+            {reportsFolderExpanded && (
+              <div className="pl-4 pr-1 space-y-0.5 mt-0.5 mb-1.5 border-l-2 border-teal-500/20 dark:border-teal-500/30 ml-4">
+                {memberAnalyses.length === 0 ? (
+                  <div className="px-2 py-1.5 text-caption text-tertiary italic">
+                    No generated reports yet
+                  </div>
+                ) : (
+                  memberAnalyses.map((rec) => {
+                    const isSelected = activeView === 'overview' && currentAnalysisId === rec.id;
+                    const dateStr = new Date(rec.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    return (
+                      <button
+                        key={rec.id}
+                        type="button"
+                        onClick={() => onSelectAnalysis?.(rec)}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm text-small text-left transition-colors group ${
+                          isSelected
+                            ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold shadow-2xs'
+                            : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
+                        }`}
+                        title={`${rec.scope_name || 'Report'} (${dateStr})`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText
+                            className={`w-3.5 h-3.5 shrink-0 ${
+                              isSelected ? 'text-vault-600' : 'text-tertiary'
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                          <span className="truncate text-[12px]">{rec.scope_name || 'Health Overview'}</span>
+                        </div>
+                        <span className="text-[10px] text-tertiary tabular-nums shrink-0 ml-1.5">
+                          {dateStr}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. Custom Folders */}
+        {folders.length === 0 && (!selectedMember || memberAnalyses.length === 0) ? (
           <div className="text-center py-6 px-2">
-            <FolderIcon className="w-5 h-5 text-stone mx-auto mb-1.5 opacity-30" />
-            <p className="text-[11px] text-stone">No folders yet</p>
+            <FolderIcon className="w-6 h-6 text-tertiary mx-auto mb-2 opacity-40" strokeWidth={1.75} />
+            <p className="text-small text-secondary">No custom folders</p>
             {selectedMember && (
               <button
                 onClick={onOpenAddFolder}
-                className="mt-2 text-xs text-mute hover:text-ink underline"
+                className="mt-1.5 text-caption text-brand hover:underline font-medium"
               >
-                Create one
+                Create your first folder
               </button>
             )}
           </div>
@@ -367,32 +478,34 @@ export const Sidebar: React.FC<Props> = ({
                   onSelectFolder(f.id);
                   onNavigate('files');
                 }}
-                className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition-[background-color,color] ${
+                className={`group flex items-center justify-between px-3 py-1.5 rounded-sm text-body cursor-pointer transition-colors ${
                   isSelected
-                    ? 'bg-surface-card text-ink border border-hairline'
-                    : 'text-mute hover:bg-surface-elevated hover:text-ink'
+                    ? 'bg-vault-50 text-vault-600 font-medium'
+                    : 'text-secondary hover:bg-surface-hover hover:text-primary'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <FolderIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-ink' : 'text-stone'}`} />
-                  <span className="truncate font-medium">{f.name}</span>
+                  <FolderIcon
+                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-vault-600' : 'text-tertiary'}`}
+                    strokeWidth={1.75}
+                  />
+                  <span className="truncate">{f.name}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Bare count — no badge noise */}
-                  <span className="text-[10px] tabular-nums text-stone">
+                  <span className="text-caption tabular-nums text-tertiary font-medium">
                     {f.document_count || 0}
                   </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Delete folder "${f.name}" and all documents inside?`)) {
+                      if (confirm(`Delete folder "${f.name}" and all records inside?`)) {
                         onDeleteFolder(f.id);
                       }
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-stone hover:text-accent-red"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 text-tertiary hover:text-clay-600 transition-colors"
                     title="Delete Folder"
                   >
-                    <ChevronRight className="w-3 h-3 rotate-90 opacity-60" />
+                    <ChevronRight className="w-3.5 h-3.5 rotate-90" strokeWidth={1.75} />
                   </button>
                 </div>
               </div>
@@ -401,49 +514,92 @@ export const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="px-2.5 py-2 border-t border-hairline space-y-0.5 shrink-0">
+      {/* Pinned Footer Items (§9.5) */}
+      <div className="px-3 py-2.5 border-t border-border space-y-1.5 shrink-0 bg-surface-recessed">
+        {/* 1. Emphasized Generated Reports (First in List) */}
         <button
-          onClick={onOpenSync}
-          className="w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium text-mute hover:bg-surface-elevated hover:text-ink group"
+          onClick={() => onNavigate('overviews_history')}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all shadow-2xs ${
+            activeView === 'overviews_history' || activeView === 'overview'
+              ? 'bg-vault-50/80 border-vault-300 text-vault-700 dark:bg-vault-950/60 dark:border-vault-700 dark:text-vault-300 font-semibold shadow-xs'
+              : 'bg-surface border-border hover:border-vault-300/60 hover:bg-vault-50/30 text-primary font-medium hover:shadow-xs'
+          }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <Cloud className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Drive Sync</span>
+            <div
+              className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
+                activeView === 'overviews_history' || activeView === 'overview'
+                  ? 'bg-vault-600 text-white'
+                  : 'bg-vault-50 dark:bg-vault-900/60 text-vault-600 dark:text-vault-400 border border-vault-200/50'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" strokeWidth={2} />
+            </div>
+            <span className="truncate font-semibold text-small">All Generated Reports</span>
           </div>
-          {isSyncConnected ? (
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-green shrink-0" />
-          ) : (
-            <span className="text-[10px] text-stone group-hover:text-mute">Setup</span>
+          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-recessed border border-border text-tertiary tabular-nums">
+            {analyses.length}
+          </span>
+        </button>
+
+        {/* 2. AI Providers with Health Status Indicator */}
+        <button
+          onClick={() => onNavigate('settings')}
+          className={`${navItemClass(activeView === 'settings')} justify-between`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Cpu className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+            <span className="truncate">AI Providers</span>
+          </div>
+
+          {/* AI Health Status Indicator */}
+          {aiHealth.status === 'active' && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sage-50 dark:bg-sage-950/60 border border-sage-200 dark:border-sage-800 text-[11px] font-medium text-sage-700 dark:text-sage-300 shrink-0"
+              title={`Active: ${aiHealth.providerName || 'AI Engine'} (${aiHealth.latencyMs ? `${aiHealth.latencyMs}ms` : 'online'})`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-sage-600 animate-pulse" />
+              <span>Active</span>
+            </div>
+          )}
+
+          {aiHealth.status === 'failure' && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-clay-50 dark:bg-clay-950/60 border border-clay-200 dark:border-clay-800 text-[11px] font-medium text-clay-700 dark:text-clay-300 shrink-0"
+              title={`Connection Failure: ${aiHealth.error || 'Provider offline'}. Click to configure.`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-clay-600" />
+              <span>Offline</span>
+            </div>
+          )}
+
+          {aiHealth.status === 'checking' && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface text-[11px] text-tertiary shrink-0 border border-border"
+              title="Checking AI provider health..."
+            >
+              <Loader2 className="w-3 h-3 animate-spin text-vault-600" />
+              <span>Testing</span>
+            </div>
+          )}
+
+          {aiHealth.status === 'idle' && (
+            <span className="w-1.5 h-1.5 rounded-full bg-border-strong shrink-0" title="Not configured" />
           )}
         </button>
 
-        <button
-          onClick={() => onNavigate('overviews_history')}
-          className={navItem(activeView === 'overviews_history')}
-        >
-          <Activity className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">Overviews</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('settings')}
-          className={navItem(activeView === 'settings')}
-        >
-          <Cpu className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">AI Providers</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('logs')}
-          className={`${navItem(activeView === 'logs')} justify-between`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Terminal className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Diagnostics</span>
-          </div>
-          <Keycap>⌘L</Keycap>
-        </button>
+        {/* 4. Diagnostics & Theme Utility Bar */}
+        <div className="flex items-center justify-between pt-1 border-t border-border">
+          <button
+            onClick={() => onNavigate('logs')}
+            className="flex items-center gap-2 px-2 py-1 rounded-sm text-caption text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
+          >
+            <Terminal className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
+            <span>Diagnostics</span>
+            <Keycap>⌘L</Keycap>
+          </button>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </div>
     </aside>
   );

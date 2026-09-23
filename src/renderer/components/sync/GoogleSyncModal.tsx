@@ -3,14 +3,12 @@ import {
   X,
   Cloud,
   CheckCircle2,
-  AlertCircle,
+  AlertOctagon,
   Folder,
   User,
   Users,
   RefreshCw,
-  FolderCheck,
   HardDrive,
-  Key,
   ShieldCheck,
   Check,
   LogOut,
@@ -26,6 +24,8 @@ import type {
   SyncScope,
   SyncMountType,
 } from '../../../shared/types';
+import { Button } from '../common/Button';
+import { MEMBER_AVATAR_COLORS } from '../sidebar/MemberModal';
 
 interface Props {
   isOpen: boolean;
@@ -62,7 +62,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
 
   // Form State
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
-  const [showAdvancedOAuth, setShowAdvancedOAuth] = useState(false);
   const [clientIdInput, setClientIdInput] = useState('');
   const [clientSecretInput, setClientSecretInput] = useState('');
   const [mountType, setMountType] = useState<SyncMountType>('cloud');
@@ -87,7 +86,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
         setDriveFolderName(data.driveFolderName || 'MedBuddy Vault');
         setLocalMountPath(data.localMountPath || '');
 
-        // Scope initialization
         if (initialScope) {
           setSyncScope(initialScope);
         } else {
@@ -108,7 +106,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
           setSelectedFolderIds(new Set(data.selectedFolderIds));
         }
 
-        // Auto-navigate to appropriate step
         if (data.isSignedIn) {
           setActiveStep(2);
         } else {
@@ -150,7 +147,7 @@ export const GoogleSyncModal: React.FC<Props> = ({
       setSuccessMsg(null);
 
       if (!useDemo && !clientIdInput.trim()) {
-        setError('Please enter your Google OAuth 2.0 Client ID to sign in to your personal Google account. (Or click "Use Sandbox Demo Account" to test offline).');
+        setError('Please enter your Google OAuth 2.0 Client ID to sign in. (Or click "Use Sandbox Demo Account" for local testing).');
         setIsAuthenticating(false);
         return;
       }
@@ -209,7 +206,7 @@ export const GoogleSyncModal: React.FC<Props> = ({
         setError(res.message);
       }
     } catch (err: any) {
-      setError(err.message || 'Mount test failed');
+      setError(err.message || 'Mount verification failed');
     } finally {
       setIsTestingMount(false);
     }
@@ -227,7 +224,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
     }
   };
 
-  // Folder selection toggle
   const toggleFolderSelection = (folderId: string) => {
     const next = new Set(selectedFolderIds);
     if (next.has(folderId)) next.delete(folderId);
@@ -246,7 +242,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
     setSelectedFolderIds(next);
   };
 
-  // Start Sync Handler
   const handleStartSync = async () => {
     try {
       setIsSyncing(true);
@@ -254,7 +249,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
       setSyncResult(null);
       setSuccessMsg(null);
 
-      // Save sync settings before running
       await window.medbuddy.saveSyncSettings({
         mountType,
         driveFolderName: driveFolderName.trim() || 'MedBuddy Vault',
@@ -287,7 +281,6 @@ export const GoogleSyncModal: React.FC<Props> = ({
     }
   };
 
-  // Statistics calculation for scope overview
   const totalVaultDocs = folders.reduce((acc, f) => acc + (f.document_count || 0), 0);
   const selectedMemberObj = members.find((m) => m.id === selectedMemberId);
   const selectedMemberFolders = folders.filter((f) => f.member_id === selectedMemberId);
@@ -298,125 +291,122 @@ export const GoogleSyncModal: React.FC<Props> = ({
     .reduce((acc, f) => acc + (f.document_count || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-hairline rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-        {/* Signature Red Hero Stripe Accent (Design.md) */}
-        <div className="h-1 w-full hero-stripe-accent shrink-0" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col shadow-md overflow-hidden select-none font-sans">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-hairline flex items-center justify-between shrink-0 bg-surface">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0 bg-surface">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-hairline flex items-center justify-center text-accent-blue">
-              <Cloud className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center">
+              <Cloud className="w-4 h-4" strokeWidth={1.75} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-ink">Sync to Google Drive</h2>
+                <h2 className="text-h2 font-semibold text-primary">Google Drive Backup</h2>
                 {settings?.isSignedIn && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-accent-green-soft text-accent-green border border-accent-green/30">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium bg-sage-100 text-sage-600 border border-sage-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sage-600" />
                     Connected
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-mute">
-                Encrypted cloud backup with granular profile & folder sync
+              <p className="text-caption text-secondary">
+                Encrypted cloud backup with granular profile &amp; folder synchronization
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-mute hover:text-ink hover:bg-surface-elevated transition-colors"
+            className="p-1 rounded-sm text-tertiary hover:text-primary hover:bg-surface-hover transition-colors"
             title="Close (Esc)"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Workflow Step Navigation Tabs */}
-        <div className="px-6 pt-3 pb-2 border-b border-hairline bg-surface-elevated/30 flex items-center gap-1 shrink-0 overflow-x-auto">
+        {/* Workflow Step Navigation Tabs (§9.8) */}
+        <div className="px-6 pt-2 pb-1 border-b border-border bg-surface-recessed flex items-center gap-1 shrink-0 overflow-x-auto">
           <button
             onClick={() => setActiveStep(1)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-small font-medium transition-colors ${
               activeStep === 1
-                ? 'bg-surface-card text-ink border border-hairline shadow-sm'
-                : 'text-mute hover:text-ink hover:bg-surface-elevated'
+                ? 'bg-surface text-primary border border-border'
+                : 'text-tertiary hover:text-primary'
             }`}
           >
             <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${
-              settings?.isSignedIn ? 'bg-accent-green text-black font-bold' : 'bg-surface-elevated border border-hairline'
+              settings?.isSignedIn ? 'bg-sage-600 text-white font-bold' : 'bg-surface-recessed border border-border'
             }`}>
               {settings?.isSignedIn ? '✓' : '1'}
             </span>
-            <span>1. Google Sign-In</span>
+            <span>1. Authentication</span>
           </button>
 
-          <span className="text-stone">›</span>
+          <span className="text-border-strong text-caption">›</span>
 
           <button
             onClick={() => setActiveStep(2)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-small font-medium transition-colors ${
               activeStep === 2
-                ? 'bg-surface-card text-ink border border-hairline shadow-sm'
-                : 'text-mute hover:text-ink hover:bg-surface-elevated'
+                ? 'bg-surface text-primary border border-border'
+                : 'text-tertiary hover:text-primary'
             }`}
           >
-            <span className="w-4 h-4 rounded-full bg-surface-elevated border border-hairline flex items-center justify-center text-[10px]">
+            <span className="w-4 h-4 rounded-full bg-surface-recessed border border-border flex items-center justify-center text-[10px]">
               2
             </span>
-            <span>2. Drive Mount Location</span>
+            <span>2. Destination</span>
           </button>
 
-          <span className="text-stone">›</span>
+          <span className="text-border-strong text-caption">›</span>
 
           <button
             onClick={() => setActiveStep(3)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-small font-medium transition-colors ${
               activeStep === 3
-                ? 'bg-surface-card text-ink border border-hairline shadow-sm'
-                : 'text-mute hover:text-ink hover:bg-surface-elevated'
+                ? 'bg-surface text-primary border border-border'
+                : 'text-tertiary hover:text-primary'
             }`}
           >
-            <span className="w-4 h-4 rounded-full bg-surface-elevated border border-hairline flex items-center justify-center text-[10px]">
+            <span className="w-4 h-4 rounded-full bg-surface-recessed border border-border flex items-center justify-center text-[10px]">
               3
             </span>
-            <span>3. Sync Scope</span>
+            <span>3. Scope</span>
           </button>
 
-          <span className="text-stone">›</span>
+          <span className="text-border-strong text-caption">›</span>
 
           <button
             onClick={() => setActiveStep(4)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-small font-medium transition-colors ${
               activeStep === 4
-                ? 'bg-surface-card text-ink border border-hairline shadow-sm'
-                : 'text-mute hover:text-ink hover:bg-surface-elevated'
+                ? 'bg-surface text-primary border border-border'
+                : 'text-tertiary hover:text-primary'
             }`}
           >
-            <span className="w-4 h-4 rounded-full bg-surface-elevated border border-hairline flex items-center justify-center text-[10px]">
+            <span className="w-4 h-4 rounded-full bg-surface-recessed border border-border flex items-center justify-center text-[10px]">
               4
             </span>
-            <span>4. Sync & Status</span>
+            <span>4. Sync</span>
           </button>
         </div>
 
         {/* Notifications & Status Banner */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-accent-red-soft border border-hairline text-accent-red text-xs flex items-start gap-2.5 animate-in fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 p-3 rounded-sm bg-clay-100 border border-clay-300 text-clay-600 text-small flex items-start gap-2.5">
+            <AlertOctagon className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
             <div className="flex-1">{error}</div>
-            <button onClick={() => setError(null)} className="text-accent-red/70 hover:text-accent-red">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={() => setError(null)} className="text-clay-600/70 hover:text-clay-600">
+              <X className="w-3.5 h-3.5" strokeWidth={1.75} />
             </button>
           </div>
         )}
 
         {successMsg && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-accent-green-soft border border-hairline text-accent-green text-xs flex items-start gap-2.5 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 p-3 rounded-sm bg-sage-100 border border-sage-300 text-sage-600 text-small flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
             <div className="flex-1">{successMsg}</div>
-            <button onClick={() => setSuccessMsg(null)} className="text-accent-green/70 hover:text-accent-green">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={() => setSuccessMsg(null)} className="text-sage-600/70 hover:text-sage-600">
+              <X className="w-3.5 h-3.5" strokeWidth={1.75} />
             </button>
           </div>
         )}
@@ -425,184 +415,133 @@ export const GoogleSyncModal: React.FC<Props> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* STEP 1: Google OAuth Sign-In */}
           {activeStep === 1 && (
-            <div className="space-y-5 animate-in fade-in">
-              <div className="p-4 rounded-xl bg-surface-elevated border border-hairline flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-accent-green shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1">
-                  <h4 className="font-semibold text-ink">Zero Third-Party Telemetry</h4>
-                  <p className="text-mute leading-relaxed">
-                    MedBuddy authenticates directly with Google via OAuth 2.0. Your medical records are transferred
-                    directly between your computer and your personal Google Drive account.
+            <div className="space-y-5">
+              <div className="p-4 rounded-md bg-surface-recessed border border-border flex items-start gap-3">
+                <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" strokeWidth={1.75} />
+                <div className="text-small text-secondary space-y-1">
+                  <h4 className="font-semibold text-primary">Direct End-to-End Google Drive Transfer</h4>
+                  <p className="leading-relaxed">
+                    MedBuddy authenticates directly via OAuth 2.0. No intermediary proxy or tracking servers are involved.
                   </p>
                 </div>
               </div>
 
               {settings?.isSignedIn ? (
-                /* Signed-in Account Card */
-                <div className="p-5 rounded-xl bg-surface-card border border-hairline space-y-4">
+                <div className="p-5 rounded-md bg-surface border border-border space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase text-stone tracking-wider">
+                    <span className="text-caption font-medium uppercase tracking-wider text-tertiary">
                       Connected Google Account
                     </span>
-                    <button
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={handleDisconnect}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-accent-red hover:bg-surface-elevated rounded border border-hairline transition-colors"
+                      icon={<LogOut className="w-3.5 h-3.5" strokeWidth={1.75} />}
                     >
-                      <LogOut className="w-3.5 h-3.5" />
                       Sign Out
-                    </button>
+                    </Button>
                   </div>
-
-                  {/* Warning banner if signed in as demo account */}
-                  {(settings.userEmail?.includes('eleanor.vance') || settings.userEmail?.includes('demo')) && (
-                    <div className="p-3 rounded-lg bg-accent-yellow/10 border border-accent-yellow/30 text-xs flex items-center justify-between gap-3 text-ink">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-accent-yellow shrink-0" />
-                        <span className="text-mute">
-                          Connected as <strong className="text-ink">Sandbox Demo Account</strong>. Sign out to connect your real personal Google account.
-                        </span>
-                      </div>
-                      <button
-                        onClick={handleDisconnect}
-                        className="px-2.5 py-1 rounded bg-accent-yellow text-black font-semibold text-[11px] hover:opacity-90 shrink-0"
-                      >
-                        Sign Out & Connect Real Account
-                      </button>
-                    </div>
-                  )}
 
                   <div className="flex items-center gap-3.5">
                     {settings.userAvatar ? (
                       <img
                         src={settings.userAvatar}
                         alt="Profile"
-                        className="w-12 h-12 rounded-full border border-hairline object-cover"
+                        className="w-11 h-11 rounded-full border border-border object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-accent-blue/20 text-accent-blue flex items-center justify-center font-bold text-base border border-hairline">
+                      <div className="w-11 h-11 rounded-full bg-vault-50 text-vault-600 flex items-center justify-center font-bold text-body border border-border">
                         {(settings.userName || 'G').slice(0, 1).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <h3 className="text-sm font-semibold text-ink">{settings.userName || 'Google Account'}</h3>
-                      <p className="text-xs text-mute font-mono">{settings.userEmail}</p>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-accent-green mt-1">
-                        <Check className="w-3.5 h-3.5" /> OAuth 2.0 Verified
+                      <h3 className="text-body font-semibold text-primary">{settings.userName || 'Google Account'}</h3>
+                      <p className="text-small text-secondary font-mono">{settings.userEmail}</p>
+                      <span className="inline-flex items-center gap-1 text-caption text-sage-600 mt-1">
+                        <Check className="w-3.5 h-3.5" strokeWidth={2} /> OAuth 2.0 Verified
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-hairline flex justify-end">
-                    <button
-                      onClick={() => setActiveStep(2)}
-                      className="px-4 py-2 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors"
-                    >
-                      Configure Drive Mount Location →
-                    </button>
+                  <div className="pt-3 border-t border-border flex justify-end">
+                    <Button variant="primary" size="md" onClick={() => setActiveStep(2)}>
+                      Configure Destination →
+                    </Button>
                   </div>
                 </div>
               ) : (
-                /* Not Signed-in Action Area */
                 <div className="space-y-4">
-                  <div className="p-6 rounded-xl bg-surface-card border border-hairline space-y-4">
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-10 h-10 rounded-lg bg-surface-elevated border border-hairline flex items-center justify-center shrink-0 text-ink">
-                        <Cloud className="w-5 h-5 text-accent-blue" />
+                  <div className="p-5 rounded-md bg-surface border border-border space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center shrink-0">
+                        <Cloud className="w-4 h-4" strokeWidth={1.75} />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-ink">Sign In With Google Account</h3>
-                        <p className="text-xs text-mute mt-1 leading-relaxed">
-                          Enter your Google Cloud OAuth Client ID to authenticate directly with your Google account via browser.
+                        <h3 className="text-body font-semibold text-primary">Authenticate with Google</h3>
+                        <p className="text-small text-secondary mt-0.5">
+                          Enter your Google Cloud OAuth Client ID to connect directly to your personal Drive.
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-3 pt-2 border-t border-hairline/60">
+                    <div className="space-y-3 pt-2 border-t border-border">
                       <div>
-                        <label className="block text-xs font-medium text-ink mb-1">
-                          Google OAuth 2.0 Client ID <span className="text-accent-red">*</span>
+                        <label className="block text-small font-medium text-secondary mb-1">
+                          Google OAuth 2.0 Client ID
                         </label>
                         <input
                           type="text"
                           value={clientIdInput}
                           onChange={(e) => setClientIdInput(e.target.value)}
                           placeholder="e.g. 1234567890-xyz.apps.googleusercontent.com"
-                          className="w-full px-3 py-2 text-xs bg-surface border border-hairline rounded-md text-ink placeholder:text-stone font-mono focus:outline-none focus:border-hairline-strong"
+                          className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-mute mb-1">
-                          Client Secret <span className="text-stone">(Optional for Desktop clients)</span>
+                        <label className="block text-small font-medium text-secondary mb-1">
+                          Client Secret <span className="text-tertiary font-normal">(Optional for Desktop)</span>
                         </label>
                         <input
                           type="password"
                           value={clientSecretInput}
                           onChange={(e) => setClientSecretInput(e.target.value)}
                           placeholder="GOCSPX-..."
-                          className="w-full px-3 py-2 text-xs bg-surface border border-hairline rounded-md text-ink placeholder:text-stone font-mono focus:outline-none focus:border-hairline-strong"
+                          className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
                         />
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                        <button
+                      <div className="flex flex-wrap items-center gap-3 pt-2">
+                        <Button
+                          variant="primary"
+                          size="md"
                           onClick={() => handleSignIn(false)}
-                          disabled={isAuthenticating}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-all shadow-sm disabled:opacity-50"
+                          loading={isAuthenticating}
                         >
-                          {isAuthenticating ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              Opening Google sign-in in browser...
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                                <path
-                                  fill="#4285F4"
-                                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                />
-                                <path
-                                  fill="#34A853"
-                                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                />
-                                <path
-                                  fill="#FBBC05"
-                                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                                />
-                                <path
-                                  fill="#EA4335"
-                                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                                />
-                              </svg>
-                              Sign in with Google
-                            </>
-                          )}
-                        </button>
-
-                        <button
+                          Sign in with Google
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="md"
                           onClick={() => handleSignIn(true)}
                           disabled={isAuthenticating}
-                          className="w-full sm:w-auto px-4 py-2.5 text-xs font-medium bg-surface-elevated text-mute hover:text-ink hover:bg-surface border border-hairline rounded-md transition-colors"
-                          title="Simulate Google Drive authentication instantly for offline testing"
                         >
                           Use Sandbox Demo Account
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Setup Guide */}
-                  <div className="border border-hairline rounded-lg p-4 bg-surface space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-ink">
-                      <HelpCircle className="w-4 h-4 text-accent-blue" />
-                      <span>How to get your Google Cloud OAuth Client ID (1 minute):</span>
+                  <div className="border border-border rounded-sm p-4 bg-surface-recessed space-y-1.5">
+                    <div className="flex items-center gap-2 text-small font-semibold text-primary">
+                      <HelpCircle className="w-4 h-4 text-tertiary" strokeWidth={1.75} />
+                      <span>Creating a Google Cloud Desktop OAuth Client ID:</span>
                     </div>
-                    <ol className="text-[11px] text-mute list-decimal list-inside space-y-1 leading-relaxed">
-                      <li>Go to the <strong className="text-ink">Google Cloud Console</strong> (console.cloud.google.com).</li>
-                      <li>Navigate to <strong className="text-ink">APIs & Services &gt; Credentials &gt; Create Credentials &gt; OAuth client ID</strong>.</li>
-                      <li>Select Application type: <strong className="text-ink">Desktop app</strong> and paste the Client ID above.</li>
-                      <li>In <strong className="text-ink">Enabled APIs & Services</strong>, ensure the <strong className="text-ink">Google Drive API</strong> is enabled.</li>
+                    <ol className="text-caption text-secondary list-decimal list-inside space-y-1 leading-relaxed">
+                      <li>Visit the Google Cloud Console (console.cloud.google.com).</li>
+                      <li>Go to APIs &amp; Services &gt; Credentials &gt; Create Credentials &gt; OAuth client ID.</li>
+                      <li>Select Application type: Desktop app and paste the Client ID above.</li>
+                      <li>In Enabled APIs &amp; Services, ensure Google Drive API is enabled.</li>
                     </ol>
                   </div>
                 </div>
@@ -610,74 +549,72 @@ export const GoogleSyncModal: React.FC<Props> = ({
             </div>
           )}
 
-          {/* STEP 2: Google Drive Mounting Folder Location Workflow */}
+          {/* STEP 2: Mount Location Destination */}
           {activeStep === 2 && (
-            <div className="space-y-5 animate-in fade-in">
-              <div className="space-y-1">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-stone font-mono">
-                  Mounting Destination & Strategy
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-body font-semibold text-primary">
+                  Destination &amp; Sync Strategy
                 </h3>
-                <p className="text-xs text-mute">
-                  Choose whether to sync directly via Google Drive Cloud API or mount a local Google Drive desktop directory.
+                <p className="text-small text-secondary">
+                  Choose between direct Google Drive Cloud API synchronization or local directory mounting.
                 </p>
               </div>
 
-              {/* Mode Selection Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div
                   onClick={() => setMountType('cloud')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-md border cursor-pointer transition-all ${
                     mountType === 'cloud'
-                      ? 'bg-surface-card border-accent-blue shadow-sm'
-                      : 'bg-surface-elevated border-hairline hover:border-hairline-strong'
+                      ? 'bg-surface border-vault-600 shadow-sm'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <Cloud className={`w-5 h-5 ${mountType === 'cloud' ? 'text-accent-blue' : 'text-mute'}`} />
+                    <Cloud className={`w-5 h-5 ${mountType === 'cloud' ? 'text-vault-600' : 'text-tertiary'}`} strokeWidth={1.75} />
                     <input
                       type="radio"
                       name="mountType"
                       checked={mountType === 'cloud'}
                       onChange={() => setMountType('cloud')}
-                      className="accent-white"
+                      className="accent-vault-600"
                     />
                   </div>
-                  <h4 className="text-xs font-semibold text-ink">Google Drive Cloud Vault</h4>
-                  <p className="text-[11px] text-mute mt-1 leading-relaxed">
-                    Direct sync via Google Drive API v3. Creates a dedicated cloud folder without needing Google Drive desktop software installed.
+                  <h4 className="text-body font-semibold text-primary">Google Drive Cloud Vault</h4>
+                  <p className="text-caption text-secondary mt-1 leading-relaxed">
+                    Direct sync via Google Drive API v3 without needing Google Drive desktop software installed.
                   </p>
                 </div>
 
                 <div
                   onClick={() => setMountType('local_mount')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-md border cursor-pointer transition-all ${
                     mountType === 'local_mount'
-                      ? 'bg-surface-card border-accent-blue shadow-sm'
-                      : 'bg-surface-elevated border-hairline hover:border-hairline-strong'
+                      ? 'bg-surface border-vault-600 shadow-sm'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <HardDrive className={`w-5 h-5 ${mountType === 'local_mount' ? 'text-accent-blue' : 'text-mute'}`} />
+                    <HardDrive className={`w-5 h-5 ${mountType === 'local_mount' ? 'text-vault-600' : 'text-tertiary'}`} strokeWidth={1.75} />
                     <input
                       type="radio"
                       name="mountType"
                       checked={mountType === 'local_mount'}
                       onChange={() => setMountType('local_mount')}
-                      className="accent-white"
+                      className="accent-vault-600"
                     />
                   </div>
-                  <h4 className="text-xs font-semibold text-ink">Local Drive Mount Folder</h4>
-                  <p className="text-[11px] text-mute mt-1 leading-relaxed">
-                    Uses Google Drive for Desktop app's synchronized folder on your computer for instant offline caching.
+                  <h4 className="text-body font-semibold text-primary">Local Drive Folder Mount</h4>
+                  <p className="text-caption text-secondary mt-1 leading-relaxed">
+                    Uses Google Drive for Desktop's synchronized local folder for instant filesystem access.
                   </p>
                 </div>
               </div>
 
-              {/* Mount Location Configurations */}
               {mountType === 'cloud' ? (
-                <div className="p-4 rounded-xl bg-surface-elevated border border-hairline space-y-3">
+                <div className="p-4 rounded-md bg-surface-recessed border border-border space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-mute mb-1">
+                    <label className="block text-small font-medium text-secondary mb-1">
                       Remote Google Drive Vault Folder Name
                     </label>
                     <div className="flex gap-2">
@@ -686,31 +623,25 @@ export const GoogleSyncModal: React.FC<Props> = ({
                         value={driveFolderName}
                         onChange={(e) => setDriveFolderName(e.target.value)}
                         placeholder="e.g. MedBuddy Vault"
-                        className="flex-1 px-3 py-2 text-xs bg-surface border border-hairline rounded-md text-ink placeholder:text-stone focus:outline-none focus:border-hairline-strong font-mono"
+                        className="flex-1 h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35"
                       />
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="md"
                         onClick={handleTestMount}
-                        disabled={isTestingMount}
-                        className="px-3 py-2 text-xs font-medium bg-surface-card hover:bg-surface border border-hairline rounded-md text-ink transition-colors flex items-center gap-1.5 shrink-0"
+                        loading={isTestingMount}
+                        icon={<Check className="w-3.5 h-3.5 text-sage-600" strokeWidth={2} />}
                       >
-                        {isTestingMount ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 text-accent-green" />
-                        )}
                         Verify Mount
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                  <p className="text-[11px] text-mute font-mono">
-                    Target Path: <span className="text-ink">My Drive / {driveFolderName || 'MedBuddy Vault'}</span>
-                  </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-surface-elevated border border-hairline space-y-3">
+                <div className="p-4 rounded-md bg-surface-recessed border border-border space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-mute mb-1">
-                      Local Google Drive Mount Directory Path
+                    <label className="block text-small font-medium text-secondary mb-1">
+                      Local Directory Path
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -718,104 +649,77 @@ export const GoogleSyncModal: React.FC<Props> = ({
                         value={localMountPath}
                         onChange={(e) => setLocalMountPath(e.target.value)}
                         placeholder="/Users/name/Google Drive/MedBuddy"
-                        className="flex-1 px-3 py-2 text-xs bg-surface border border-hairline rounded-md text-ink placeholder:text-stone focus:outline-none focus:border-hairline-strong font-mono"
+                        className="flex-1 h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35"
                       />
-                      <button
-                        onClick={handleSelectLocalFolder}
-                        className="px-3 py-2 text-xs font-medium bg-surface-card hover:bg-surface border border-hairline rounded-md text-ink transition-colors shrink-0"
-                      >
-                        Browse...
-                      </button>
-                      <button
+                      <Button variant="secondary" size="md" onClick={handleSelectLocalFolder}>
+                        Browse…
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="md"
                         onClick={handleTestMount}
-                        disabled={isTestingMount}
-                        className="px-3 py-2 text-xs font-medium bg-surface-card hover:bg-surface border border-hairline rounded-md text-ink transition-colors flex items-center gap-1.5 shrink-0"
+                        loading={isTestingMount}
                       >
-                        {isTestingMount ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 text-accent-green" />}
-                        Test Access
-                      </button>
+                        Test
+                      </Button>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Mount Test Result Feedback */}
               {mountTestResult && (
                 <div
-                  className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+                  className={`p-3 rounded-sm border text-caption flex items-center gap-2 ${
                     mountTestResult.success
-                      ? 'bg-accent-green-soft border-accent-green/30 text-accent-green'
-                      : 'bg-accent-red-soft border-accent-red/30 text-accent-red'
+                      ? 'bg-sage-100 border-sage-300 text-sage-600'
+                      : 'bg-clay-100 border-clay-300 text-clay-600'
                   }`}
                 >
-                  {mountTestResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                  {mountTestResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.75} /> : <AlertOctagon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
                   <span>{mountTestResult.message}</span>
                 </div>
               )}
 
-              {/* Hierarchy Preview */}
-              <div className="p-3.5 rounded-lg bg-surface border border-hairline space-y-1.5">
-                <span className="text-[10px] font-mono uppercase text-stone tracking-wider">Drive Hierarchy Structure</span>
-                <p className="text-[11px] text-mute font-mono leading-relaxed">
-                  📁 {driveFolderName || 'MedBuddy Vault'}/<br />
-                  &nbsp;&nbsp;└── 📁 [Family Member Name]/<br />
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── 📁 [Medical Category Folder]/<br />
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── 📄 bloodwork_panel.pdf
-                </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between border-t border-hairline">
-                <button
-                  onClick={() => setActiveStep(1)}
-                  className="px-3 py-1.5 text-xs text-mute hover:text-ink transition-colors"
-                >
+              <div className="pt-3 flex items-center justify-between border-t border-border">
+                <Button variant="ghost" size="md" onClick={() => setActiveStep(1)}>
                   ← Back to Account
-                </button>
-                <button
-                  onClick={() => setActiveStep(3)}
-                  className="px-4 py-2 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors"
-                >
-                  Select Sync Scope →
-                </button>
+                </Button>
+                <Button variant="primary" size="md" onClick={() => setActiveStep(3)}>
+                  Select Scope →
+                </Button>
               </div>
             </div>
           )}
 
-          {/* STEP 3: Sync Scope Selection */}
+          {/* STEP 3: Sync Scope */}
           {activeStep === 3 && (
-            <div className="space-y-5 animate-in fade-in">
-              <div className="space-y-1">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-stone font-mono">
-                  Sync Scope Selection
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-body font-semibold text-primary">
+                  Select Scope to Synchronize
                 </h3>
-                <p className="text-xs text-mute">
-                  Choose to synchronize all profiles, a specific family member, or selected medical folders.
+                <p className="text-small text-secondary">
+                  Choose whether to backup the entire family vault, a single family profile, or select folders.
                 </p>
               </div>
 
-              {/* Scope Options */}
               <div className="space-y-3">
-                {/* 1. All Profiles */}
+                {/* 1. All */}
                 <div
                   onClick={() => setSyncScope('all')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-md border cursor-pointer transition-all ${
                     syncScope === 'all'
-                      ? 'bg-surface-card border-accent-blue shadow-sm'
-                      : 'bg-surface-elevated border-hairline hover:border-hairline-strong'
+                      ? 'bg-surface border-vault-600 shadow-sm'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <Users className={`w-5 h-5 shrink-0 mt-0.5 ${syncScope === 'all' ? 'text-accent-blue' : 'text-mute'}`} />
+                      <Users className="w-5 h-5 text-vault-600 shrink-0 mt-0.5" strokeWidth={1.75} />
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-semibold text-ink">Sync All Profiles at Once</h4>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-xs bg-surface font-mono border border-hairline text-mute">
-                            Entire Vault
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-mute mt-1">
-                          Synchronizes all {members.length} family profiles, {folders.length} folders, and {totalVaultDocs} medical documents.
+                        <h4 className="text-body font-semibold text-primary">Sync All Profiles &amp; Folders</h4>
+                        <p className="text-caption text-secondary mt-0.5">
+                          Entire vault: {members.length} profiles, {folders.length} folders, {totalVaultDocs} records.
                         </p>
                       </div>
                     </div>
@@ -824,7 +728,7 @@ export const GoogleSyncModal: React.FC<Props> = ({
                       name="syncScope"
                       checked={syncScope === 'all'}
                       onChange={() => setSyncScope('all')}
-                      className="accent-white mt-1"
+                      className="accent-vault-600"
                     />
                   </div>
                 </div>
@@ -832,19 +736,19 @@ export const GoogleSyncModal: React.FC<Props> = ({
                 {/* 2. Specific Profile */}
                 <div
                   onClick={() => setSyncScope('profile')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-md border cursor-pointer transition-all ${
                     syncScope === 'profile'
-                      ? 'bg-surface-card border-accent-blue shadow-sm'
-                      : 'bg-surface-elevated border-hairline hover:border-hairline-strong'
+                      ? 'bg-surface border-vault-600 shadow-sm'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex items-start gap-3">
-                      <User className={`w-5 h-5 shrink-0 mt-0.5 ${syncScope === 'profile' ? 'text-accent-blue' : 'text-mute'}`} />
+                      <User className="w-5 h-5 text-vault-600 shrink-0 mt-0.5" strokeWidth={1.75} />
                       <div>
-                        <h4 className="text-xs font-semibold text-ink">Sync Specific Profile</h4>
-                        <p className="text-[11px] text-mute mt-0.5">
-                          Synchronizes only records and folders belonging to one family member.
+                        <h4 className="text-body font-semibold text-primary">Sync Specific Family Profile</h4>
+                        <p className="text-caption text-secondary mt-0.5">
+                          Only folders and records belonging to a chosen family member.
                         </p>
                       </div>
                     </div>
@@ -853,46 +757,43 @@ export const GoogleSyncModal: React.FC<Props> = ({
                       name="syncScope"
                       checked={syncScope === 'profile'}
                       onChange={() => setSyncScope('profile')}
-                      className="accent-white mt-1"
+                      className="accent-vault-600"
                     />
                   </div>
 
                   {syncScope === 'profile' && (
-                    <div className="pt-3 border-t border-hairline flex flex-col gap-2">
-                      <label className="text-[11px] font-medium text-mute">Choose Profile:</label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {members.map((m) => {
-                          const isChosen = selectedMemberId === m.id;
-                          const mFolders = folders.filter((f) => f.member_id === m.id);
-                          const mDocs = mFolders.reduce((acc, f) => acc + (f.document_count || 0), 0);
-                          return (
+                    <div className="pt-3 border-t border-border mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {members.map((m, idx) => {
+                        const isChosen = selectedMemberId === m.id;
+                        const mFolders = folders.filter((f) => f.member_id === m.id);
+                        const mDocs = mFolders.reduce((acc, f) => acc + (f.document_count || 0), 0);
+                        return (
+                          <div
+                            key={m.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMemberId(m.id);
+                            }}
+                            className={`p-2.5 rounded-sm border flex items-center gap-2.5 transition-colors ${
+                              isChosen
+                                ? 'bg-vault-50 border-vault-600 text-vault-600 font-semibold'
+                                : 'bg-surface-recessed border-border text-secondary hover:text-primary'
+                            }`}
+                          >
                             <div
-                              key={m.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedMemberId(m.id);
-                              }}
-                              className={`p-2.5 rounded-lg border flex items-center gap-2.5 transition-colors ${
-                                isChosen
-                                  ? 'bg-surface border-ink text-ink font-semibold'
-                                  : 'bg-surface/50 border-hairline text-mute hover:text-ink hover:bg-surface'
-                              }`}
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                              style={{ backgroundColor: m.avatar_color || MEMBER_AVATAR_COLORS[idx % MEMBER_AVATAR_COLORS.length] }}
                             >
-                              <div
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0"
-                                style={{ backgroundColor: m.avatar_color }}
-                              >
-                                {m.name.slice(0, 1).toUpperCase()}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs truncate">{m.name}</div>
-                                <div className="text-[10px] text-mute font-mono">{mDocs} docs</div>
-                              </div>
-                              {isChosen && <Check className="w-3.5 h-3.5 text-accent-green shrink-0" />}
+                              {m.name.slice(0, 1).toUpperCase()}
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-small truncate text-primary">{m.name}</div>
+                              <div className="text-caption text-tertiary tabular-nums">{mDocs} records</div>
+                            </div>
+                            {isChosen && <Check className="w-3.5 h-3.5 text-vault-600 shrink-0" strokeWidth={2} />}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -900,19 +801,19 @@ export const GoogleSyncModal: React.FC<Props> = ({
                 {/* 3. Specific Folders */}
                 <div
                   onClick={() => setSyncScope('folders')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  className={`p-4 rounded-md border cursor-pointer transition-all ${
                     syncScope === 'folders'
-                      ? 'bg-surface-card border-accent-blue shadow-sm'
-                      : 'bg-surface-elevated border-hairline hover:border-hairline-strong'
+                      ? 'bg-surface border-vault-600 shadow-sm'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex items-start gap-3">
-                      <FolderSync className={`w-5 h-5 shrink-0 mt-0.5 ${syncScope === 'folders' ? 'text-accent-blue' : 'text-mute'}`} />
+                      <FolderSync className="w-5 h-5 text-vault-600 shrink-0 mt-0.5" strokeWidth={1.75} />
                       <div>
-                        <h4 className="text-xs font-semibold text-ink">Sync Specific Folders</h4>
-                        <p className="text-[11px] text-mute mt-0.5">
-                          Pick individual categories (e.g. Bloodwork, Cardiology, Lab Results) to sync.
+                        <h4 className="text-body font-semibold text-primary">Sync Specific Folders</h4>
+                        <p className="text-caption text-secondary mt-0.5">
+                          Pick individual categories (e.g. Bloodwork, Cardiology, Prescriptions).
                         </p>
                       </div>
                     </div>
@@ -921,42 +822,34 @@ export const GoogleSyncModal: React.FC<Props> = ({
                       name="syncScope"
                       checked={syncScope === 'folders'}
                       onChange={() => setSyncScope('folders')}
-                      className="accent-white mt-1"
+                      className="accent-vault-600"
                     />
                   </div>
 
                   {syncScope === 'folders' && (
-                    <div className="pt-3 border-t border-hairline space-y-3">
-                      <div className="flex items-center justify-between text-[11px] text-mute">
-                        <span>Select folders to include:</span>
-                        <span className="font-mono text-ink font-semibold">
-                          {selectedFoldersCount} selected ({selectedFoldersDocsCount} docs)
+                    <div className="pt-3 border-t border-border mt-3 space-y-3">
+                      <div className="flex items-center justify-between text-caption text-secondary">
+                        <span>Select folders to synchronize:</span>
+                        <span className="font-mono text-primary font-medium tabular-nums">
+                          {selectedFoldersCount} selected ({selectedFoldersDocsCount} records)
                         </span>
                       </div>
 
-                      <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                         {members.map((m) => {
                           const mFolders = folders.filter((f) => f.member_id === m.id);
                           if (mFolders.length === 0) return null;
                           return (
-                            <div key={m.id} className="p-2.5 rounded-lg bg-surface border border-hairline space-y-2">
-                              <div className="flex items-center justify-between border-b border-hairline pb-1.5">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black"
-                                    style={{ backgroundColor: m.avatar_color }}
-                                  >
-                                    {m.name.slice(0, 1).toUpperCase()}
-                                  </div>
-                                  <span className="text-xs font-medium text-ink">{m.name}</span>
-                                </div>
+                            <div key={m.id} className="p-2.5 rounded-sm bg-surface-recessed border border-border space-y-2">
+                              <div className="flex items-center justify-between border-b border-border pb-1.5">
+                                <span className="text-small font-semibold text-primary">{m.name}</span>
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     toggleSelectAllFoldersForMember(mFolders);
                                   }}
-                                  className="text-[10px] text-accent-blue hover:underline"
+                                  className="text-caption text-brand hover:underline"
                                 >
                                   Toggle All
                                 </button>
@@ -969,10 +862,10 @@ export const GoogleSyncModal: React.FC<Props> = ({
                                     <label
                                       key={f.id}
                                       onClick={(e) => e.stopPropagation()}
-                                      className={`flex items-center justify-between p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                                      className={`flex items-center justify-between p-2 rounded-sm border text-small cursor-pointer transition-colors ${
                                         isChecked
-                                          ? 'bg-surface-elevated border-hairline-strong text-ink font-medium'
-                                          : 'bg-surface/40 border-hairline text-mute hover:bg-surface-elevated hover:text-ink'
+                                          ? 'bg-surface border-vault-500 text-primary font-medium'
+                                          : 'bg-surface/50 border-border text-secondary hover:bg-surface hover:text-primary'
                                       }`}
                                     >
                                       <div className="flex items-center gap-2 min-w-0">
@@ -980,12 +873,12 @@ export const GoogleSyncModal: React.FC<Props> = ({
                                           type="checkbox"
                                           checked={isChecked}
                                           onChange={() => toggleFolderSelection(f.id)}
-                                          className="accent-white rounded"
+                                          className="accent-vault-600 rounded-sm"
                                         />
-                                        <Folder className="w-3.5 h-3.5 text-stone shrink-0" />
+                                        <Folder className="w-3.5 h-3.5 text-tertiary shrink-0" strokeWidth={1.75} />
                                         <span className="truncate">{f.name}</span>
                                       </div>
-                                      <span className="text-[10px] font-mono text-stone px-1 rounded bg-surface border border-hairline/50 shrink-0">
+                                      <span className="text-caption font-mono text-tertiary tabular-nums">
                                         {f.document_count || 0}
                                       </span>
                                     </label>
@@ -1001,167 +894,125 @@ export const GoogleSyncModal: React.FC<Props> = ({
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between border-t border-hairline">
-                <button
-                  onClick={() => setActiveStep(2)}
-                  className="px-3 py-1.5 text-xs text-mute hover:text-ink transition-colors"
-                >
-                  ← Back to Mount
-                </button>
-                <button
-                  onClick={() => setActiveStep(4)}
-                  className="px-4 py-2 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors"
-                >
-                  Proceed to Sync & Status →
-                </button>
+              <div className="pt-3 flex items-center justify-between border-t border-border">
+                <Button variant="ghost" size="md" onClick={() => setActiveStep(2)}>
+                  ← Back to Destination
+                </Button>
+                <Button variant="primary" size="md" onClick={() => setActiveStep(4)}>
+                  Review &amp; Execute →
+                </Button>
               </div>
             </div>
           )}
 
-          {/* STEP 4: Sync Execution & Real-Time Progress */}
+          {/* STEP 4: Execution */}
           {activeStep === 4 && (
-            <div className="space-y-5 animate-in fade-in">
-              {/* Target Summary Banner */}
-              <div className="p-4 rounded-xl bg-surface-card border border-hairline space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase text-stone tracking-wider">
-                    Ready to Synchronize
-                  </span>
-                  <span className="text-xs text-mute">
-                    Mount: <strong className="text-ink">{mountType === 'cloud' ? 'Google Drive Cloud' : 'Local Mount'}</strong>
-                  </span>
+            <div className="space-y-5">
+              <div className="p-4 rounded-md bg-surface-recessed border border-border space-y-3">
+                <div className="flex items-center justify-between text-caption text-tertiary">
+                  <span className="uppercase font-medium tracking-wider">Sync Scope Ready</span>
+                  <span className="font-mono">{mountType === 'cloud' ? 'Direct Cloud API' : 'Local Directory Mount'}</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                  <div className="p-2.5 rounded-lg bg-surface-elevated border border-hairline">
-                    <span className="text-[10px] text-mute uppercase font-mono">Scope</span>
-                    <div className="text-xs font-semibold text-ink mt-0.5 capitalize">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="p-2.5 bg-surface rounded-sm border border-border">
+                    <span className="text-caption text-tertiary block">Scope</span>
+                    <span className="text-small font-semibold text-primary block capitalize">
                       {syncScope === 'all'
                         ? 'All Profiles'
                         : syncScope === 'profile'
                         ? `Profile: ${selectedMemberObj?.name || 'Selected'}`
                         : `${selectedFoldersCount} Folder(s)`}
-                    </div>
+                    </span>
                   </div>
-
-                  <div className="p-2.5 rounded-lg bg-surface-elevated border border-hairline">
-                    <span className="text-[10px] text-mute uppercase font-mono">Destination</span>
-                    <div className="text-xs font-semibold text-ink mt-0.5 truncate">
+                  <div className="p-2.5 bg-surface rounded-sm border border-border">
+                    <span className="text-caption text-tertiary block">Target</span>
+                    <span className="text-small font-semibold text-primary block truncate">
                       {mountType === 'cloud' ? driveFolderName : 'Local Drive'}
-                    </div>
+                    </span>
                   </div>
-
-                  <div className="p-2.5 rounded-lg bg-surface-elevated border border-hairline">
-                    <span className="text-[10px] text-mute uppercase font-mono">Estimated Docs</span>
-                    <div className="text-xs font-semibold text-accent-blue mt-0.5 font-mono">
+                  <div className="p-2.5 bg-surface rounded-sm border border-border">
+                    <span className="text-caption text-tertiary block">Payload</span>
+                    <span className="text-small font-semibold text-vault-600 block tabular-nums">
                       {syncScope === 'all'
                         ? totalVaultDocs
                         : syncScope === 'profile'
                         ? selectedMemberDocsCount
                         : selectedFoldersDocsCount}{' '}
                       records
-                    </div>
+                    </span>
                   </div>
                 </div>
-
-                {settings?.lastSyncTime && (
-                  <p className="text-[11px] text-stone font-mono">
-                    Last synced:{' '}
-                    {new Date(settings.lastSyncTime).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                )}
               </div>
 
-              {/* Real-time Progress Display */}
               {isSyncing && (
-                <div className="p-4 rounded-xl bg-surface-elevated border border-hairline space-y-3 animate-in fade-in">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 font-medium text-ink">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent-blue" />
-                      {syncProgress?.message || 'Syncing files with Google Drive...'}
+                <div className="p-4 rounded-md bg-surface border border-border space-y-3">
+                  <div className="flex items-center justify-between text-small">
+                    <span className="flex items-center gap-2 font-medium text-primary">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-vault-600" strokeWidth={1.75} />
+                      {syncProgress?.message || 'Syncing records with Google Drive…'}
                     </span>
-                    <span className="font-mono text-mute font-semibold">
+                    <span className="font-mono text-tertiary font-semibold tabular-nums">
                       {syncProgress?.progressPercent || 0}%
                     </span>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-surface-card overflow-hidden border border-hairline">
+                  <div className="w-full bg-ink-200 rounded-full h-1 overflow-hidden">
                     <div
-                      className="h-full bg-accent-blue transition-all duration-300 ease-out"
+                      className="bg-vault-600 h-full transition-[width] duration-300 ease-out"
                       style={{ width: `${syncProgress?.progressPercent || 5}%` }}
                     />
                   </div>
 
                   {syncProgress?.currentFile && (
-                    <p className="text-[11px] text-mute font-mono truncate">
-                      Current file: <span className="text-ink">{syncProgress.currentFile}</span>
+                    <p className="text-caption text-tertiary font-mono truncate">
+                      Uploading: <span className="text-primary">{syncProgress.currentFile}</span>
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Completed Sync Result Card */}
               {syncResult && !isSyncing && (
                 <div
-                  className={`p-4 rounded-xl border space-y-2 animate-in fade-in ${
+                  className={`p-4 rounded-md border space-y-2 ${
                     syncResult.success
-                      ? 'bg-accent-green-soft/50 border-accent-green/30 text-ink'
-                      : 'bg-accent-red-soft/50 border-accent-red/30 text-ink'
+                      ? 'bg-sage-100 border-sage-300 text-primary'
+                      : 'bg-clay-100 border-clay-300 text-primary'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     {syncResult.success ? (
-                      <CheckCircle2 className="w-5 h-5 text-accent-green" />
+                      <CheckCircle2 className="w-4 h-4 text-sage-600" strokeWidth={1.75} />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-accent-red" />
+                      <AlertOctagon className="w-4 h-4 text-clay-600" strokeWidth={1.75} />
                     )}
-                    <h4 className="text-xs font-semibold">
-                      {syncResult.success ? 'Google Drive Synchronized Successfully' : 'Sync Finished With Warnings'}
+                    <h4 className="text-body font-semibold">
+                      {syncResult.success ? 'Google Drive Synchronized Successfully' : 'Sync Completed With Warnings'}
                     </h4>
                   </div>
-                  <div className="text-xs text-mute space-y-1 font-mono">
-                    <div>• Synced: <span className="text-ink font-semibold">{syncResult.syncedCount}</span> new/modified document(s)</div>
-                    <div>• Skipped (Up-to-date): <span className="text-ink font-semibold">{syncResult.skippedCount}</span> document(s)</div>
+                  <div className="text-caption text-secondary space-y-1 font-mono tabular-nums">
+                    <div>• Uploaded: <span className="text-primary font-semibold">{syncResult.syncedCount}</span> document(s)</div>
+                    <div>• Already up-to-date: <span className="text-primary font-semibold">{syncResult.skippedCount}</span> document(s)</div>
                     {syncResult.failedCount > 0 && (
-                      <div className="text-accent-red">• Failed: {syncResult.failedCount} document(s)</div>
+                      <div className="text-clay-600 font-semibold">• Failed: {syncResult.failedCount} document(s)</div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Sync Action Button */}
-              <div className="pt-2 flex items-center justify-between border-t border-hairline">
-                <button
-                  onClick={() => setActiveStep(3)}
-                  disabled={isSyncing}
-                  className="px-3 py-1.5 text-xs text-mute hover:text-ink transition-colors disabled:opacity-50"
-                >
-                  ← Adjust Scope
-                </button>
-
-                <button
+              <div className="pt-3 flex items-center justify-between border-t border-border">
+                <Button variant="ghost" size="md" onClick={() => setActiveStep(3)} disabled={isSyncing}>
+                  ← Back to Scope
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
                   onClick={handleStartSync}
-                  disabled={isSyncing}
-                  className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-all shadow-sm disabled:opacity-50"
+                  loading={isSyncing}
+                  icon={<Cloud className="w-4 h-4" strokeWidth={1.75} />}
                 >
-                  {isSyncing ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Syncing in progress...
-                    </>
-                  ) : (
-                    <>
-                      <Cloud className="w-4 h-4" />
-                      Sync to Google Drive Now
-                    </>
-                  )}
-                </button>
+                  Sync to Drive Now
+                </Button>
               </div>
             </div>
           )}

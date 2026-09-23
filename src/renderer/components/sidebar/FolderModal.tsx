@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, FolderPlus } from 'lucide-react';
+import { Button } from '../common/Button';
 
 interface Props {
   isOpen: boolean;
@@ -36,31 +37,39 @@ export const FolderModal: React.FC<Props> = ({ isOpen, onClose, onSave, memberNa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-hairline rounded-xl w-full max-w-sm p-5 animate-in fade-in zoom-in-95">
-        <div className="flex items-center justify-between pb-3 border-b border-hairline mb-4">
-          <div className="flex items-center gap-2">
-            <FolderPlus className="w-4 h-4 text-ink" />
-            <h3 className="text-sm font-semibold text-ink">New Medical Folder</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[420px] p-6 shadow-md">
+        <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center">
+              <FolderPlus className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-h2 font-semibold text-primary">New Medical Folder</h3>
+              <p className="text-caption text-secondary">
+                Under profile: <span className="font-semibold text-primary">{memberName}</span>
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-mute hover:text-ink transition-colors">
-            <X className="w-4 h-4" />
+          <button
+            onClick={onClose}
+            className="text-tertiary hover:text-primary p-1 rounded-sm hover:bg-surface-hover transition-colors"
+          >
+            <X className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
 
-        <p className="text-xs text-mute mb-4">
-          Creating a new folder under <span className="text-ink font-medium">{memberName}</span>.
-        </p>
-
         {error && (
-          <div className="mb-3 p-2 rounded bg-accent-red-soft border border-hairline text-accent-red text-xs">
+          <div className="mb-4 p-3 rounded-sm bg-clay-100 border border-clay-300 text-clay-600 text-caption">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-mute mb-1">Folder Name</label>
+            <label className="block text-small font-medium text-secondary mb-1">
+              Folder Name
+            </label>
             <input
               type="text"
               required
@@ -68,25 +77,17 @@ export const FolderModal: React.FC<Props> = ({ isOpen, onClose, onSave, memberNa
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Bloodwork, Cardiology, Prescriptions"
-              className="w-full px-3 py-2 text-xs bg-surface-elevated border border-hairline rounded-md text-ink placeholder:text-stone focus:outline-none focus:border-hairline-strong transition-colors"
+              className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary placeholder:text-tertiary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-hairline">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs text-mute hover:text-ink transition-colors"
-            >
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border mt-5">
+            <Button type="button" variant="ghost" size="md" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-3.5 py-1.5 text-xs font-medium bg-primary text-primary-text rounded-md hover:bg-primary-pressed transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : 'Create Folder'}
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" size="md" loading={loading}>
+              Create Folder
+            </Button>
           </div>
         </form>
       </div>

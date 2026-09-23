@@ -31,6 +31,7 @@ export interface DocumentItem {
   storage_path: string;
   content_hash: string;
   extracted_text?: string | null;
+  tags?: string[];
   ocr_status: OcrStatus;
   ocr_stage?: OcrStage | null;
   ocr_error?: string | null;
@@ -236,6 +237,24 @@ export interface SyncMountTestResult {
   mountPath?: string;
 }
 
+export interface ProposedOrganization {
+  documentId: string;
+  originalFilename: string;
+  prefix: string;
+  reportName: string;
+  detectedDate: string;
+  proposedFilename: string;
+  tags: string[];
+  confidence: 'high' | 'medium' | 'low';
+  reasoning?: string;
+}
+
+export interface OrganizeApplyPayload {
+  documentId: string;
+  filename: string;
+  tags: string[];
+}
+
 // Window API exposed to renderer
 export interface MedBuddyAPI {
   // Members
@@ -257,6 +276,8 @@ export interface MedBuddyAPI {
   openFileDialog: () => Promise<string[]>;
   reRunOcr: (documentId: string) => Promise<void>;
   onOcrProgress: (callback: (event: OcrProgressEvent) => void) => () => void;
+  organizeDocumentsPreview: (documentIds: string[], providerProfileId?: string) => Promise<ProposedOrganization[]>;
+  applyDocumentOrganization: (updates: OrganizeApplyPayload[]) => Promise<boolean>;
 
   // Providers
   listProviders: () => Promise<ProviderProfile[]>;

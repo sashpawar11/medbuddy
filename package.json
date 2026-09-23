@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "ELECTRON_RUN_AS_NODE=1 electron ./node_modules/tsx/dist/cli.mjs test/integration.test.ts && ELECTRON_RUN_AS_NODE=1 electron ./node_modules/tsx/dist/cli.mjs test/sync.test.ts"
+    "test": "ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/integration.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/sync.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/organize.test.ts"
   },
   "keywords": [
     "electron",

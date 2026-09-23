@@ -2,101 +2,203 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Design System v2.0 Tokens (§16 in docs/Designv2.md)
+   ========================================================================== */
+
 :root {
-  /* Dark Mode Palette */
-  --color-canvas: 9 10 13;
-  --color-surface: 17 19 24;
-  --color-surface-elevated: 24 27 34;
-  --color-surface-card: 30 34 42;
-  --color-surface-button: 36 41 51;
+  /* Neutral — "Ink" */
+  --ink-25: #FBFBFD;
+  --ink-50: #F6F7FA;
+  --ink-100: #EEF0F5;
+  --ink-200: #E1E4EC;
+  --ink-300: #CBD0DC;
+  --ink-400: #9CA4B6;
+  --ink-500: #6F7891;
+  --ink-600: #525B72;
+  --ink-700: #3A4257;
+  --ink-800: #242B3D;
+  --ink-900: #141926;
 
-  --color-hairline: 43 48 59;
-  --color-hairline-soft: rgba(255, 255, 255, 0.08);
-  --color-hairline-strong: rgba(255, 255, 255, 0.18);
+  /* Brand — "Vault" (blue) */
+  --vault-50: #EEF3FC;
+  --vault-100: #DCE8F9;
+  --vault-200: #B7D0F2;
+  --vault-300: #8AB2E8;
+  --vault-400: #5991DB;
+  --vault-500: #3873C9;
+  --vault-600: #2C5CA8;
+  --vault-700: #234780;
+  --vault-800: #1B3760;
+  --vault-900: #142942;
 
-  --color-ink: 248 250 252;
-  --color-body: 203 213 225;
-  --color-charcoal: 226 232 240;
-  --color-mute: 148 163 184;
-  --color-ash: 100 116 139;
-  --color-stone: 100 116 139;
+  /* Status Hues (Muted clinical) */
+  --sage-100: #E6F4EC;
+  --sage-300: #A8D9BC;
+  --sage-600: #1E8A57;
 
-  --color-primary: 255 255 255;
-  --color-primary-pressed: 226 232 240;
-  --color-primary-text: 15 23 42;
+  --amber-100: #FBF1DC;
+  --amber-300: #EBC876;
+  --amber-600: #A6720F;
 
-  --color-accent-blue: 56 189 248;
-  --color-accent-blue-soft: rgba(56, 189, 248, 0.12);
-  --color-accent-red: 248 113 113;
-  --color-accent-red-soft: rgba(248, 113, 113, 0.12);
-  --color-accent-green: 74 222 128;
-  --color-accent-green-soft: rgba(74, 222, 128, 0.12);
-  --color-accent-yellow: 251 191 36;
-  --color-accent-yellow-soft: rgba(251, 191, 36, 0.12);
+  --clay-100: #F9EAE7;
+  --clay-300: #E4A99E;
+  --clay-600: #B54A3A;
 
-  --scrollbar-track: #090a0d;
-  --scrollbar-thumb: #2b303b;
-  --scrollbar-thumb-hover: #3e4656;
+  /* Provenance Hues (Data locality) */
+  --teal-100: #E1F1F1;
+  --teal-300: #9FD3D3;
+  --teal-600: #146B72;
 
-  --keycap-start: #1e222a;
-  --keycap-end: #14171d;
-  --keycap-border: #2b303b;
-  --keycap-shadow: rgba(0, 0, 0, 0.4);
+  --violet-100: #F1ECFA;
+  --violet-300: #CBAFEA;
+  --violet-600: #6B46A8;
+
+  /* Semantic Layer (Light Mode Primary) */
+  --color-bg-app: var(--ink-25);
+  --color-bg-surface: #FFFFFF;
+  --color-bg-recessed: var(--ink-50);
+  --color-bg-hover: var(--ink-100);
+  --color-border-default: var(--ink-200);
+  --color-border-strong: var(--ink-300);
+  --color-text-primary: var(--ink-800);
+  --color-text-secondary: var(--ink-600);
+  --color-text-tertiary: var(--ink-500);
+  --color-text-disabled: var(--ink-400);
+  --color-text-on-brand: #FFFFFF;
+  --color-brand: var(--vault-600);
+  --color-brand-hover: var(--vault-700);
+  --color-focus-ring: rgba(56, 115, 201, 0.35);
+
+  /* Status Semantic */
+  --color-status-good-bg: var(--sage-100);
+  --color-status-good-border: var(--sage-300);
+  --color-status-good-text: var(--sage-600);
+
+  --color-status-warn-bg: var(--amber-100);
+  --color-status-warn-border: var(--amber-300);
+  --color-status-warn-text: var(--amber-600);
+
+  --color-status-critical-bg: var(--clay-100);
+  --color-status-critical-border: var(--clay-300);
+  --color-status-critical-text: var(--clay-600);
+
+  /* Provenance Semantic */
+  --color-provenance-local-bg: var(--teal-100);
+  --color-provenance-local-border: var(--teal-300);
+  --color-provenance-local-text: var(--teal-600);
+
+  --color-provenance-cloud-bg: var(--violet-100);
+  --color-provenance-cloud-border: var(--violet-300);
+  --color-provenance-cloud-text: var(--violet-600);
+
+  /* Typography */
+  --font-ui: "Inter", -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(20, 25, 38, 0.04);
+  --shadow-sm: 0 2px 6px rgba(20, 25, 38, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 25, 38, 0.10);
+  --shadow-lg: 0 16px 40px rgba(20, 25, 38, 0.14);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 100ms;
+  --duration-base: 180ms;
+  --duration-panel: 200ms;
+
+  --scrollbar-track: var(--ink-25);
+  --scrollbar-thumb: var(--ink-300);
+  --scrollbar-thumb-hover: var(--ink-400);
+
+  --chart-band-bg: var(--ink-100);
+  --chart-grid-line: var(--ink-100);
 }
 
-html.light {
-  /* Light Mode Palette */
-  --color-canvas: 248 250 252;
-  --color-surface: 255 255 255;
-  --color-surface-elevated: 241 245 249;
-  --color-surface-card: 248 250 252;
-  --color-surface-button: 226 232 240;
+[data-theme="dark"],
+html.dark {
+  --color-bg-app: #10141F;
+  --color-bg-surface: #171C29;
+  --color-bg-recessed: #0C0F17;
+  --color-bg-hover: #202638;
+  --color-border-default: #262D40;
+  --color-border-strong: #333C54;
+  --color-text-primary: #EDEFF5;
+  --color-text-secondary: #AEB5C7;
+  --color-text-tertiary: #7C859C;
+  --color-text-disabled: #525B72;
+  --color-brand: #6FA0E6;
+  --color-brand-hover: #8AB2E8;
+  --color-focus-ring: rgba(111, 160, 230, 0.35);
 
-  --color-hairline: 226 232 240;
-  --color-hairline-soft: rgba(15, 23, 42, 0.05);
-  --color-hairline-strong: rgba(15, 23, 42, 0.12);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.6);
 
-  --color-ink: 15 23 42;
-  --color-body: 51 65 85;
-  --color-charcoal: 30 41 59;
-  --color-mute: 100 116 139;
-  --color-ash: 148 163 184;
-  --color-stone: 100 116 139;
+  --sage-100: #12291F;
+  --sage-300: #255A41;
+  --sage-600: #4FCB92;
 
-  --color-primary: 15 23 42;
-  --color-primary-pressed: 30 41 59;
-  --color-primary-text: 255 255 255;
+  --amber-100: #2E2412;
+  --amber-300: #5C4A22;
+  --amber-600: #E8B95B;
 
-  --color-accent-blue: 2 132 199;
-  --color-accent-blue-soft: rgba(2, 132, 199, 0.10);
-  --color-accent-red: 220 38 38;
-  --color-accent-red-soft: rgba(220, 38, 38, 0.10);
-  --color-accent-green: 22 163 74;
-  --color-accent-green-soft: rgba(22, 163, 74, 0.10);
-  --color-accent-yellow: 217 119 6;
-  --color-accent-yellow-soft: rgba(217, 119, 6, 0.10);
+  --clay-100: #301D18;
+  --clay-300: #5C3A30;
+  --clay-600: #E28A78;
 
-  --scrollbar-track: #f8fafc;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #94a3b8;
+  --teal-100: #0F2626;
+  --teal-300: #245252;
+  --teal-600: #4FC4C4;
 
-  --keycap-start: #ffffff;
-  --keycap-end: #f1f5f9;
-  --keycap-border: #e2e8f0;
-  --keycap-shadow: rgba(0, 0, 0, 0.06);
+  --violet-100: #241A34;
+  --violet-300: #4B3768;
+  --violet-600: #B896E8;
+
+  --scrollbar-track: #10141F;
+  --scrollbar-thumb: #262D40;
+  --scrollbar-thumb-hover: #333C54;
+
+  --chart-band-bg: #1C2333;
+  --chart-grid-line: #262D40;
 }
 
 @layer base {
   body {
-    background-color: rgb(var(--color-canvas));
-    color: rgb(var(--color-ink));
-    /* ss03 = Raycast-style alternate 'g', ss01 for a cleaner '1' */
-    font-feature-settings: "calt" 1, "kern" 1, "liga" 1, "ss03" 1;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 21px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Suppress transitions during theme switch — injected/removed via JS */
+  /* Numeric alignment rule (§4.3) */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Suppress transitions during theme switch */
   .no-transitions,
   .no-transitions *,
   .no-transitions *::before,
@@ -106,49 +208,39 @@ html.light {
   }
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars — Subtle and integrated */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 4px;
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Raycast-style Keycap */
-.keycap-glyph {
-  background: linear-gradient(180deg, var(--keycap-start) 0%, var(--keycap-end) 100%);
-  border: 1px solid var(--keycap-border);
-  box-shadow: 0 1px 0 var(--keycap-shadow);
-}
-
-/* Hero Diagonal Stripe Accent — used once per sidebar/header */
-.hero-stripe-accent {
-  background: repeating-linear-gradient(
-    -45deg,
-    #ff5757 0,
-    #ff5757 8px,
-    #a1131a 8px,
-    #a1131a 16px
-  );
-  opacity: 0.75;
-}
-
-/* Scale-on-press for interactive buttons */
-button:active:not(:disabled) {
-  transform: scale(0.96);
-}
-
-/* Ensure smooth transitions on specific properties only */
+/* Button transitions & press (§9.1, §12) — No scale/bounce! */
 button {
-  transition-property: background-color, border-color, color, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 100ms;
+  transition-timing-function: ease-out;
+}
+
+button:active:not(:disabled) {
+  box-shadow: var(--shadow-xs);
+}
+
+/* Tooltip dark-surface inverted styling (§9.11) */
+.tooltip-surface {
+  background-color: var(--ink-800);
+  color: #FFFFFF;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 16px;
+  box-shadow: var(--shadow-md);
 }

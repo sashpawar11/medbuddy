@@ -19,10 +19,12 @@ import {
   getSyncSettings,
   saveSyncSettings,
   updateDocumentOcrStatus,
+  updateDocumentsMetadata,
 } from './db/database';
 import { vault } from './services/vault';
 import { aiProvider } from './services/ai/provider';
 import { orchestrator } from './services/ai/orchestrator';
+import { documentOrganizer } from './services/ai/organizer';
 import { logger } from './services/logger';
 import { googleDriveSync } from './services/sync/googleDrive';
 import { ocrQueue } from './services/ocrQueue';
@@ -94,6 +96,19 @@ export function registerIpcHandlers() {
   ipcMain.handle('documents:delete', async (_, documentId) => {
     vault.deleteFile(documentId);
     return true;
+  });
+
+  ipcMain.handle('documents:organizePreview', async (_, documentIds: string[], providerProfileId?: string) => {
+    return documentOrganizer.preview(documentIds, providerProfileId);
+  });
+
+  ipcMain.handle('documents:organizeApply', async (_, updates: Array<{ documentId: string; filename: string; tags: string[] }>) => {
+    const dbUpdates = updates.map((u) => ({
+      id: u.documentId,
+      filename: u.filename,
+      tags: u.tags,
+    }));
+    return updateDocumentsMetadata(dbUpdates);
   });
 
   ipcMain.handle('dialog:openFiles', async () => {

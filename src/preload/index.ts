@@ -27,6 +27,10 @@ const api: MedBuddyAPI = {
       ipcRenderer.removeListener('ocr:progress', handler);
     };
   },
+  organizeDocumentsPreview: (documentIds, providerProfileId) =>
+    ipcRenderer.invoke('documents:organizePreview', documentIds, providerProfileId),
+  applyDocumentOrganization: (updates) =>
+    ipcRenderer.invoke('documents:organizeApply', updates),
 
   // AI Providers
   listProviders: () => ipcRenderer.invoke('ai:listProviders'),

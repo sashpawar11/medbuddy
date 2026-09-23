@@ -12,17 +12,19 @@ export const useTheme = () => {
     } catch {
       // Ignore localStorage errors
     }
-    return 'dark'; // Dark mode default per Design.md
+    return 'light'; // Light theme primary per Designv2.md
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    } else {
+    if (theme === 'dark') {
+      root.setAttribute('data-theme', 'dark');
       root.classList.add('dark');
       root.classList.remove('light');
+    } else {
+      root.removeAttribute('data-theme');
+      root.classList.add('light');
+      root.classList.remove('dark');
     }
     try {
       localStorage.setItem('medbuddy-theme', theme);

@@ -53,13 +53,14 @@ export function initDatabase(dbPath?: string): Database.Database {
     // Column already exists
   }
 
-  // OCR column migrations
-  const ocrMigrations = [
+  // OCR & Tags column migrations
+  const docMigrations = [
     `ALTER TABLE documents ADD COLUMN ocr_status TEXT NOT NULL DEFAULT 'pending'`,
     `ALTER TABLE documents ADD COLUMN ocr_stage TEXT`,
     `ALTER TABLE documents ADD COLUMN ocr_error TEXT`,
+    `ALTER TABLE documents ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'`,
   ];
-  for (const sql of ocrMigrations) {
+  for (const sql of docMigrations) {
     try { dbInstance.exec(sql); } catch { /* column already exists */ }
   }
 
@@ -201,31 +202,52 @@ export function deleteFolder(id: string): void {
 
 // ---------------- Documents Repository ---------------- //
 
+function mapDocumentRow(row: any): DocumentItem {
+  if (!row) return row;
+  let tags: string[] = [];
+  if (row.tags) {
+    try {
+      tags = typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags;
+      if (!Array.isArray(tags)) tags = [];
+    } catch {
+      tags = [];
+    }
+  }
+  return {
+    ...row,
+    tags,
+  };
+}
+
 export function listDocuments(folderId: string): DocumentItem[] {
   const db = getDatabase();
-  return db.prepare('SELECT * FROM documents WHERE folder_id = ? ORDER BY created_at DESC').all(folderId) as DocumentItem[];
+  const rows = db.prepare('SELECT * FROM documents WHERE folder_id = ? ORDER BY created_at DESC').all(folderId);
+  return rows.map(mapDocumentRow);
 }
 
 export function getDocumentById(id: string): DocumentItem | null {
   const db = getDatabase();
-  return (db.prepare('SELECT * FROM documents WHERE id = ?').get(id) as DocumentItem) || null;
+  const row = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
+  return row ? mapDocumentRow(row) : null;
 }
 
 export function getDocumentsByIds(ids: string[]): DocumentItem[] {
   if (ids.length === 0) return [];
   const db = getDatabase();
   const placeholders = ids.map(() => '?').join(',');
-  return db.prepare(`SELECT * FROM documents WHERE id IN (${placeholders})`).all(...ids) as DocumentItem[];
+  const rows = db.prepare(`SELECT * FROM documents WHERE id IN (${placeholders})`).all(...ids);
+  return rows.map(mapDocumentRow);
 }
 
 export function insertDocument(doc: Omit<DocumentItem, 'id' | 'created_at' | 'updated_at'>): DocumentItem {
   const db = getDatabase();
   const id = 'doc_' + crypto.randomUUID().slice(0, 12);
   const now = new Date().toISOString();
+  const tagsJson = JSON.stringify(doc.tags || []);
 
   db.prepare(`
-    INSERT INTO documents (id, folder_id, filename, file_type, file_size, storage_path, content_hash, extracted_text, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO documents (id, folder_id, filename, file_type, file_size, storage_path, content_hash, extracted_text, tags, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     doc.folder_id,
@@ -235,6 +257,7 @@ export function insertDocument(doc: Omit<DocumentItem, 'id' | 'created_at' | 'up
     doc.storage_path,
     doc.content_hash,
     doc.extracted_text || null,
+    tagsJson,
     now,
     now
   );
@@ -242,9 +265,62 @@ export function insertDocument(doc: Omit<DocumentItem, 'id' | 'created_at' | 'up
   return {
     ...doc,
     id,
+    tags: doc.tags || [],
     created_at: now,
     updated_at: now,
   };
+}
+
+export function updateDocumentMetadata(
+  id: string,
+  updates: { filename?: string; tags?: string[] }
+): DocumentItem | null {
+  const db = getDatabase();
+  const doc = getDocumentById(id);
+  if (!doc) return null;
+
+  const now = new Date().toISOString();
+  const newFilename = updates.filename !== undefined ? updates.filename : doc.filename;
+  const newTags = updates.tags !== undefined ? updates.tags : (doc.tags || []);
+  const tagsJson = JSON.stringify(newTags);
+
+  db.prepare(`
+    UPDATE documents
+    SET filename = ?, tags = ?, updated_at = ?
+    WHERE id = ?
+  `).run(newFilename, tagsJson, now, id);
+
+  return {
+    ...doc,
+    filename: newFilename,
+    tags: newTags,
+    updated_at: now,
+  };
+}
+
+export function updateDocumentsMetadata(
+  updates: Array<{ id: string; filename?: string; tags?: string[] }>
+): boolean {
+  if (updates.length === 0) return true;
+  const db = getDatabase();
+  const updateStmt = db.prepare(`
+    UPDATE documents
+    SET filename = COALESCE(?, filename),
+        tags = COALESCE(?, tags),
+        updated_at = ?
+    WHERE id = ?
+  `);
+
+  const now = new Date().toISOString();
+  const transaction = db.transaction((items: Array<{ id: string; filename?: string; tags?: string[] }>) => {
+    for (const item of items) {
+      const tagsJson = item.tags !== undefined ? JSON.stringify(item.tags) : null;
+      updateStmt.run(item.filename ?? null, tagsJson, now, item.id);
+    }
+  });
+
+  transaction(updates);
+  return true;
 }
 
 export function updateDocumentExtractedText(id: string, text: string): void {
@@ -750,15 +826,17 @@ export function getSyncItem(localId: string): { id: string; item_type: string; l
 
 export function listAllDocuments(): DocumentItem[] {
   const db = getDatabase();
-  return db.prepare('SELECT * FROM documents ORDER BY created_at DESC').all() as DocumentItem[];
+  const rows = db.prepare('SELECT * FROM documents ORDER BY created_at DESC').all();
+  return rows.map(mapDocumentRow);
 }
 
 export function listDocumentsForMember(memberId: string): DocumentItem[] {
   const db = getDatabase();
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT d.* FROM documents d
     JOIN folders f ON d.folder_id = f.id
     WHERE f.member_id = ?
     ORDER BY d.created_at DESC
-  `).all(memberId) as DocumentItem[];
+  `).all(memberId);
+  return rows.map(mapDocumentRow);
 }

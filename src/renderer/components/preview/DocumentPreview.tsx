@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Image as ImageIcon, Eye, AlignLeft, HardDrive, Calendar } from 'lucide-react';
+import { X, FileText, Eye, AlignLeft } from 'lucide-react';
 import type { DocumentItem } from '../../../shared/types';
 
 interface Props {
@@ -7,6 +7,11 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * Detail Panel per §5.2 & Tabs per §9.8:
+ * - 380px fixed width, collapsible
+ * - Underline style tabs: active has primary text + 2px vault-600 underline
+ */
 export const DocumentPreview: React.FC<Props> = ({ document, onClose }) => {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
@@ -50,84 +55,100 @@ export const DocumentPreview: React.FC<Props> = ({ document, onClose }) => {
   const isImage = document.file_type.includes('image');
 
   return (
-    <div className="w-[460px] bg-surface border-l border-hairline flex flex-col h-full shrink-0 animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="p-4 border-b border-hairline flex items-center justify-between">
+    <aside className="w-[380px] bg-surface border-l border-border flex flex-col h-full shrink-0 animate-in slide-in-from-right duration-200 select-none font-sans">
+      {/* Detail Panel Header */}
+      <div className="h-14 px-4 border-b border-border flex items-center justify-between shrink-0">
         <div className="min-w-0 pr-2">
-          <h3 className="text-xs font-semibold text-ink truncate">{document.filename}</h3>
-          <div className="flex items-center gap-2 text-[11px] text-mute font-mono mt-0.5">
-            <span>{(document.file_size / 1024).toFixed(0)} KB</span>
+          <h3 className="text-body font-semibold text-primary truncate" title={document.filename}>
+            {document.filename}
+          </h3>
+          <div className="flex items-center gap-2 text-caption text-tertiary font-mono">
+            <span className="tabular-nums">{(document.file_size / 1024).toFixed(0)} KB</span>
             <span>•</span>
-            <span>{document.file_type.split('/')[1]?.toUpperCase() || 'DOC'}</span>
+            <span className="uppercase">{document.file_type.split('/')[1] || 'FILE'}</span>
           </div>
         </div>
-        <button onClick={onClose} className="text-stone hover:text-ink transition-colors p-1">
-          <X className="w-4 h-4" />
+        <button
+          onClick={onClose}
+          className="text-tertiary hover:text-primary p-1 rounded-sm hover:bg-surface-hover transition-colors"
+          title="Close Preview (Esc)"
+        >
+          <X className="w-4 h-4" strokeWidth={1.75} />
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-hairline bg-surface-elevated/40 text-xs">
+      {/* Tabs per §9.8: Underline style */}
+      <div className="flex border-b border-border bg-surface-recessed px-4 text-small">
         <button
           onClick={() => setActiveTab('preview')}
-          className={`flex-1 py-2 px-3 flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'preview' ? 'text-ink border-b-2 border-primary font-medium bg-surface-card/50' : 'text-mute hover:text-ink'}`}
+          className={`py-2.5 px-3 flex items-center gap-1.5 border-b-2 font-medium transition-colors ${
+            activeTab === 'preview'
+              ? 'text-primary border-vault-600'
+              : 'text-secondary border-transparent hover:border-ink-300 hover:text-primary'
+          }`}
         >
-          <Eye className="w-3.5 h-3.5" />
-          Preview
+          <Eye className="w-3.5 h-3.5" strokeWidth={1.75} />
+          Document View
         </button>
         <button
           onClick={() => setActiveTab('text')}
-          className={`flex-1 py-2 px-3 flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'text' ? 'text-ink border-b-2 border-primary font-medium bg-surface-card/50' : 'text-mute hover:text-ink'}`}
+          className={`py-2.5 px-3 flex items-center gap-1.5 border-b-2 font-medium transition-colors ${
+            activeTab === 'text'
+              ? 'text-primary border-vault-600'
+              : 'text-secondary border-transparent hover:border-ink-300 hover:text-primary'
+          }`}
         >
-          <AlignLeft className="w-3.5 h-3.5" />
+          <AlignLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
           Extracted Text
         </button>
       </div>
 
       {/* Content View */}
-      <div className="flex-1 overflow-hidden relative p-4 flex flex-col">
+      <div className="flex-1 overflow-hidden relative p-4 flex flex-col bg-app">
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-xs text-mute">
-            Loading preview...
+          <div className="flex-1 flex items-center justify-center text-small text-tertiary">
+            Loading preview…
           </div>
         ) : error ? (
-          <div className="p-4 rounded bg-accent-red-soft border border-hairline text-accent-red text-xs">
+          <div className="p-3 rounded-sm bg-clay-100 border border-clay-300 text-clay-600 text-caption">
             {error}
           </div>
         ) : activeTab === 'preview' ? (
-          <div className="flex-1 bg-surface-elevated rounded-md border border-hairline overflow-hidden flex items-center justify-center">
+          <div className="flex-1 bg-surface rounded-sm border border-border overflow-hidden flex items-center justify-center">
             {isPdf && dataUrl ? (
               <iframe
                 src={dataUrl}
                 title={document.filename}
-                className="w-full h-full border-none bg-canvas"
+                className="w-full h-full border-none bg-app"
               />
             ) : isImage && dataUrl ? (
-              <div className="w-full h-full overflow-auto flex items-center justify-center p-2">
+              <div className="w-full h-full overflow-auto flex items-center justify-center p-3">
                 <img
                   src={dataUrl}
                   alt={document.filename}
-                  className="max-w-full max-h-full object-contain rounded"
+                  className="max-w-full max-h-full object-contain rounded-sm"
                 />
               </div>
             ) : (
-              <div className="text-center p-6 text-mute">
-                <FileText className="w-10 h-10 mx-auto mb-2 opacity-40 text-stone" />
-                <p className="text-xs">Preview unavailable for this format</p>
-                <p className="text-[11px] text-stone mt-1">Switch to 'Extracted Text' tab to inspect raw content.</p>
+              <div className="text-center p-6 text-secondary">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-tertiary opacity-40" strokeWidth={1.75} />
+                <p className="text-small font-medium text-primary">Preview unavailable for this format</p>
+                <p className="text-caption text-tertiary mt-1">
+                  Inspect the "Extracted Text" tab to review parsed clinical contents.
+                </p>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex-1 bg-canvas border border-hairline rounded-md p-3 overflow-y-auto font-mono text-xs text-body leading-relaxed whitespace-pre-wrap select-text">
+          <div className="flex-1 bg-surface border border-border rounded-sm p-3.5 overflow-y-auto font-mono text-small text-primary leading-relaxed whitespace-pre-wrap select-text">
             {extractedText || (
-              <span className="text-stone italic">
-                No text extracted yet. Text will be automatically extracted upon running an AI analysis.
+              <span className="text-tertiary italic font-sans text-small">
+                No text extracted yet. Text is automatically parsed when running an analysis.
               </span>
             )}
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Shield, AlertTriangle, CheckCircle, RefreshCw, Cpu, Clock } from 'lucide-react';
+import { X, AlertOctagon, ChevronDown, ChevronUp, Loader2, Sparkles, Clock } from 'lucide-react';
 import type { ProviderProfile, DocumentItem, AIProgressEvent } from '../../../shared/types';
-import { Keycap } from '../common/Keycap';
+import { ProvenancePill } from '../common/ProvenancePill';
 import { OcrStatusBadge } from '../common/OcrStatusBadge';
+import { Button } from '../common/Button';
 import { useOcrProgress } from '../../hooks/useOcrProgress';
 
 interface Props {
@@ -16,6 +17,15 @@ interface Props {
   onStartAnalysis: (providerProfileId: string, forceRefresh?: boolean) => Promise<void>;
 }
 
+/**
+ * Pre-analysis confirmation dialog (§9.9 & §11.1 in docs/Designv2.md)
+ * Contents in strict order:
+ * 1. Provenance pill — first thing seen.
+ * 2. Scope in plain language ("This will analyze X files in [Folder]").
+ * 3. Estimated cost/tokens (cloud only).
+ * 4. Collapsed-by-default file list ("View X files").
+ * 5. Primary button: "Run locally" or "Run analysis".
+ */
 export const AnalyzeModal: React.FC<Props> = ({
   isOpen,
   onClose,
@@ -31,9 +41,10 @@ export const AnalyzeModal: React.FC<Props> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState<AIProgressEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFileList, setShowFileList] = useState(false);
   const ocrProgress = useOcrProgress();
 
-  // Count how many of the selected documents are still being processed
+  // Count pending OCR docs
   const pendingOcrCount = documents.filter((d) => {
     const live = ocrProgress.get(d.id);
     const status = live?.status ?? d.ocr_status;
@@ -48,12 +59,13 @@ export const AnalyzeModal: React.FC<Props> = ({
     }
   }, [providers]);
 
-  // Subscribe to AI progress IPC events
+  // Subscribe to progress events
   useEffect(() => {
     if (!isOpen) {
       setIsAnalyzing(false);
       setProgress(null);
       setError(null);
+      setShowFileList(false);
       return;
     }
 
@@ -74,7 +86,7 @@ export const AnalyzeModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const currentProvider = providers.find((p) => p.id === selectedProviderId);
+  const currentProvider = providers.find((p) => p.id === selectedProviderId) || providers[0];
   const isLocal = currentProvider?.kind === 'local';
 
   const handleRun = async () => {
@@ -84,7 +96,7 @@ export const AnalyzeModal: React.FC<Props> = ({
       setError(null);
       setProgress({
         stage: 'extracting',
-        message: 'Initializing document analysis pipeline...',
+        message: 'Initializing medical extraction pipeline...',
         progressPercent: 10,
       });
 
@@ -97,179 +109,200 @@ export const AnalyzeModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-hairline rounded-xl w-full max-w-lg p-6 animate-in fade-in zoom-in-95">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[560px] p-6 shadow-md">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-hairline mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-text">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-ink">Run AI Health Overview</h3>
-              <p className="text-xs text-mute">Scope: {scopeTitle}</p>
-            </div>
+        <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-h1 font-semibold text-primary">Health Overview</h3>
           </div>
           {!isAnalyzing && (
-            <button onClick={onClose} className="text-mute hover:text-ink transition-colors">
-              <X className="w-4 h-4" />
+            <button
+              onClick={onClose}
+              className="text-tertiary hover:text-primary p-1 rounded-sm hover:bg-surface-hover transition-colors"
+            >
+              <X className="w-4 h-4" strokeWidth={1.75} />
             </button>
           )}
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-4 p-3.5 rounded-md bg-accent-red-soft border border-hairline text-accent-red text-xs flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mb-4 p-3 rounded-sm bg-clay-100 border border-clay-300 text-clay-600 text-small flex items-start gap-2.5">
+            <AlertOctagon className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
             <div className="flex-1">
               <p className="font-semibold mb-0.5">Analysis could not be completed</p>
-              <p className="text-body leading-relaxed">{error}</p>
+              <p className="text-secondary leading-relaxed">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Active Analysis State */}
+        {/* Active Analysis State (§9.12) */}
         {isAnalyzing ? (
-          <div className="py-6 flex flex-col items-center justify-center text-center">
-            <div className="relative w-12 h-12 mb-4 flex items-center justify-center">
-              <RefreshCw className="w-8 h-8 text-primary animate-spin opacity-80" />
+          <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="w-10 h-10 rounded-full bg-vault-50 border border-vault-200 flex items-center justify-center text-vault-600">
+              <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.75} />
             </div>
 
-            <h4 className="text-sm font-semibold text-ink mb-1">
-              {progress?.stage === 'extracting' && 'Extracting Medical Records'}
-              {progress?.stage === 'preparing_prompt' && 'Assembling Medical Context'}
-              {progress?.stage === 'inferring' && 'Model Generating Overview'}
-              {progress?.stage === 'validating' && 'Validating Structured Schema'}
-              {progress?.stage === 'retrying' && 'Executing Corrective Retry'}
-              {progress?.stage === 'complete' && 'Finalizing Dashboard'}
-            </h4>
+            <div>
+              <h4 className="text-h3 font-semibold text-primary">
+                {progress?.stage === 'extracting' && 'Extracting Medical Records'}
+                {progress?.stage === 'preparing_prompt' && 'Assembling Medical Context'}
+                {progress?.stage === 'inferring' && 'Synthesizing Findings'}
+                {progress?.stage === 'validating' && 'Validating Structured Schema'}
+                {progress?.stage === 'retrying' && 'Executing Corrective Retry'}
+                {progress?.stage === 'complete' && 'Finalizing Synthesis'}
+              </h4>
+              <p className="text-small text-secondary max-w-sm mt-1">
+                {progress?.message || 'Processing your documents safely...'}
+              </p>
+            </div>
 
-            <p className="text-xs text-mute max-w-sm mb-4">
-              {progress?.message || 'Processing your documents safely...'}
-            </p>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-surface-elevated rounded-full h-1.5 overflow-hidden border border-hairline mb-2">
+            {/* Progress bar per §9.12: 4px height, radius-full, ink-200 track / vault-600 fill */}
+            <div className="w-full bg-ink-200 rounded-full h-1 overflow-hidden">
               <div
-                className="bg-primary h-full transition-[width] duration-300 ease-out"
-                style={{ width: `${progress?.progressPercent || 30}%` }}
+                className="bg-vault-600 h-full transition-[width] duration-300 ease-out"
+                style={{ width: `${progress?.progressPercent || 25}%` }}
               />
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-stone font-mono">
-              <span>{isLocal ? 'On-Device Processing' : 'Cloud Endpoint'}</span>
-              <span>•</span>
-              <span>{currentProvider?.model}</span>
+            <div className="flex items-center gap-2 text-caption text-tertiary font-mono">
+              <ProvenancePill
+                kind={isLocal ? 'local' : 'cloud'}
+                providerName={currentProvider?.name}
+                modelName={currentProvider?.model}
+              />
             </div>
           </div>
         ) : (
-          /* Pre-run Form */
+          /* Confirmation Content per §11.1 in strict order */
           <div className="space-y-4">
-            {/* Documents to Analyze */}
-            <div>
-              <label className="block text-xs font-medium text-stone mb-1.5">
-                Documents ({documents.length})
-                {isOcrPending && (
-                  <span className="ml-2 text-accent-blue font-normal">
-                    · {pendingOcrCount} extracting…
-                  </span>
-                )}
-              </label>
-              <div className="max-h-36 overflow-y-auto bg-surface-elevated border border-hairline rounded-md p-2 space-y-1">
-                {documents.map((d) => {
-                  const liveOcr = ocrProgress.get(d.id);
-                  return (
-                    <div key={d.id} className="flex items-center justify-between text-xs text-body py-0.5 px-1 gap-2">
-                      <span className="truncate flex-1">{d.filename}</span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-mute font-mono">
-                          {(d.file_size / 1024).toFixed(0)} KB
-                        </span>
-                        <OcrStatusBadge doc={d} liveEvent={liveOcr} compact />
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* 1. Provenance pill — first thing seen */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-caption uppercase tracking-wider text-tertiary font-medium">
+                  Execution Provenance
+                </span>
+                <ProvenancePill
+                  kind={isLocal ? 'local' : 'cloud'}
+                  providerName={currentProvider?.name}
+                  modelName={currentProvider?.model}
+                />
               </div>
+
+              {providers.length > 1 && (
+                <select
+                  value={selectedProviderId}
+                  onChange={(e) => setSelectedProviderId(e.target.value)}
+                  className="h-7 px-2 text-caption bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500"
+                >
+                  {providers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.kind === 'local' ? 'Local' : 'Cloud'})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {/* Provider Picker */}
-            <div>
-              <label className="block text-xs font-medium text-stone mb-1.5">
-                AI Provider
-              </label>
-              <select
-                value={selectedProviderId}
-                onChange={(e) => setSelectedProviderId(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-surface-elevated border border-hairline rounded-md text-ink focus:outline-none focus:border-hairline-strong transition-colors"
+            {/* 2. Scope in plain language with folder/scope path */}
+            <div className="p-3.5 rounded-md bg-surface-recessed border border-border space-y-1">
+              <p className="text-body text-primary leading-relaxed">
+                This will analyze <strong className="font-semibold text-primary">{documents.length} {documents.length === 1 ? 'file' : 'files'}</strong> in <em className="italic">{scopeTitle}</em>.
+              </p>
+              {isLocal ? (
+                <p className="text-caption text-secondary">
+                  Content remains entirely on this device via <code className="font-mono text-tertiary">{currentProvider?.base_url}</code>.
+                </p>
+              ) : (
+                <p className="text-caption text-secondary">
+                  Extracted text will be sent securely to <strong className="font-medium">{currentProvider?.name}</strong> using your private BYOK API key.
+                </p>
+              )}
+            </div>
+
+            {/* 3. Estimated cost/tokens (cloud only) */}
+            {!isLocal && (
+              <div className="text-small text-tertiary font-mono">
+                Estimated payload: ~{(documents.reduce((acc, d) => acc + (d.extracted_text?.length || 500), 0) / 4).toFixed(0)} input tokens · Standard API rate
+              </div>
+            )}
+
+            {/* 4. Collapsed-by-default file list */}
+            <div className="border border-border rounded-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowFileList((prev) => !prev)}
+                className="w-full px-3 py-2 bg-surface hover:bg-surface-hover flex items-center justify-between text-small font-medium text-secondary transition-colors"
               >
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {p.model} ({p.kind === 'local' ? 'Local on-device' : 'Cloud BYOK'})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Privacy Guarantee Indicator (PRD §5.2) */}
-            <div className={`p-3 rounded-md border text-xs flex items-start gap-2.5 ${isLocal ? 'bg-surface-elevated border-hairline text-body' : 'bg-surface-elevated border-accent-yellow/30 text-body'}`}>
-              <Shield className={`w-4 h-4 shrink-0 mt-0.5 ${isLocal ? 'text-accent-green' : 'text-accent-yellow'}`} />
-              <div className="text-[11px] leading-relaxed">
-                {isLocal ? (
-                  <>
-                    <strong className="text-ink">100% On-Device Privacy:</strong> Document content is extracted and sent solely to your local AI engine at <code className="font-mono text-mute">{currentProvider?.base_url}</code>. No medical records leave your computer.
-                  </>
+                <span>View {documents.length} files included in scope</span>
+                {showFileList ? (
+                  <ChevronUp className="w-4 h-4 text-tertiary" strokeWidth={1.75} />
                 ) : (
-                  <>
-                    <strong className="text-ink">Cloud API Execution:</strong> This analysis will send extracted text to your configured cloud provider ({currentProvider?.name}).
-                  </>
+                  <ChevronDown className="w-4 h-4 text-tertiary" strokeWidth={1.75} />
                 )}
-              </div>
+              </button>
+
+              {showFileList && (
+                <div className="max-h-40 overflow-y-auto divide-y divide-border border-t border-border bg-surface-recessed p-2 space-y-1">
+                  {documents.map((d) => {
+                    const liveOcr = ocrProgress.get(d.id);
+                    return (
+                      <div key={d.id} className="flex items-center justify-between py-1 px-2 text-small text-secondary gap-2">
+                        <span className="truncate flex-1 font-mono text-caption text-primary">{d.filename}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-caption text-tertiary font-mono tabular-nums">
+                            {(d.file_size / 1024).toFixed(0)} KB
+                          </span>
+                          <OcrStatusBadge doc={d} liveEvent={liveOcr} compact />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Cache Control */}
+            {/* Force cache bypass option */}
             <div className="flex items-center gap-2 pt-1">
               <input
                 type="checkbox"
                 id="forceRefresh"
                 checked={forceRefresh}
                 onChange={(e) => setForceRefresh(e.target.checked)}
-                className="rounded border-hairline bg-surface-elevated text-primary focus:ring-0"
+                className="rounded-sm border-border-strong text-vault-600 focus:ring-vault-500/35"
               />
-              <label htmlFor="forceRefresh" className="text-xs text-mute cursor-pointer select-none">
-                Force regeneration (bypass local cache if previously analyzed)
+              <label htmlFor="forceRefresh" className="text-caption text-secondary cursor-pointer select-none">
+                Bypass cached synthesis if already analyzed
               </label>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-hairline mt-6">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-1.5 text-xs text-mute hover:text-ink transition-colors"
-              >
+            {/* 5. Primary button restating provenance choice (§11.1) */}
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border mt-5">
+              <Button type="button" variant="ghost" size="md" onClick={onClose}>
                 Cancel
-              </button>
+              </Button>
 
               {isOcrPending ? (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="md"
                   disabled
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-surface-elevated text-mute border border-hairline rounded-md cursor-not-allowed"
-                  title="Wait for background OCR to complete before analyzing"
+                  icon={<Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" strokeWidth={1.75} />}
                 >
-                  <Clock className="w-3.5 h-3.5 animate-pulse" />
-                  Waiting for OCR… ({documents.length - pendingOcrCount}/{documents.length} ready)
-                </button>
+                  Waiting for OCR ({documents.length - pendingOcrCount}/{documents.length} ready)
+                </Button>
               ) : (
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="lg"
                   onClick={handleRun}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-primary text-primary-text rounded-md hover:bg-primary-pressed transition-colors shadow-sm"
+                  icon={<Sparkles className="w-4 h-4" strokeWidth={1.75} />}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Start Analysis
-                </button>
+                  {isLocal ? 'Run locally' : 'Run analysis'}
+                </Button>
               )}
             </div>
           </div>
