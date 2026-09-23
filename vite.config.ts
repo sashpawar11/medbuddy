@@ -19,7 +19,16 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {
-              external: ['better-sqlite3', 'pdf-parse'],
+              external: [
+                // Existing native modules
+                'better-sqlite3',
+                'pdf-parse',
+                // New OCR pipeline — native binaries and ESM-only packages
+                'onnxruntime-node',
+                'canvas',
+                'pdfjs-dist',
+                'ppu-paddle-ocr',
+              ],
             },
           },
         },

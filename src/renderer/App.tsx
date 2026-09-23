@@ -22,7 +22,6 @@ import { DiagnosticsModal } from './components/diagnostics/DiagnosticsModal';
 import { GoogleSyncModal } from './components/sync/GoogleSyncModal';
 import { ToastContainer } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { ThemeToggle } from './components/common/ThemeToggle';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
 
@@ -293,6 +292,20 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDeleteAnalysis = async (id: string) => {
+    try {
+      await window.medbuddy.deleteAnalysis(id);
+      setAnalyses((prev) => prev.filter((a) => a.id !== id));
+      if (currentAnalysis?.id === id) {
+        setCurrentAnalysis(null);
+        setActiveView('overviews_history');
+      }
+      showSuccess('Health overview deleted');
+    } catch (err: any) {
+      showError('Failed to delete overview', err.message);
+    }
+  };
+
   // Provider Handlers
   const handleSaveProvider = async (profile: Omit<ProviderProfile, 'id' | 'created_at'> & { id?: string }) => {
     await window.medbuddy.saveProvider(profile);
@@ -351,15 +364,12 @@ export const App: React.FC = () => {
         onDeleteFolder={handleDeleteFolder}
         onOpenSync={() => handleOpenSync('all')}
         isSyncConnected={Boolean(syncSettings?.isSignedIn)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main View Area */}
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Top-Right Theme Toggle */}
-        <div className="absolute top-2.5 right-4 z-30 flex items-center">
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
-
         <ErrorBoundary fallbackTitle="Error Loading View">
           {activeView === 'home' && (
             <HomeDashboard
@@ -388,6 +398,7 @@ export const App: React.FC = () => {
                 setCurrentAnalysis(rec);
                 setActiveView('overview');
               }}
+              onDeleteAnalysis={handleDeleteAnalysis}
               onOpenSync={() => handleOpenSync('all')}
             />
           )}
@@ -439,6 +450,7 @@ export const App: React.FC = () => {
                   currentAnalysis.scope_name || 'Regenerating Overview'
                 );
               }}
+              onDelete={handleDeleteAnalysis}
             />
           )}
 
@@ -449,6 +461,7 @@ export const App: React.FC = () => {
                 setCurrentAnalysis(rec);
                 setActiveView('overview');
               }}
+              onDeleteAnalysis={handleDeleteAnalysis}
             />
           )}
 

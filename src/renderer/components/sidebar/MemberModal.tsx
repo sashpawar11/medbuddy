@@ -62,7 +62,7 @@ export const MemberModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-hairline rounded-lg w-full max-w-md p-6 animate-in fade-in zoom-in-95">
+      <div className="bg-surface border border-hairline rounded-xl w-full max-w-md p-6 animate-in fade-in zoom-in-95">
         <div className="flex items-center justify-between pb-4 border-b border-hairline mb-5">
           <div className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-ink" />

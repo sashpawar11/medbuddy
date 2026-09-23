@@ -2,7 +2,7 @@ import assert from 'assert';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { initDatabase, getDatabase, listMembers, createMember, listFolders, createFolder, insertDocument, listDocuments, listProviders, saveProvider, storeAnalysisResult, getAnalysisByCacheKey, listAppLogs } from '../src/main/db/database';
+import { initDatabase, getDatabase, listMembers, createMember, listFolders, createFolder, insertDocument, listDocuments, listProviders, saveProvider, storeAnalysisResult, getAnalysisByCacheKey, getAnalysisById, deleteAnalysisById, listAppLogs } from '../src/main/db/database';
 import { StructuredAnalysisResultSchema, sanitizeJsonResponse } from '../src/shared/schema';
 import { AIOrchestrator } from '../src/main/services/ai/orchestrator';
 import { logger } from '../src/main/services/logger';
@@ -234,7 +234,16 @@ async function runTests() {
   assert(retrieved !== null, 'Cache hit should retrieve stored analysis');
   assert.strictEqual(retrieved?.id, stored.id);
   assert.strictEqual(retrieved?.result_json.summary, sampleOverview.summary);
-  console.log('✅ Deterministic caching and retrieval verified');
+  assert.strictEqual(retrieved?.member_name, 'Eleanor Vance', 'Member name should be resolved from folder/documents');
+  assert.strictEqual(retrieved?.member_id, member.id, 'Member id should be resolved');
+  console.log('✅ Deterministic caching, retrieval, and parent member tagging verified');
+
+  // Test delete analysis
+  const deleted = deleteAnalysisById(stored.id);
+  assert.strictEqual(deleted, true, 'deleteAnalysisById should return true for deleted record');
+  const postDelete = getAnalysisById(stored.id);
+  assert.strictEqual(postDelete, null, 'Analysis record should no longer exist after delete');
+  console.log('✅ Deletion of generated analysis verified');
 
   // 9. Schema Failure & Corrective Retry Simulation
   const badOverview = {

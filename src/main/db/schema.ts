@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS documents (
   storage_path TEXT NOT NULL,
   content_hash TEXT NOT NULL,
   extracted_text TEXT,
+  ocr_status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'processing' | 'done' | 'failed' | 'skipped'
+  ocr_stage TEXT,                             -- 'paddle' | 'llm_vision' | null
+  ocr_error TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE

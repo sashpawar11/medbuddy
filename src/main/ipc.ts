@@ -13,16 +13,19 @@ import {
   deleteProvider,
   getAnalysisById,
   listRecentAnalyses,
+  deleteAnalysisById,
   listAppLogs,
   clearAppLogs,
   getSyncSettings,
   saveSyncSettings,
+  updateDocumentOcrStatus,
 } from './db/database';
 import { vault } from './services/vault';
 import { aiProvider } from './services/ai/provider';
 import { orchestrator } from './services/ai/orchestrator';
 import { logger } from './services/logger';
 import { googleDriveSync } from './services/sync/googleDrive';
+import { ocrQueue } from './services/ocrQueue';
 
 export function registerIpcHandlers() {
   // --- Members ---
@@ -68,11 +71,20 @@ export function registerIpcHandlers() {
       try {
         const doc = await vault.importFile(fp, folderId);
         imported.push(doc);
+        // Kick off background OCR immediately after the file is saved
+        ocrQueue.enqueue(doc.id);
       } catch (err: any) {
         logger.error('vault', `Failed to import file: ${fp}`, { error: err.message });
       }
     }
     return imported;
+  });
+
+  // Re-run OCR on demand (right-click → "Re-run OCR")
+  ipcMain.handle('documents:reRunOcr', async (_, documentId: string) => {
+    updateDocumentOcrStatus(documentId, 'pending', null, null);
+    ocrQueue.enqueue(documentId);
+    return true;
   });
 
   ipcMain.handle('documents:read', async (_, documentId) => {
@@ -130,6 +142,10 @@ export function registerIpcHandlers() {
     return listRecentAnalyses(limit);
   });
 
+  ipcMain.handle('analysis:delete', async (_, id) => {
+    return deleteAnalysisById(id);
+  });
+
   // --- Logs ---
   ipcMain.handle('logs:list', async (_, limit, category) => {
     return listAppLogs(limit, category);
@@ -182,6 +198,16 @@ export function registerIpcHandlers() {
     for (const win of windows) {
       if (!win.isDestroyed()) {
         win.webContents.send('sync:progress', event);
+      }
+    }
+  });
+
+  // Forward OCR progress events to all browser windows
+  ocrQueue.setProgressCallback((event) => {
+    const windows = BrowserWindow.getAllWindows();
+    for (const win of windows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('ocr:progress', event);
       }
     }
   });

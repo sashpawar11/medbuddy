@@ -1,22 +1,21 @@
 import React from 'react';
-import { Activity, Clock, Cpu, ChevronRight, AlertTriangle, FileText } from 'lucide-react';
+import { Activity, Clock, Cpu, ChevronRight, AlertTriangle, FileText, Trash2, User } from 'lucide-react';
 import type { AnalysisRecord } from '../../../shared/types';
 
 interface Props {
   analyses: AnalysisRecord[];
   onSelectAnalysis: (analysis: AnalysisRecord) => void;
+  onDeleteAnalysis?: (id: string) => void;
 }
 
-export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis }) => {
+export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis, onDeleteAnalysis }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-canvas overflow-y-auto select-none">
-      <header className="h-14 px-6 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/40 backdrop-blur-sm sticky top-0 z-10 pr-16">
+      <header className="h-14 px-6 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/40 backdrop-blur-sm sticky top-0 z-10">
         <div>
-          <h2 className="text-xs font-semibold text-ink uppercase tracking-wider font-mono">
-            Health Overviews Library
-          </h2>
-          <p className="text-xs text-mute">
-            Cached AI analyses saved locally — instant access without model re-runs
+          <h2 className="text-sm font-semibold text-ink">Health Overviews</h2>
+          <p className="text-[11px] text-mute">
+            AI analyses saved locally — instant access without re-runs
           </p>
         </div>
       </header>
@@ -48,13 +47,28 @@ export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis }
                 <div
                   key={rec.id}
                   onClick={() => onSelectAnalysis(rec)}
-                  className="p-4 rounded-lg bg-surface hover:bg-surface-elevated border border-hairline hover:border-hairline-strong transition-all cursor-pointer group flex items-start justify-between gap-4"
+                  className="p-4 rounded-lg bg-surface hover:bg-surface-elevated border border-hairline hover:border-hairline-strong transition-all cursor-pointer group flex items-start justify-between gap-4 relative"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span className="text-xs font-semibold text-ink group-hover:underline">
                         {rec.scope_name || 'Medical Analysis'}
                       </span>
+                      {rec.member_name && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-hairline"
+                          style={{
+                            backgroundColor: rec.member_color ? `${rec.member_color}20` : 'rgba(255,255,255,0.06)',
+                            color: rec.member_color || 'var(--ink)',
+                          }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: rec.member_color || '#57c1ff' }}
+                          />
+                          {rec.member_name}
+                        </span>
+                      )}
                       <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-xs bg-surface-card text-mute border border-hairline">
                         {rec.scope_type.toUpperCase()}
                       </span>
@@ -69,27 +83,43 @@ export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis }
                       {res.summary}
                     </p>
 
-                    <div className="flex items-center gap-4 text-[11px] text-mute font-mono">
+                    <div className="flex items-center gap-3 text-[11px] text-stone">
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-stone" />
+                        <Clock className="w-3 h-3" />
                         {dateStr}
                       </span>
-                      <span>•</span>
-                      <span>{metricsCount} Metrics</span>
+                      <span>·</span>
+                      <span>{metricsCount} metrics</span>
                       {flagsCount > 0 && (
                         <>
-                          <span>•</span>
+                          <span>·</span>
                           <span className="text-accent-red flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
-                            {flagsCount} Flags
+                            {flagsCount} flags
                           </span>
                         </>
                       )}
                     </div>
                   </div>
 
-                  <div className="shrink-0 flex items-center justify-center p-2 text-stone group-hover:text-ink transition-colors">
-                    <ChevronRight className="w-4 h-4" />
+                  <div className="shrink-0 flex items-center gap-1 pt-1">
+                    {onDeleteAnalysis && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Delete health overview "${rec.scope_name || 'Medical Analysis'}"?`)) {
+                            onDeleteAnalysis(rec.id);
+                          }
+                        }}
+                        className="p-1.5 rounded text-stone hover:text-accent-red hover:bg-surface-card opacity-0 group-hover:opacity-100 transition-all"
+                        title="Delete overview"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="p-1 text-stone group-hover:text-ink transition-colors">
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
               );

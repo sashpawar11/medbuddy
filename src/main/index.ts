@@ -4,6 +4,7 @@ import { initDatabase } from './db/database';
 import { vault } from './services/vault';
 import { logger } from './services/logger';
 import { registerIpcHandlers } from './ipc';
+import { ocrQueue } from './services/ocrQueue';
 
 // Disable hardware acceleration issues if running in certain container environments
 app.commandLine.appendSwitch('disable-gpu-sandbox');
@@ -59,6 +60,11 @@ app.whenReady().then(() => {
   vault.init();
   registerIpcHandlers();
   createWindow();
+
+  // Re-enqueue any documents whose OCR was interrupted in a previous session
+  ocrQueue.recoverPending().catch((err) =>
+    logger.warn('extract', 'OCR recovery error on startup', { error: err?.message })
+  );
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -19,6 +19,7 @@ import {
   Send,
   Bot,
   Cloud,
+  Trash2,
 } from 'lucide-react';
 import type {
   FamilyMember,
@@ -40,6 +41,7 @@ interface Props {
   onOpenAddMember: () => void;
   onSelectFolder: (folderId: string) => void;
   onSelectAnalysis: (analysis: AnalysisRecord) => void;
+  onDeleteAnalysis?: (id: string) => void;
   onOpenSync: () => void;
 }
 
@@ -54,6 +56,7 @@ export const HomeDashboard: React.FC<Props> = ({
   onOpenAddMember,
   onSelectFolder,
   onSelectAnalysis,
+  onDeleteAnalysis,
   onOpenSync,
 }) => {
   const [isChatPreviewOpen, setIsChatPreviewOpen] = useState(false);
@@ -67,32 +70,30 @@ export const HomeDashboard: React.FC<Props> = ({
       {/* Top Header */}
       <header className="h-14 px-6 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/40 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-accent-green animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-accent-green" />
           <div>
-            <h2 className="text-xs font-semibold text-ink uppercase tracking-wider font-mono">
-              Medical Dashboard
-            </h2>
+            <h2 className="text-sm font-semibold text-ink">Medical Dashboard</h2>
             <p className="text-[11px] text-mute">
-              Private offline family health records & local AI synthesis
+              Private offline family health records &amp; local AI
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pr-14">
+        <div className="flex items-center gap-2">
           <button
             onClick={onOpenSync}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md"
             title="Google Drive Cloud Synchronization"
           >
-            <Cloud className="w-3.5 h-3.5 text-accent-blue" />
+            <Cloud className="w-3.5 h-3.5 text-mute" />
             <span>{syncSettings?.isSignedIn ? 'Google Drive' : 'Sync to Drive'}</span>
             {syncSettings?.isSignedIn && (
               <span className="w-1.5 h-1.5 rounded-full bg-accent-green" />
             )}
           </button>
 
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-elevated border border-hairline text-mute flex items-center gap-1">
-            <Lock className="w-3 h-3 text-accent-green" /> 100% Offline Vault
+          <span className="text-[11px] px-2 py-1 rounded-md bg-surface-elevated border border-hairline text-stone flex items-center gap-1.5">
+            <Lock className="w-3 h-3 text-accent-green" /> Offline Vault
           </span>
         </div>
       </header>
@@ -153,64 +154,64 @@ export const HomeDashboard: React.FC<Props> = ({
         </section>
 
         {/* Quick Stats Grid */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="p-4 rounded-lg bg-surface border border-hairline">
-            <span className="text-xs font-mono uppercase text-stone block">Family Members</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold font-mono text-ink">{members.length}</span>
-              <span className="text-xs text-mute">profiles</span>
+            <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Family Members</span>
+            <div className="flex items-baseline gap-2 mt-1.5">
+              <span className="text-2xl font-bold tabular-nums text-ink">{members.length}</span>
+              <span className="text-xs text-stone">profiles</span>
             </div>
             <button
               onClick={onOpenAddMember}
-              className="mt-2 text-xs text-accent-blue hover:underline flex items-center gap-1 font-medium"
+              className="mt-2 text-xs text-mute hover:text-ink hover:underline flex items-center gap-1 font-medium"
             >
               <Plus className="w-3 h-3" /> Add profile
             </button>
           </div>
 
           <div className="p-4 rounded-lg bg-surface border border-hairline">
-            <span className="text-xs font-mono uppercase text-stone block">Vault Documents</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold font-mono text-ink">{totalDocs}</span>
-              <span className="text-xs text-mute">records</span>
+            <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Vault Documents</span>
+            <div className="flex items-baseline gap-2 mt-1.5">
+              <span className="text-2xl font-bold tabular-nums text-ink">{totalDocs}</span>
+              <span className="text-xs text-stone">records</span>
             </div>
             <button
               onClick={() => onNavigate('files')}
-              className="mt-2 text-xs text-accent-blue hover:underline flex items-center gap-1 font-medium"
+              className="mt-2 text-xs text-mute hover:text-ink hover:underline flex items-center gap-1 font-medium"
             >
               Browse folders →
             </button>
           </div>
 
           <div className="p-4 rounded-lg bg-surface border border-hairline">
-            <span className="text-xs font-mono uppercase text-stone block">Health Overviews</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold font-mono text-ink">{analyses.length}</span>
-              <span className="text-xs text-mute">syntheses</span>
+            <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Overviews</span>
+            <div className="flex items-baseline gap-2 mt-1.5">
+              <span className="text-2xl font-bold tabular-nums text-ink">{analyses.length}</span>
+              <span className="text-xs text-stone">saved</span>
             </div>
             <button
               onClick={() => onNavigate('overviews_history')}
-              className="mt-2 text-xs text-accent-blue hover:underline flex items-center gap-1 font-medium"
+              className="mt-2 text-xs text-mute hover:text-ink hover:underline flex items-center gap-1 font-medium"
             >
               View library →
             </button>
           </div>
 
           <div className="p-4 rounded-lg bg-surface border border-hairline">
-            <span className="text-xs font-mono uppercase text-stone block">Default AI Provider</span>
-            <div className="mt-1 truncate">
+            <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">AI Provider</span>
+            <div className="mt-1.5 truncate">
               <span className="text-sm font-semibold text-ink truncate block">
-                {activeProvider ? activeProvider.name : 'No Provider'}
+                {activeProvider ? activeProvider.name : 'Not configured'}
               </span>
-              <span className="text-xs text-mute font-mono truncate block">
-                {activeProvider?.model || 'Configure local model'}
+              <span className="text-[11px] text-stone font-mono truncate block">
+                {activeProvider?.model || 'Add a local model'}
               </span>
             </div>
             <button
               onClick={() => onNavigate('settings')}
-              className="mt-2 text-xs text-accent-yellow hover:underline flex items-center gap-1 font-medium"
+              className="mt-2 text-xs text-mute hover:text-ink hover:underline flex items-center gap-1 font-medium"
             >
-              Settings →
+              Configure →
             </button>
           </div>
         </section>
@@ -218,8 +219,8 @@ export const HomeDashboard: React.FC<Props> = ({
         {/* Quick Access Action Cards Grid */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-xs font-mono uppercase text-stone tracking-wider">
-              Quick Access Hub
+            <h3 className="text-xs font-medium text-stone uppercase tracking-widest">
+              Quick Access
             </h3>
           </div>
 
@@ -365,12 +366,12 @@ export const HomeDashboard: React.FC<Props> = ({
         {analyses.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono uppercase text-stone tracking-wider">
-                Recent Health Syntheses
+              <h3 className="text-xs font-medium text-stone uppercase tracking-widest">
+                Recent Overviews
               </h3>
               <button
                 onClick={() => onNavigate('overviews_history')}
-                className="text-xs text-accent-blue hover:underline font-medium"
+                className="text-xs text-mute hover:text-ink hover:underline font-medium"
               >
                 View all ({analyses.length})
               </button>
@@ -391,9 +392,26 @@ export const HomeDashboard: React.FC<Props> = ({
                         <Activity className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-xs font-semibold text-ink group-hover:underline truncate block">
-                          {rec.scope_name || 'Medical Analysis'}
-                        </span>
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <span className="text-xs font-semibold text-ink group-hover:underline truncate">
+                            {rec.scope_name || 'Medical Analysis'}
+                          </span>
+                          {rec.member_name && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-hairline"
+                              style={{
+                                backgroundColor: rec.member_color ? `${rec.member_color}20` : 'rgba(255,255,255,0.06)',
+                                color: rec.member_color || 'var(--ink)',
+                              }}
+                            >
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: rec.member_color || '#57c1ff' }}
+                              />
+                              {rec.member_name}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-mute flex items-center gap-2">
                           <span>{new Date(rec.created_at).toLocaleDateString()}</span>
                           <span>•</span>
@@ -402,7 +420,7 @@ export const HomeDashboard: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       {flagsCount > 0 ? (
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-xs bg-accent-red-soft text-accent-red border border-accent-red/30">
                           {flagsCount} flagged
@@ -411,6 +429,20 @@ export const HomeDashboard: React.FC<Props> = ({
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-xs bg-accent-green-soft text-accent-green border border-accent-green/30">
                           All normal
                         </span>
+                      )}
+                      {onDeleteAnalysis && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete health overview "${rec.scope_name || 'Medical Analysis'}"?`)) {
+                              onDeleteAnalysis(rec.id);
+                            }
+                          }}
+                          className="p-1 rounded text-stone hover:text-accent-red hover:bg-surface-card opacity-0 group-hover:opacity-100 transition-all"
+                          title="Delete overview"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
                       <ChevronRight className="w-4 h-4 text-mute group-hover:text-ink transition-colors" />
                     </div>
@@ -422,20 +454,19 @@ export const HomeDashboard: React.FC<Props> = ({
         )}
 
         {/* Keyboard Shortcuts Hint Footer */}
-        <footer className="pt-4 pb-2 border-t border-hairline/60 flex flex-wrap items-center justify-between text-[11px] text-stone gap-3">
+        <footer className="pt-4 pb-2 border-t border-hairline flex flex-wrap items-center justify-between text-[11px] text-stone gap-3">
           <div className="flex items-center gap-3">
-            <span>Shortcuts:</span>
-            <span className="flex items-center gap-1 font-mono">
-              <Keycap>⌘B</Keycap> Toggle Sidebar
+            <span className="flex items-center gap-1.5">
+              <Keycap>⌘B</Keycap> Sidebar
             </span>
-            <span className="flex items-center gap-1 font-mono">
+            <span className="flex items-center gap-1.5">
               <Keycap>⌘L</Keycap> Diagnostics
             </span>
-            <span className="flex items-center gap-1 font-mono">
-              <Keycap>Esc</Keycap> Close View
+            <span className="flex items-center gap-1.5">
+              <Keycap>Esc</Keycap> Close
             </span>
           </div>
-          <div>MedBuddy v1.0 • Private Family Medical Vault</div>
+          <div className="text-stone">MedBuddy v1.0 · Private Medical Vault</div>
         </footer>
       </div>
 

@@ -103,20 +103,18 @@ export const ProviderSettings: React.FC<Props> = ({
     <div className="flex-1 flex flex-col h-full bg-canvas overflow-y-auto">
       <header className="h-14 px-6 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/40 backdrop-blur-sm sticky top-0 z-10">
         <div>
-          <h2 className="text-xs font-semibold text-ink uppercase tracking-wider font-mono">
-            AI Provider Configurations
-          </h2>
+          <h2 className="text-sm font-semibold text-ink">AI Providers</h2>
           <p className="text-[11px] text-mute">
-            Configure local on-device models (LM Studio, Ollama) or BYOK cloud endpoints
+            Local on-device models (LM Studio, Ollama) or BYOK cloud endpoints
           </p>
         </div>
-        <div className="pr-14">
+        <div>
           <button
             onClick={handleNew}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-text hover:bg-primary-pressed rounded-md"
           >
             <Plus className="w-3.5 h-3.5" />
-            Add Profile
+            Add Provider
           </button>
         </div>
       </header>
@@ -140,7 +138,7 @@ export const ProviderSettings: React.FC<Props> = ({
             className="p-5 rounded-lg bg-surface border border-hairline space-y-4 animate-in fade-in"
           >
             <div className="flex items-center justify-between pb-3 border-b border-hairline">
-              <h3 className="text-xs font-semibold uppercase font-mono text-ink">
+              <h3 className="text-sm font-semibold text-ink">
                 {editingId === 'new' ? 'New Provider Profile' : 'Edit Profile'}
               </h3>
               <button
@@ -318,7 +316,7 @@ export const ProviderSettings: React.FC<Props> = ({
             return (
               <div
                 key={p.id}
-                className="p-4 rounded-lg bg-surface border border-hairline hover:border-hairline-strong transition-all flex flex-col gap-3"
+                className="p-4 rounded-lg bg-surface border border-hairline hover:border-hairline-strong transition-[border-color] flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -331,18 +329,18 @@ export const ProviderSettings: React.FC<Props> = ({
                       <div className="flex items-center gap-2">
                         <h4 className="text-xs font-semibold text-ink">{p.name}</h4>
                         {p.is_default === 1 && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-xs bg-primary text-primary-text font-bold">
-                            DEFAULT
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-primary text-primary-text font-semibold">
+                            Default
                           </span>
                         )}
                         <span
-                          className={`text-[10px] font-mono px-1.5 py-0.2 rounded-xs border ${isLocal ? 'bg-surface-elevated text-accent-green border-accent-green/20' : 'bg-surface-elevated text-accent-yellow border-accent-yellow/20'}`}
+                          className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${isLocal ? 'bg-surface-elevated text-accent-green border-accent-green/20' : 'bg-surface-elevated text-accent-yellow border-accent-yellow/20'}`}
                         >
-                          {isLocal ? 'LOCAL ON-DEVICE' : 'CLOUD BYOK'}
+                          {isLocal ? 'Local' : 'Cloud'}
                         </span>
                       </div>
                       <p className="text-[11px] text-mute font-mono mt-0.5">
-                        {p.base_url} • Model: <span className="text-ink">{p.model}</span>
+                        {p.base_url} · {p.model}
                       </p>
                     </div>
                   </div>

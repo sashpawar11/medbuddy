@@ -22,6 +22,8 @@ import {
   FileWarning,
   CheckCircle2,
   Bookmark,
+  Trash2,
+  User,
 } from 'lucide-react';
 import type {
   AnalysisRecord,
@@ -33,9 +35,10 @@ interface Props {
   analysis: AnalysisRecord;
   onBack?: () => void;
   onRegenerate?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegenerate }) => {
+export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegenerate, onDelete }) => {
   const result = analysis.result_json;
   const [copied, setCopied] = useState(false);
 
@@ -168,6 +171,21 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
             <span className="text-sm font-semibold text-ink">
               {analysis.scope_name || 'Medical Overview'}
             </span>
+            {analysis.member_name && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-hairline"
+                style={{
+                  backgroundColor: analysis.member_color ? `${analysis.member_color}20` : 'rgba(255,255,255,0.06)',
+                  color: analysis.member_color || 'var(--ink)',
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: analysis.member_color || '#57c1ff' }}
+                />
+                {analysis.member_name}
+              </span>
+            )}
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-surface-elevated text-mute border border-hairline">
               {new Date(analysis.created_at).toLocaleDateString(undefined, {
                 month: 'short',
@@ -178,50 +196,64 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pr-14">
+        <div className="flex items-center gap-2">
           {onRegenerate && (
             <button
               onClick={onRegenerate}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md font-medium"
             >
-              <Sparkles className="w-3.5 h-3.5 text-mute" />
+              <Sparkles className="w-3.5 h-3.5 text-stone" />
               Regenerate
             </button>
           )}
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors font-medium"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md font-medium"
             title="Export structured JSON"
           >
-            <Download className="w-3.5 h-3.5 text-mute" />
+            <Download className="w-3.5 h-3.5 text-stone" />
             JSON
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md"
           >
             <Printer className="w-3.5 h-3.5" />
-            Print / PDF
+            Print
           </button>
+          {onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Delete this health overview (${analysis.scope_name || 'Medical Overview'})?`)) {
+                  onDelete(analysis.id);
+                }
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-stone hover:text-accent-red bg-surface-elevated hover:bg-accent-red-soft/20 border border-hairline hover:border-accent-red/30 rounded-md font-medium transition-colors"
+              title="Delete this overview"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Main Content Area */}
       <div className="p-8 max-w-5xl mx-auto w-full space-y-6">
         {/* 1. In-Depth Executive Health Summary Card */}
-        <section className="p-6 sm:p-7 rounded-xl bg-surface border border-hairline relative overflow-hidden space-y-5 shadow-sm">
+        <section className="p-6 sm:p-7 rounded-xl bg-surface border border-hairline relative overflow-hidden space-y-5">
           {/* Header row */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-accent-blue-soft border border-accent-blue/30 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-accent-blue-soft border border-accent-blue/20 flex items-center justify-center shrink-0">
                 <Activity className="w-5 h-5 text-accent-blue" />
               </div>
               <div>
-                <h2 className="text-base font-bold tracking-tight text-ink uppercase">
-                  Executive Health Synthesis
+                <h2 className="text-base font-semibold text-ink">
+                  Health Synthesis
                 </h2>
                 <p className="text-xs text-mute mt-0.5">
-                  Synthesized across {analysis.source_documents?.length || 0} clinical records
+                  Across {analysis.source_documents?.length || 0} clinical records
                 </p>
               </div>
             </div>
@@ -243,24 +275,24 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
           {/* Quick Metrics & Vitals Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-lg bg-surface-elevated border border-hairline">
-              <span className="text-xs font-mono uppercase text-mute block font-medium">Tests Tracked</span>
-              <span className="text-2xl font-mono font-bold text-ink mt-0.5 block">{result.metrics.length}</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Tests Tracked</span>
+              <span className="text-2xl font-bold tabular-nums text-ink mt-0.5 block">{result.metrics.length}</span>
             </div>
             <div className="p-3.5 rounded-lg bg-surface-elevated border border-hairline">
-              <span className="text-xs font-mono uppercase text-mute block font-medium">Flagged / Out of Range</span>
-              <span className={`text-2xl font-mono font-bold mt-0.5 block ${result.flags?.length ? 'text-accent-red' : 'text-accent-green'}`}>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Flagged</span>
+              <span className={`text-2xl font-bold tabular-nums mt-0.5 block ${result.flags?.length ? 'text-accent-red' : 'text-accent-green'}`}>
                 {result.flags?.length || 0}
               </span>
             </div>
             <div className="p-3.5 rounded-lg bg-surface-elevated border border-hairline">
-              <span className="text-xs font-mono uppercase text-mute block font-medium">Sharp Anomalies</span>
-              <span className={`text-2xl font-mono font-bold mt-0.5 block ${result.anomalies?.length ? 'text-accent-yellow' : 'text-stone'}`}>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Anomalies</span>
+              <span className={`text-2xl font-bold tabular-nums mt-0.5 block ${result.anomalies?.length ? 'text-accent-yellow' : 'text-stone'}`}>
                 {result.anomalies?.length || 0}
               </span>
             </div>
             <div className="p-3.5 rounded-lg bg-surface-elevated border border-hairline">
-              <span className="text-xs font-mono uppercase text-mute block font-medium">Doctor Inquiries</span>
-              <span className="text-2xl font-mono font-bold text-ink mt-0.5 block">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-stone block">Discussion Points</span>
+              <span className="text-2xl font-bold tabular-nums text-ink mt-0.5 block">
                 {result.discussionPoints?.length || result.recommendations?.length || 0}
               </span>
             </div>
@@ -276,9 +308,9 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
           {/* Key Highlights / Takeaways */}
           {result.keyHighlights && result.keyHighlights.length > 0 && (
             <div className="space-y-2.5 pt-1">
-              <div className="flex items-center gap-1.5 text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-                <Bookmark className="w-3.5 h-3.5 text-accent-blue" />
-                <span>Core Health Takeaways</span>
+              <div className="flex items-center gap-1.5 text-xs font-medium text-stone uppercase tracking-widest">
+                <Bookmark className="w-3.5 h-3.5" />
+                <span>Key Takeaways</span>
               </div>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {result.keyHighlights.map((hl, i) => (
@@ -297,9 +329,9 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
           {/* Highlighted Focal Markers Strip */}
           {result.highlightedMarkers && result.highlightedMarkers.length > 0 && (
             <div className="space-y-2.5 pt-2 border-t border-hairline/60">
-              <div className="flex items-center gap-1.5 text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-                <Activity className="w-3.5 h-3.5 text-ink" />
-                <span>Primary Clinical Driver Markers ({result.highlightedMarkers.length})</span>
+              <div className="flex items-center gap-1.5 text-xs font-medium text-stone uppercase tracking-widest">
+                <Activity className="w-3.5 h-3.5" />
+                <span>Clinical Driver Markers ({result.highlightedMarkers.length})</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {result.highlightedMarkers.map((hm, i) => {
@@ -357,17 +389,14 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
 
         {/* 2. Anomalies & Sharp Observations */}
         {result.anomalies && result.anomalies.length > 0 && (
-          <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4 shadow-sm">
+          <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Crosshair className="w-4 h-4 text-accent-yellow" />
-                <h3 className="text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-                  Cross-Record Anomalies & Clinical Observations ({result.anomalies.length})
+                <Crosshair className="w-4 h-4 text-mute" />
+                <h3 className="text-xs font-medium text-stone uppercase tracking-widest">
+                  Anomalies &amp; Clinical Observations ({result.anomalies.length})
                 </h3>
               </div>
-              <span className="text-xs font-mono text-mute px-2 py-0.5 rounded bg-surface-elevated border border-hairline">
-                Pinpointed Across Records
-              </span>
             </div>
 
             <div className="space-y-3">
@@ -440,12 +469,12 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
         {/* 3. Attention & Clinical Flags */}
         {result.flags && result.flags.length > 0 && (
           <section className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-              <AlertTriangle className="w-4 h-4 text-accent-red" />
-              <span>Flags & Out-of-Range Observations ({result.flags.length})</span>
+            <div className="flex items-center gap-2 text-xs font-medium text-stone uppercase tracking-widest">
+              <AlertTriangle className="w-4 h-4 text-mute" />
+              <span>Flags &amp; Out-of-Range ({result.flags.length})</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {result.flags.map((flag, i) => {
                 const isHigh = flag.severity === 'high';
                 const isMod = flag.severity === 'moderate';
@@ -458,7 +487,7 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
                 return (
                   <div
                     key={i}
-                    className="p-4 rounded-xl bg-surface border border-hairline flex flex-col justify-between shadow-sm"
+                    className="p-4 rounded-lg bg-surface border border-hairline flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
@@ -486,19 +515,19 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
 
         {/* 4. Key Metrics Grid */}
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-            <Activity className="w-4 h-4 text-ink" />
-            <span>Extracted Health Metrics ({result.metrics.length})</span>
+          <div className="flex items-center gap-2 text-xs font-medium text-stone uppercase tracking-widest">
+            <Activity className="w-4 h-4 text-stone" />
+            <span>Health Metrics ({result.metrics.length})</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {result.metrics.map((metric, i) => {
               const statusColor = getStatusBadge(metric.status);
 
               return (
                 <div
                   key={i}
-                  className="p-4 rounded-xl bg-surface border border-hairline flex flex-col justify-between shadow-sm"
+                  className="p-4 rounded-lg bg-surface border border-hairline flex flex-col justify-between"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <span className="text-sm font-semibold text-ink truncate block">
@@ -541,12 +570,12 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
 
         {/* 5. Longitudinal Trends Visualization */}
         {trendableMetrics.length > 0 && (
-          <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4 shadow-sm">
+          <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-accent-blue" />
-                <h3 className="text-xs font-mono uppercase text-stone tracking-wider font-semibold">
-                  Longitudinal Metric Trends Across Reports
+                <TrendingUp className="w-4 h-4 text-stone" />
+                <h3 className="text-xs font-medium text-stone uppercase tracking-widest">
+                  Longitudinal Trends
                 </h3>
               </div>
             </div>
@@ -602,25 +631,25 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
         )}
 
         {/* 6. Actionable Doctor Discussion Points */}
-        <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4 shadow-sm">
+        <section className="p-6 rounded-xl bg-surface border border-hairline space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-accent-blue-soft text-accent-blue flex items-center justify-center shrink-0">
                 <Stethoscope className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-ink tracking-tight">
-                  Doctor Appointment Discussion Points & Inquiries
+                <h3 className="text-sm font-semibold text-ink">
+                  Discussion Points
                 </h3>
                 <p className="text-xs text-mute">
-                  Prioritized questions to review with your clinician, with clinical rationale and related lab markers
+                  Prioritized questions for your clinician
                 </p>
               </div>
             </div>
 
             <button
               onClick={handleCopyDoctorQuestions}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors font-medium shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-body bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md font-medium"
               title="Copy questions to clipboard"
             >
               {copied ? (
@@ -708,9 +737,9 @@ export const OverviewDashboard: React.FC<Props> = ({ analysis, onBack, onRegener
         {/* 7. Source Documents Traceability */}
         {analysis.source_documents && analysis.source_documents.length > 0 && (
           <section className="p-4 rounded-xl bg-surface border border-hairline text-xs">
-            <div className="flex items-center gap-2 text-stone font-mono uppercase text-xs mb-2.5 font-semibold">
-              <FileCheck2 className="w-4 h-4 text-accent-green" />
-              <span>Source Documents Traceability ({analysis.source_documents.length})</span>
+            <div className="flex items-center gap-2 text-stone font-medium uppercase text-xs mb-2.5 tracking-widest">
+              <FileCheck2 className="w-4 h-4" />
+              <span>Source Documents ({analysis.source_documents.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {analysis.source_documents.map((sd) => (

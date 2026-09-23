@@ -61,6 +61,7 @@ export class VaultService {
       storage_path: storageFilename,
       content_hash: contentHash,
       extracted_text: null,
+      ocr_status: 'pending',
     });
 
     logger.info('vault', `Imported document ${filename}`, {

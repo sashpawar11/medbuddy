@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Shield, AlertTriangle, CheckCircle, RefreshCw, Cpu } from 'lucide-react';
+import { X, Sparkles, Shield, AlertTriangle, CheckCircle, RefreshCw, Cpu, Clock } from 'lucide-react';
 import type { ProviderProfile, DocumentItem, AIProgressEvent } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
+import { OcrStatusBadge } from '../common/OcrStatusBadge';
+import { useOcrProgress } from '../../hooks/useOcrProgress';
 
 interface Props {
   isOpen: boolean;
@@ -29,6 +31,15 @@ export const AnalyzeModal: React.FC<Props> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState<AIProgressEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const ocrProgress = useOcrProgress();
+
+  // Count how many of the selected documents are still being processed
+  const pendingOcrCount = documents.filter((d) => {
+    const live = ocrProgress.get(d.id);
+    const status = live?.status ?? d.ocr_status;
+    return status === 'pending' || status === 'processing';
+  }).length;
+  const isOcrPending = pendingOcrCount > 0;
 
   useEffect(() => {
     if (providers.length > 0) {
@@ -87,7 +98,7 @@ export const AnalyzeModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-hairline rounded-lg w-full max-w-lg p-6 shadow-2xl animate-in fade-in zoom-in-95">
+      <div className="bg-surface border border-hairline rounded-xl w-full max-w-lg p-6 animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-hairline mb-5">
           <div className="flex items-center gap-2.5">
@@ -140,7 +151,7 @@ export const AnalyzeModal: React.FC<Props> = ({
             {/* Progress Bar */}
             <div className="w-full bg-surface-elevated rounded-full h-1.5 overflow-hidden border border-hairline mb-2">
               <div
-                className="bg-primary h-full transition-all duration-300 ease-out"
+                className="bg-primary h-full transition-[width] duration-300 ease-out"
                 style={{ width: `${progress?.progressPercent || 30}%` }}
               />
             </div>
@@ -156,25 +167,36 @@ export const AnalyzeModal: React.FC<Props> = ({
           <div className="space-y-4">
             {/* Documents to Analyze */}
             <div>
-              <label className="block text-xs font-mono uppercase text-stone mb-1.5">
-                Target Documents ({documents.length})
+              <label className="block text-xs font-medium text-stone mb-1.5">
+                Documents ({documents.length})
+                {isOcrPending && (
+                  <span className="ml-2 text-accent-blue font-normal">
+                    · {pendingOcrCount} extracting…
+                  </span>
+                )}
               </label>
-              <div className="max-h-32 overflow-y-auto bg-surface-elevated border border-hairline rounded-md p-2 space-y-1">
-                {documents.map((d) => (
-                  <div key={d.id} className="flex items-center justify-between text-xs text-body py-0.5 px-1">
-                    <span className="truncate">{d.filename}</span>
-                    <span className="text-[10px] text-mute font-mono">
-                      {(d.file_size / 1024).toFixed(0)} KB
-                    </span>
-                  </div>
-                ))}
+              <div className="max-h-36 overflow-y-auto bg-surface-elevated border border-hairline rounded-md p-2 space-y-1">
+                {documents.map((d) => {
+                  const liveOcr = ocrProgress.get(d.id);
+                  return (
+                    <div key={d.id} className="flex items-center justify-between text-xs text-body py-0.5 px-1 gap-2">
+                      <span className="truncate flex-1">{d.filename}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-mute font-mono">
+                          {(d.file_size / 1024).toFixed(0)} KB
+                        </span>
+                        <OcrStatusBadge doc={d} liveEvent={liveOcr} compact />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Provider Picker */}
             <div>
-              <label className="block text-xs font-mono uppercase text-stone mb-1.5">
-                AI Engine / Provider
+              <label className="block text-xs font-medium text-stone mb-1.5">
+                AI Provider
               </label>
               <select
                 value={selectedProviderId}
@@ -228,14 +250,27 @@ export const AnalyzeModal: React.FC<Props> = ({
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleRun}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-primary text-primary-text rounded-md hover:bg-primary-pressed transition-colors shadow-sm"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Start Analysis
-              </button>
+
+              {isOcrPending ? (
+                <button
+                  type="button"
+                  disabled
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-surface-elevated text-mute border border-hairline rounded-md cursor-not-allowed"
+                  title="Wait for background OCR to complete before analyzing"
+                >
+                  <Clock className="w-3.5 h-3.5 animate-pulse" />
+                  Waiting for OCR… ({documents.length - pendingOcrCount}/{documents.length} ready)
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRun}
+                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-primary text-primary-text rounded-md hover:bg-primary-pressed transition-colors shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Start Analysis
+                </button>
+              )}
             </div>
           </div>
         )}

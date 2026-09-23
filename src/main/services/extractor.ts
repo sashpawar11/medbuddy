@@ -1,14 +1,21 @@
-import fs from 'fs';
-import path from 'path';
-import pdfParse from 'pdf-parse';
+import { getDocumentById, updateDocumentExtractedText } from '../db/database';
 import { vault } from './vault';
-import { updateDocumentExtractedText, getDocumentById } from '../db/database';
-import type { DocumentItem } from '../../shared/types';
+import { paddleOcrService } from './paddleOcr';
 import { logger } from './logger';
+import path from 'path';
+import fs from 'fs';
+
+const POLL_INTERVAL_MS = 500;
+const POLL_MAX_WAIT_MS = 90_000; // 90 seconds max wait for in-flight OCR
 
 export class ExtractorService {
   /**
-   * Extract text from a document if not already extracted.
+   * Return extracted text for a document.
+   *
+   * Priority order:
+   *   1. Already done (cached in DB) → instant return
+   *   2. Currently processing → poll until done (up to 90s)
+   *   3. Pending / failed → run inline as fallback (edge case for old docs)
    */
   public async extractText(documentId: string): Promise<string> {
     const doc = getDocumentById(documentId);
@@ -16,52 +23,64 @@ export class ExtractorService {
       throw new Error(`Document not found: ${documentId}`);
     }
 
-    // Return cached extracted text if already present
-    if (doc.extracted_text && doc.extracted_text.trim().length > 0) {
-      return doc.extracted_text;
+    // ── Fast path: already extracted ────────────────────────────────────────
+    if (doc.ocr_status === 'done' || doc.ocr_status === 'skipped') {
+      if (doc.extracted_text && doc.extracted_text.trim().length > 0) {
+        return doc.extracted_text;
+      }
     }
+
+    // ── Wait path: extraction in progress ───────────────────────────────────
+    if (doc.ocr_status === 'processing') {
+      return this.waitForCompletion(documentId);
+    }
+
+    // ── Inline fallback: pending / failed / legacy docs ─────────────────────
+    logger.info('extract', `Inline extraction fallback for ${doc.filename}`, { status: doc.ocr_status });
+    return this.extractInline(documentId);
+  }
+
+  /**
+   * Poll until the document's ocr_status reaches a terminal state (done/failed/skipped).
+   */
+  private async waitForCompletion(documentId: string): Promise<string> {
+    const deadline = Date.now() + POLL_MAX_WAIT_MS;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      const doc = getDocumentById(documentId);
+      if (!doc) break;
+      if (doc.ocr_status === 'done' || doc.ocr_status === 'skipped') {
+        return doc.extracted_text || '';
+      }
+      if (doc.ocr_status === 'failed') {
+        return doc.extracted_text || `[Extraction failed for ${doc.filename}: ${doc.ocr_error || 'Unknown error'}]`;
+      }
+    }
+    logger.warn('extract', `Timed out waiting for OCR on document: ${documentId}`);
+    return `[Extraction Notice: OCR timed out for this document.]`;
+  }
+
+  /**
+   * Inline synchronous extraction — runs PaddleOCR directly, skipping the queue.
+   * Used as a fallback for documents that missed the queue (e.g. legacy imports).
+   */
+  private async extractInline(documentId: string): Promise<string> {
+    const doc = getDocumentById(documentId);
+    if (!doc) throw new Error(`Document not found: ${documentId}`);
 
     const fullPath = path.join(vault.getVaultDir(), doc.storage_path);
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Document file missing on disk: ${doc.storage_path}`);
     }
 
-    logger.info('extract', `Extracting text from ${doc.filename}`, { type: doc.file_type });
-
-    let extracted = '';
-
     try {
-      if (doc.file_type === 'application/pdf') {
-        const dataBuffer = fs.readFileSync(fullPath);
-        const pdfData = await pdfParse(dataBuffer);
-        extracted = pdfData.text || '';
-        if (extracted.trim().length === 0) {
-          extracted = `[Scanned Medical Report / Non-text PDF: ${doc.filename}]\nFile size: ${(doc.file_size / 1024).toFixed(0)} KB.\nNote: This PDF does not contain an embedded digital text stream (likely a scan or photo-based report). Metadata and document reference preserved.`;
-        }
-      } else if (doc.file_type === 'text/plain') {
-        extracted = fs.readFileSync(fullPath, 'utf8');
-      } else if (doc.file_type.startsWith('image/')) {
-        // Scanned image fallback placeholder with file metadata
-        extracted = `[Scanned Medical Image: ${doc.filename}]\nFile size: ${(doc.file_size / 1024).toFixed(1)} KB. Multimodal vision or OCR extraction supported.`;
-      } else {
-        extracted = `[Document: ${doc.filename}] (Binary format: ${doc.file_type})`;
-      }
-
-      // Clean up whitespace
-      extracted = extracted.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
-
-      // Persist to database so subsequent runs are instant
-      updateDocumentExtractedText(doc.id, extracted);
-
-      logger.info('extract', `Extraction complete for ${doc.filename}`, {
-        chars: extracted.length,
-      });
-
-      return extracted;
+      const fileBuffer = fs.readFileSync(fullPath);
+      const result = await paddleOcrService.extract(doc, fileBuffer);
+      const text = result.text || `[Extraction Notice: No text could be extracted from ${doc.filename}]`;
+      updateDocumentExtractedText(doc.id, text);
+      return text;
     } catch (err: any) {
-      logger.error('extract', `Failed to extract text from ${doc.filename}`, {
-        error: err.message || String(err),
-      });
+      logger.error('extract', `Inline extraction failed for ${doc.filename}`, { error: err.message });
       const fallback = `[Extraction Notice: Unable to parse document ${doc.filename}. Error: ${err.message}]`;
       updateDocumentExtractedText(doc.id, fallback);
       return fallback;
@@ -69,14 +88,18 @@ export class ExtractorService {
   }
 
   /**
-   * Batch extracts text for multiple documents.
+   * Batch extraction for multiple documents (used by orchestrator).
+   * Each document benefits from the fast-path if already extracted.
    */
   public async extractMultiple(documentIds: string[]): Promise<Map<string, string>> {
     const map = new Map<string, string>();
-    for (const id of documentIds) {
-      const text = await this.extractText(id);
-      map.set(id, text);
-    }
+    // Run in parallel — most will be instant cache hits
+    await Promise.all(
+      documentIds.map(async (id) => {
+        const text = await this.extractText(id);
+        map.set(id, text);
+      })
+    );
     return map;
   }
 }

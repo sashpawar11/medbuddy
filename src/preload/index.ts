@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { MedBuddyAPI, AIProgressEvent, AppLogEntry, SyncProgressEvent } from '../shared/types';
+import type { MedBuddyAPI, AIProgressEvent, AppLogEntry, SyncProgressEvent, OcrProgressEvent } from '../shared/types';
 
 const api: MedBuddyAPI = {
   // Members
@@ -19,6 +19,14 @@ const api: MedBuddyAPI = {
   readDocumentData: (documentId) => ipcRenderer.invoke('documents:read', documentId),
   deleteDocument: (documentId) => ipcRenderer.invoke('documents:delete', documentId),
   openFileDialog: () => ipcRenderer.invoke('dialog:openFiles'),
+  reRunOcr: (documentId) => ipcRenderer.invoke('documents:reRunOcr', documentId),
+  onOcrProgress: (callback: (event: OcrProgressEvent) => void) => {
+    const handler = (_: any, event: OcrProgressEvent) => callback(event);
+    ipcRenderer.on('ocr:progress', handler);
+    return () => {
+      ipcRenderer.removeListener('ocr:progress', handler);
+    };
+  },
 
   // AI Providers
   listProviders: () => ipcRenderer.invoke('ai:listProviders'),
@@ -30,6 +38,7 @@ const api: MedBuddyAPI = {
   runAnalysis: (params) => ipcRenderer.invoke('analysis:run', params),
   getAnalysis: (id) => ipcRenderer.invoke('analysis:getById', id),
   listAnalyses: (limit) => ipcRenderer.invoke('analysis:listRecent', limit),
+  deleteAnalysis: (id) => ipcRenderer.invoke('analysis:delete', id),
   onAIProgress: (callback: (event: AIProgressEvent) => void) => {
     const handler = (_: any, event: AIProgressEvent) => callback(event);
     ipcRenderer.on('ai:progress', handler);

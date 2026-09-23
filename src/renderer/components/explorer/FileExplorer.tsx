@@ -12,9 +12,12 @@ import {
   Clock,
   HardDrive,
   Cloud,
+  RotateCcw,
 } from 'lucide-react';
 import type { DocumentItem, Folder, FamilyMember } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
+import { OcrStatusBadge } from '../common/OcrStatusBadge';
+import { useOcrProgress } from '../../hooks/useOcrProgress';
 
 interface Props {
   member: FamilyMember;
@@ -40,6 +43,7 @@ export const FileExplorer: React.FC<Props> = ({
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
+  const ocrProgress = useOcrProgress();
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedDocIds);
@@ -127,41 +131,41 @@ export const FileExplorer: React.FC<Props> = ({
     >
       {/* Drag & Drop Overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-40 bg-surface/90 border-2 border-dashed border-white flex flex-col items-center justify-center pointer-events-none animate-in fade-in">
-          <Upload className="w-12 h-12 text-white mb-3 animate-bounce" />
-          <p className="text-base font-semibold text-ink">Drop medical files here</p>
-          <p className="text-xs text-mute mt-1">Files will be securely saved into {folder.name}</p>
+        <div className="absolute inset-0 z-40 bg-surface-elevated/95 border-2 border-dashed border-hairline-strong flex flex-col items-center justify-center pointer-events-none">
+          <Upload className="w-10 h-10 text-ink mb-3" />
+          <p className="text-sm font-semibold text-ink">Drop files here</p>
+          <p className="text-xs text-mute mt-1">Saved into {folder.name}</p>
         </div>
       )}
 
       {/* Breadcrumb & Action Topbar */}
       <header className="h-14 px-6 border-b border-hairline flex items-center justify-between shrink-0 bg-surface/40 backdrop-blur-sm">
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-mute font-medium">{member.name}</span>
+          <span className="text-stone font-medium">{member.name}</span>
           <span className="text-stone">/</span>
           <span className="text-ink font-semibold">{folder.name}</span>
-          <span className="text-[11px] text-mute font-mono ml-2">
+          <span className="text-[11px] text-stone ml-1 tabular-nums">
             ({documents.length} {documents.length === 1 ? 'record' : 'records'})
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5 pr-14">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleOpenFileDialog}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md"
           >
-            <Upload className="w-3.5 h-3.5 text-mute" />
-            Import Files
+            <Upload className="w-3.5 h-3.5 text-stone" />
+            Import
           </button>
 
           {onOpenSyncFolder && (
             <button
               onClick={() => onOpenSyncFolder(folder.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md transition-colors"
-              title={`Sync folder "${folder.name}" to Google Drive`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-ink bg-surface-elevated hover:bg-surface-card border border-hairline rounded-md"
+              title={`Sync "${folder.name}" to Google Drive`}
             >
-              <Cloud className="w-3.5 h-3.5 text-accent-blue" />
-              <span>Sync Folder</span>
+              <Cloud className="w-3.5 h-3.5 text-stone" />
+              <span>Sync</span>
             </button>
           )}
 
@@ -170,12 +174,12 @@ export const FileExplorer: React.FC<Props> = ({
               onClick={() =>
                 onTriggerAnalysis(analysisScopeType, analysisTargetIds, analysisTitle)
               }
-              className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold bg-primary text-primary-text hover:bg-primary-pressed rounded-md"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>
                 {hasSelection
-                  ? `Analyze Selected (${selectedDocIds.size})`
+                  ? `Analyze (${selectedDocIds.size})`
                   : 'Analyze Folder'}
               </span>
             </button>
@@ -184,32 +188,32 @@ export const FileExplorer: React.FC<Props> = ({
       </header>
 
       {/* Main File Table or Empty State */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-5">
         {documents.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center border border-dashed border-hairline rounded-xl p-10 text-center bg-surface/20">
-            <div className="w-12 h-12 rounded-full bg-surface-elevated border border-hairline flex items-center justify-center mb-4 text-mute">
-              <Upload className="w-5 h-5" />
+          <div className="h-full flex flex-col items-center justify-center border border-dashed border-hairline rounded-xl p-10 text-center">
+            <div className="w-10 h-10 rounded-full bg-surface-elevated border border-hairline flex items-center justify-center mb-4 text-stone">
+              <Upload className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-semibold text-ink mb-1">No documents in this folder yet</h3>
+            <h3 className="text-sm font-semibold text-ink mb-1">No documents yet</h3>
             <p className="text-xs text-mute max-w-sm mb-5">
-              Drag & drop bloodwork lab results, radiology summaries, discharge summaries or doctor notes, or click below.
+              Drag &amp; drop lab results, radiology summaries, or doctor notes, or click below.
             </p>
             <button
               onClick={handleOpenFileDialog}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-primary text-primary-text hover:bg-primary-pressed rounded-md transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-medium bg-primary text-primary-text hover:bg-primary-pressed rounded-md"
             >
               <Upload className="w-3.5 h-3.5" />
-              Choose Files to Import
+              Choose Files
             </button>
           </div>
         ) : (
           <div className="border border-hairline rounded-lg bg-surface overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-12 px-4 py-2.5 bg-surface-elevated/60 border-b border-hairline text-[11px] font-mono uppercase text-stone tracking-wider items-center">
+            <div className="grid grid-cols-12 px-4 py-2.5 bg-surface-elevated/60 border-b border-hairline text-[11px] font-medium uppercase tracking-wider text-stone items-center">
               <div className="col-span-1 flex items-center">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-stone hover:text-ink transition-colors"
+                  className="text-stone hover:text-ink"
                 >
                   {selectedDocIds.size === documents.length ? (
                     <CheckSquare className="w-3.5 h-3.5 text-ink" />
@@ -234,6 +238,7 @@ export const FileExplorer: React.FC<Props> = ({
                   day: 'numeric',
                   year: 'numeric',
                 });
+                const liveOcr = ocrProgress.get(doc.id);
 
                 return (
                   <div
@@ -254,19 +259,27 @@ export const FileExplorer: React.FC<Props> = ({
                       </button>
                     </div>
 
-                    {/* File Name & Preview snippet */}
+                    {/* File Name, OCR badge & preview snippet */}
                     <div
                       className="col-span-6 flex items-center gap-2.5 min-w-0 cursor-pointer"
                       onClick={() => onPreviewDocument(doc)}
                     >
                       {getFileIcon(doc.file_type)}
-                      <div className="min-w-0">
-                        <span className="font-medium text-ink hover:underline truncate block">
-                          {doc.filename}
-                        </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-ink hover:underline truncate">
+                            {doc.filename}
+                          </span>
+                          <OcrStatusBadge doc={doc} liveEvent={liveOcr} compact />
+                        </div>
                         {doc.extracted_text && (
                           <span className="text-[11px] text-mute truncate block max-w-md">
                             {doc.extracted_text.slice(0, 65)}...
+                          </span>
+                        )}
+                        {liveOcr?.detail && (liveOcr.status === 'processing') && (
+                          <span className="text-[10px] text-accent-blue truncate block">
+                            {liveOcr.detail}
                           </span>
                         )}
                       </div>
@@ -284,13 +297,20 @@ export const FileExplorer: React.FC<Props> = ({
                     </div>
 
                     {/* Actions */}
-                    <div className="col-span-1 flex items-center justify-end gap-2">
+                    <div className="col-span-1 flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => onPreviewDocument(doc)}
-                        className="p-1 text-stone hover:text-ink transition-colors"
+                        className="p-1 text-stone hover:text-ink transition-colors opacity-0 group-hover:opacity-100"
                         title="Preview Document"
                       >
                         <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => window.medbuddy.reRunOcr(doc.id)}
+                        className="p-1 text-stone hover:text-accent-blue transition-colors opacity-0 group-hover:opacity-100"
+                        title="Re-run OCR extraction"
+                      >
+                        <RotateCcw className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => {
@@ -298,7 +318,7 @@ export const FileExplorer: React.FC<Props> = ({
                             onDeleteDocument(doc.id);
                           }
                         }}
-                        className="p-1 text-stone hover:text-accent-red transition-colors"
+                        className="p-1 text-stone hover:text-accent-red transition-colors opacity-0 group-hover:opacity-100"
                         title="Delete Document"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

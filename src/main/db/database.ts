@@ -53,8 +53,19 @@ export function initDatabase(dbPath?: string): Database.Database {
     // Column already exists
   }
 
+  // OCR column migrations
+  const ocrMigrations = [
+    `ALTER TABLE documents ADD COLUMN ocr_status TEXT NOT NULL DEFAULT 'pending'`,
+    `ALTER TABLE documents ADD COLUMN ocr_stage TEXT`,
+    `ALTER TABLE documents ADD COLUMN ocr_error TEXT`,
+  ];
+  for (const sql of ocrMigrations) {
+    try { dbInstance.exec(sql); } catch { /* column already exists */ }
+  }
+
   // Seed default profiles if none exist
   seedDefaultProfiles(dbInstance);
+
 
   return dbInstance;
 }
@@ -242,6 +253,26 @@ export function updateDocumentExtractedText(id: string, text: string): void {
   db.prepare('UPDATE documents SET extracted_text = ?, updated_at = ? WHERE id = ?').run(text, now, id);
 }
 
+export function updateDocumentOcrStatus(
+  id: string,
+  status: string,
+  stage?: string | null,
+  error?: string | null
+): void {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  db.prepare(
+    'UPDATE documents SET ocr_status = ?, ocr_stage = ?, ocr_error = ?, updated_at = ? WHERE id = ?'
+  ).run(status, stage ?? null, error ?? null, now, id);
+}
+
+export function getPendingOcrDocuments(): DocumentItem[] {
+  const db = getDatabase();
+  return db
+    .prepare(`SELECT * FROM documents WHERE ocr_status IN ('pending', 'processing') ORDER BY created_at ASC`)
+    .all() as DocumentItem[];
+}
+
 export function deleteDocument(id: string): DocumentItem | null {
   const db = getDatabase();
   const doc = getDocumentById(id);
@@ -367,12 +398,57 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
   `).all(row.id) as DocumentItem[];
 
   let scopeName = row.scope_id;
+  let memberId: string | null = null;
+  let memberName: string | null = null;
+  let memberColor: string | null = null;
+
   if (row.scope_type === 'folder') {
-    const f = db.prepare('SELECT name FROM folders WHERE id = ?').get(row.scope_id) as { name: string } | undefined;
-    if (f) scopeName = f.name;
+    const f = db.prepare(`
+      SELECT f.name as folder_name, m.id as member_id, m.name as member_name, m.avatar_color as member_color
+      FROM folders f
+      LEFT JOIN members m ON f.member_id = m.id
+      WHERE f.id = ?
+    `).get(row.scope_id) as { folder_name: string; member_id?: string; member_name?: string; member_color?: string } | undefined;
+    if (f) {
+      scopeName = f.folder_name;
+      if (f.member_id) {
+        memberId = f.member_id;
+        memberName = f.member_name || null;
+        memberColor = f.member_color || null;
+      }
+    }
   } else if (row.scope_type === 'file') {
-    const d = db.prepare('SELECT filename FROM documents WHERE id = ?').get(row.scope_id) as { filename: string } | undefined;
-    if (d) scopeName = d.filename;
+    const d = db.prepare(`
+      SELECT d.filename, m.id as member_id, m.name as member_name, m.avatar_color as member_color
+      FROM documents d
+      JOIN folders f ON d.folder_id = f.id
+      LEFT JOIN members m ON f.member_id = m.id
+      WHERE d.id = ?
+    `).get(row.scope_id) as { filename: string; member_id?: string; member_name?: string; member_color?: string } | undefined;
+    if (d) {
+      scopeName = d.filename;
+      if (d.member_id) {
+        memberId = d.member_id;
+        memberName = d.member_name || null;
+        memberColor = d.member_color || null;
+      }
+    }
+  }
+
+  // Fallback: If member is not yet resolved, inspect source documents
+  if (!memberId && docRows.length > 0) {
+    const firstDoc = docRows[0];
+    const m = db.prepare(`
+      SELECT m.id, m.name, m.avatar_color
+      FROM folders f
+      JOIN members m ON f.member_id = m.id
+      WHERE f.id = ?
+    `).get(firstDoc.folder_id) as { id: string; name: string; avatar_color: string } | undefined;
+    if (m) {
+      memberId = m.id;
+      memberName = m.name;
+      memberColor = m.avatar_color;
+    }
   }
 
   let parsedJson: StructuredAnalysisResult;
@@ -397,6 +473,9 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
     scope_type: row.scope_type,
     scope_id: row.scope_id,
     scope_name: scopeName,
+    member_id: memberId,
+    member_name: memberName,
+    member_color: memberColor,
     provider_profile_id: row.provider_profile_id,
     provider_name: row.provider_name,
     model_name: row.model_name,
@@ -405,6 +484,12 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
     source_documents: docRows,
     created_at: row.created_at,
   };
+}
+
+export function deleteAnalysisById(id: string): boolean {
+  const db = getDatabase();
+  const res = db.prepare('DELETE FROM analysis_results WHERE id = ?').run(id);
+  return res.changes > 0;
 }
 
 export function storeAnalysisResult(

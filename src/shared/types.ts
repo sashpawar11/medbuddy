@@ -19,6 +19,9 @@ export interface Folder {
   document_count?: number;
 }
 
+export type OcrStatus = 'pending' | 'processing' | 'done' | 'failed' | 'skipped';
+export type OcrStage = 'paddle' | 'llm_vision';
+
 export interface DocumentItem {
   id: string;
   folder_id: string;
@@ -28,6 +31,9 @@ export interface DocumentItem {
   storage_path: string;
   content_hash: string;
   extracted_text?: string | null;
+  ocr_status: OcrStatus;
+  ocr_stage?: OcrStage | null;
+  ocr_error?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -120,6 +126,9 @@ export interface AnalysisRecord {
   scope_type: 'file' | 'selection' | 'folder';
   scope_id: string;
   scope_name?: string;
+  member_id?: string | null;
+  member_name?: string | null;
+  member_color?: string | null;
   provider_profile_id: string;
   provider_name?: string;
   model_name?: string;
@@ -146,6 +155,16 @@ export interface AIProgressEvent {
   progressPercent?: number;
   currentDocument?: string;
   detail?: string;
+}
+
+/** Per-document OCR progress broadcast from the main process via IPC. */
+export interface OcrProgressEvent {
+  documentId: string;
+  filename: string;
+  status: OcrStatus;
+  stage?: OcrStage;
+  progressPercent?: number; // 0–100 within this document (page-level progress)
+  detail?: string;          // e.g. "Page 3 of 8" or "LLM Vision: transcribing…"
 }
 
 export interface ConnectionTestResult {
@@ -236,6 +255,8 @@ export interface MedBuddyAPI {
   readDocumentData: (documentId: string) => Promise<{ mimeType: string; dataUrl: string; filename: string; text?: string | null }>;
   deleteDocument: (documentId: string) => Promise<void>;
   openFileDialog: () => Promise<string[]>;
+  reRunOcr: (documentId: string) => Promise<void>;
+  onOcrProgress: (callback: (event: OcrProgressEvent) => void) => () => void;
 
   // Providers
   listProviders: () => Promise<ProviderProfile[]>;
@@ -253,6 +274,7 @@ export interface MedBuddyAPI {
   }) => Promise<AnalysisRecord>;
   getAnalysis: (id: string) => Promise<AnalysisRecord | null>;
   listAnalyses: (limit?: number) => Promise<AnalysisRecord[]>;
+  deleteAnalysis: (id: string) => Promise<void>;
   onAIProgress: (callback: (event: AIProgressEvent) => void) => () => void;
 
   // Google Drive Sync

@@ -8,16 +8,18 @@ import {
   Cpu,
   Terminal,
   Settings,
-  MoreVertical,
   ChevronDown,
   ShieldCheck,
   Home,
   PanelLeftClose,
   PanelLeftOpen,
   Cloud,
+  ChevronRight,
 } from 'lucide-react';
 import type { FamilyMember, Folder } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
+import { ThemeToggle } from '../common/ThemeToggle';
+import type { ThemeMode } from '../../hooks/useTheme';
 
 interface Props {
   members: FamilyMember[];
@@ -36,7 +38,17 @@ interface Props {
   isSyncConnected?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
+
+/** Shared nav item styles */
+const navItem = (active: boolean) =>
+  `w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-[background-color,color] ${
+    active
+      ? 'bg-surface-card text-ink border border-hairline'
+      : 'text-mute hover:bg-surface-elevated hover:text-ink'
+  }`;
 
 export const Sidebar: React.FC<Props> = ({
   members,
@@ -55,6 +67,8 @@ export const Sidebar: React.FC<Props> = ({
   isSyncConnected = false,
   isCollapsed = false,
   onToggleCollapse,
+  theme,
+  onToggleTheme,
 }) => {
   const [memberMenuOpen, setMemberMenuOpen] = useState(false);
 
@@ -63,15 +77,15 @@ export const Sidebar: React.FC<Props> = ({
   // --------------------------------------------------------------------------
   if (isCollapsed) {
     return (
-      <aside className="w-16 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0 transition-all duration-200 ease-in-out">
-        {/* Signature Hero Accent */}
-        <div className="h-1 w-full hero-stripe-accent shrink-0" />
+      <aside className="w-14 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0">
+        {/* Hero Stripe */}
+        <div className="h-0.5 w-full hero-stripe-accent shrink-0" />
 
-        {/* Top Header & Expand Button */}
-        <div className="p-3 border-b border-hairline flex flex-col items-center gap-2 shrink-0">
+        {/* Expand Button */}
+        <div className="p-2.5 border-b border-hairline flex flex-col items-center gap-2 shrink-0">
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink transition-colors"
+            className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
             title="Expand Sidebar (⌘B)"
             aria-label="Expand sidebar"
           >
@@ -79,65 +93,62 @@ export const Sidebar: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Navigation Icons Stack */}
-        <div className="flex-1 overflow-y-auto py-3 px-2 flex flex-col items-center gap-2">
-          {/* Home Icon */}
+        {/* Navigation Icons */}
+        <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1.5">
           <button
             onClick={() => onNavigate('home')}
-            className={`p-2.5 rounded-md transition-colors ${
+            className={`p-2 rounded-md transition-[background-color,color] ${
               activeView === 'home'
-                ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
+                ? 'bg-surface-card text-ink border border-hairline'
                 : 'text-mute hover:bg-surface-elevated hover:text-ink'
             }`}
-            title="Dashboard (Home)"
+            title="Home Dashboard"
           >
-            <Home className={`w-4 h-4 ${activeView === 'home' ? 'text-accent-blue' : ''}`} />
+            <Home className="w-4 h-4" />
           </button>
 
-          {/* Member Avatar Button */}
           {selectedMember ? (
             <button
               onClick={() => onNavigate('files')}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0 my-1 transition-transform hover:scale-105"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-black shrink-0 my-0.5"
               style={{ backgroundColor: selectedMember.avatar_color }}
-              title={`Active Member: ${selectedMember.name}`}
+              title={`Active: ${selectedMember.name}`}
             >
               {selectedMember.name.slice(0, 1).toUpperCase()}
             </button>
           ) : (
             <button
               onClick={onOpenAddMember}
-              className="p-2 rounded-md hover:bg-surface-elevated text-mute hover:text-ink transition-colors"
+              className="p-2 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
               title="Add Family Member"
             >
               <UserPlus className="w-4 h-4" />
             </button>
           )}
 
-          <div className="w-6 h-px bg-hairline my-1" />
+          <div className="w-5 h-px bg-hairline my-0.5" />
 
-          {/* Folders Icon */}
           <button
             onClick={() => onNavigate('files')}
-            className={`p-2.5 rounded-md transition-colors ${
+            className={`p-2 rounded-md transition-[background-color,color] ${
               activeView === 'files'
-                ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
+                ? 'bg-surface-card text-ink border border-hairline'
                 : 'text-mute hover:bg-surface-elevated hover:text-ink'
             }`}
-            title="Medical Records Explorer"
+            title="Medical Records"
           >
-            <FolderIcon className={`w-4 h-4 ${activeView === 'files' ? 'text-ink' : ''}`} />
+            <FolderIcon className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Bottom Utility Icons */}
-        <div className="p-2 border-t border-hairline flex flex-col items-center gap-2 shrink-0 bg-surface-elevated/40">
+        {/* Bottom Utilities */}
+        <div className="p-2 border-t border-hairline flex flex-col items-center gap-1.5 shrink-0">
           <button
             onClick={onOpenSync}
-            className="p-2 rounded-md relative text-mute hover:bg-surface-elevated hover:text-ink transition-colors"
-            title="Sync to Google Drive"
+            className="p-2 rounded-md relative text-mute hover:bg-surface-elevated hover:text-ink"
+            title="Google Drive Sync"
           >
-            <Cloud className="w-4 h-4 text-accent-blue" />
+            <Cloud className="w-4 h-4" />
             {isSyncConnected && (
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent-green" />
             )}
@@ -145,39 +156,29 @@ export const Sidebar: React.FC<Props> = ({
 
           <button
             onClick={() => onNavigate('overviews_history')}
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md transition-[background-color,color] ${
               activeView === 'overviews_history'
                 ? 'bg-surface-card text-ink border border-hairline'
                 : 'text-mute hover:bg-surface-elevated hover:text-ink'
             }`}
             title="Health Overviews"
           >
-            <Activity className="w-4 h-4 text-accent-blue" />
+            <Activity className="w-4 h-4" />
           </button>
 
           <button
             onClick={() => onNavigate('settings')}
-            className={`p-2 rounded-md transition-colors ${
+            className={`p-2 rounded-md transition-[background-color,color] ${
               activeView === 'settings'
                 ? 'bg-surface-card text-ink border border-hairline'
                 : 'text-mute hover:bg-surface-elevated hover:text-ink'
             }`}
             title="AI Provider Setup"
           >
-            <Cpu className="w-4 h-4 text-accent-yellow" />
+            <Cpu className="w-4 h-4" />
           </button>
 
-          <button
-            onClick={() => onNavigate('logs')}
-            className={`p-2 rounded-md transition-colors ${
-              activeView === 'logs'
-                ? 'bg-surface-card text-ink border border-hairline'
-                : 'text-mute hover:bg-surface-elevated hover:text-ink'
-            }`}
-            title="Diagnostics & Logs (⌘L)"
-          >
-            <Terminal className="w-4 h-4 text-stone" />
-          </button>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </aside>
     );
@@ -187,77 +188,70 @@ export const Sidebar: React.FC<Props> = ({
   // Expanded Sidebar
   // --------------------------------------------------------------------------
   return (
-    <aside className="w-64 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0 transition-all duration-200 ease-in-out">
-      {/* Signature Red Hero Stripe Accent (Design.md §2.5) */}
-      <div className="h-1 w-full hero-stripe-accent shrink-0" />
+    <aside className="w-60 bg-surface border-r border-hairline flex flex-col h-full select-none shrink-0">
+      {/* Signature Red Hero Stripe */}
+      <div className="h-0.5 w-full hero-stripe-accent shrink-0" />
 
       {/* Brand Header */}
-      <div className="p-3.5 border-b border-hairline flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <button
-            onClick={() => onNavigate('home')}
-            className="w-7 h-7 rounded-md bg-primary text-primary-text flex items-center justify-center font-bold text-sm shadow-sm shrink-0 transition-transform active:scale-95"
-            title="Go to Home Dashboard"
-          >
-            M
-          </button>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-semibold tracking-tight text-ink">
-                MedBuddy
-              </h1>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-xs bg-surface-elevated text-mute font-mono border border-hairline">
-                v1.0
-              </span>
-              <button
-                onClick={() => onNavigate('home')}
-                className="p-0.5 rounded hover:bg-surface-elevated text-mute hover:text-ink transition-colors ml-0.5"
-                title="Go to Home Dashboard"
-              >
-                <Home className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <p className="text-[11px] text-mute flex items-center gap-1 font-mono">
-              <ShieldCheck className="w-3 h-3 text-accent-green shrink-0" /> Local Vault
-            </p>
-          </div>
-        </div>
-
-        {/* Collapse Toggle Button */}
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink transition-colors shrink-0"
-            title="Collapse Sidebar (⌘B)"
-            aria-label="Collapse sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Primary Navigation Item: Home Dashboard */}
-      <div className="px-3 pt-3 pb-1 shrink-0">
+      <div className="px-3.5 py-3 border-b border-hairline flex items-center justify-between shrink-0">
         <button
           onClick={() => onNavigate('home')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
-            activeView === 'home'
-              ? 'bg-surface-card text-ink border border-hairline shadow-sm'
-              : 'text-body hover:bg-surface-elevated hover:text-ink'
-          }`}
+          className="flex items-center gap-2.5 min-w-0 group"
+          title="Home Dashboard"
         >
-          <Home className={`w-4 h-4 shrink-0 ${activeView === 'home' ? 'text-accent-blue' : 'text-mute'}`} />
-          <span className="truncate">Home Dashboard</span>
+          {/* Logo mark — ShieldCheck in a pill, concentric with the sidebar radius */}
+          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-primary-text" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-semibold tracking-tight text-ink">MedBuddy</h1>
+              <span className="text-[10px] px-1.5 rounded-xs bg-surface-elevated text-stone border border-hairline font-medium">
+                v1
+              </span>
+            </div>
+            <p className="text-[10px] text-stone flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-green inline-block" />
+              Local Vault
+            </p>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-md hover:bg-surface-elevated text-mute hover:text-ink"
+              title="Collapse Sidebar (⌘B)"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Home nav item */}
+      <div className="px-2.5 pt-2.5 pb-1 shrink-0">
+        <button
+          onClick={() => onNavigate('home')}
+          className={navItem(activeView === 'home')}
+        >
+          <Home className="w-4 h-4 shrink-0" />
+          <span className="truncate">Home</span>
         </button>
       </div>
 
-      {/* Member Selector Section */}
-      <div className="px-3 py-2 border-b border-hairline relative shrink-0">
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="text-[10px] font-mono uppercase text-stone tracking-wider">Family Member</span>
+      {/* Member Selector */}
+      <div className="px-2.5 py-2 border-b border-hairline relative shrink-0">
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-stone">
+            Family
+          </span>
           <button
             onClick={onOpenAddMember}
-            className="text-[11px] text-mute hover:text-ink flex items-center gap-0.5 transition-colors font-medium"
+            className="text-[11px] text-stone hover:text-ink flex items-center gap-0.5 font-medium"
             title="Add Family Member"
           >
             <Plus className="w-3 h-3" /> Add
@@ -268,30 +262,29 @@ export const Sidebar: React.FC<Props> = ({
           <div className="relative">
             <button
               onClick={() => setMemberMenuOpen(!memberMenuOpen)}
-              className="w-full flex items-center justify-between p-2 rounded-md bg-surface-elevated hover:bg-surface-card border border-hairline transition-colors text-left"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-md bg-surface-elevated hover:bg-surface-card border border-hairline text-left"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-black shrink-0 shadow-sm"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0"
                   style={{ backgroundColor: selectedMember.avatar_color }}
                 >
                   {selectedMember.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-ink truncate">{selectedMember.name}</div>
-                  <div className="text-[10px] text-mute truncate">{selectedMember.relationship}</div>
+                  <div className="text-[10px] text-stone truncate">{selectedMember.relationship}</div>
                 </div>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-mute shrink-0 ml-1" />
+              <ChevronDown className="w-3.5 h-3.5 text-stone shrink-0 ml-1" />
             </button>
 
-            {/* Member Dropdown Menu */}
             {memberMenuOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-surface-card border border-hairline-strong rounded-md shadow-2xl z-30 py-1 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-surface-card border border-hairline rounded-md z-30 py-1 max-h-48 overflow-y-auto">
                 {members.map((m) => (
                   <div
                     key={m.id}
-                    className="flex items-center justify-between px-2.5 py-1.5 hover:bg-surface-elevated transition-colors cursor-pointer group"
+                    className="flex items-center justify-between px-2.5 py-1.5 hover:bg-surface-elevated cursor-pointer group"
                     onClick={() => {
                       onSelectMember(m);
                       setMemberMenuOpen(false);
@@ -299,7 +292,7 @@ export const Sidebar: React.FC<Props> = ({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-black shrink-0"
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-black shrink-0"
                         style={{ backgroundColor: m.avatar_color }}
                       >
                         {m.name.slice(0, 1).toUpperCase()}
@@ -313,8 +306,8 @@ export const Sidebar: React.FC<Props> = ({
                         setMemberMenuOpen(false);
                         onOpenEditMember(m);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-mute hover:text-ink transition-opacity"
-                      title="Edit Member Profile"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-stone hover:text-ink"
+                      title="Edit Member"
                     >
                       <Settings className="w-3 h-3" />
                     </button>
@@ -326,7 +319,7 @@ export const Sidebar: React.FC<Props> = ({
         ) : (
           <button
             onClick={onOpenAddMember}
-            className="w-full flex items-center justify-center gap-1.5 p-2 rounded-md bg-surface-elevated border border-hairline text-xs text-mute hover:text-ink hover:border-hairline-strong transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md border border-dashed border-hairline text-xs text-stone hover:text-ink hover:border-hairline-strong"
           >
             <UserPlus className="w-3.5 h-3.5" />
             Add First Member
@@ -334,15 +327,17 @@ export const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Folders List Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-        <div className="flex items-center justify-between px-1 mb-1.5">
-          <span className="text-[10px] font-mono uppercase text-stone tracking-wider">Medical Folders</span>
+      {/* Folders */}
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5">
+        <div className="flex items-center justify-between px-0.5 mb-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-stone">
+            Folders
+          </span>
           {selectedMember && (
             <button
               onClick={onOpenAddFolder}
-              className="text-[11px] text-mute hover:text-ink flex items-center gap-1 transition-colors font-medium"
-              title="Add New Folder"
+              className="text-[11px] text-stone hover:text-ink flex items-center gap-1 font-medium"
+              title="New Folder"
             >
               <FolderPlus className="w-3 h-3" /> New
             </button>
@@ -351,14 +346,14 @@ export const Sidebar: React.FC<Props> = ({
 
         {folders.length === 0 ? (
           <div className="text-center py-6 px-2">
-            <FolderIcon className="w-5 h-5 text-stone mx-auto mb-1.5 opacity-40" />
-            <p className="text-xs text-mute">No folders created yet</p>
+            <FolderIcon className="w-5 h-5 text-stone mx-auto mb-1.5 opacity-30" />
+            <p className="text-[11px] text-stone">No folders yet</p>
             {selectedMember && (
               <button
                 onClick={onOpenAddFolder}
-                className="mt-2 text-xs text-ink underline hover:text-body"
+                className="mt-2 text-xs text-mute hover:text-ink underline"
               >
-                Create a folder
+                Create one
               </button>
             )}
           </div>
@@ -372,20 +367,19 @@ export const Sidebar: React.FC<Props> = ({
                   onSelectFolder(f.id);
                   onNavigate('files');
                 }}
-                className={`group flex items-center justify-between px-2.5 py-2 rounded-md text-xs cursor-pointer transition-colors ${
+                className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition-[background-color,color] ${
                   isSelected
-                    ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
-                    : 'text-body hover:bg-surface-elevated hover:text-ink'
+                    ? 'bg-surface-card text-ink border border-hairline'
+                    : 'text-mute hover:bg-surface-elevated hover:text-ink'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <FolderIcon
-                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-accent-blue' : 'text-mute'}`}
-                  />
-                  <span className="truncate">{f.name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <FolderIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-ink' : 'text-stone'}`} />
+                  <span className="truncate font-medium">{f.name}</span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] text-mute font-mono px-1.5 py-0.2 rounded-xs bg-surface-elevated border border-hairline/60">
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Bare count — no badge noise */}
+                  <span className="text-[10px] tabular-nums text-stone">
                     {f.document_count || 0}
                   </span>
                   <button
@@ -395,10 +389,10 @@ export const Sidebar: React.FC<Props> = ({
                         onDeleteFolder(f.id);
                       }
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-stone hover:text-accent-red transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 text-stone hover:text-accent-red"
                     title="Delete Folder"
                   >
-                    <MoreVertical className="w-3 h-3" />
+                    <ChevronRight className="w-3 h-3 rotate-90 opacity-60" />
                   </button>
                 </div>
               </div>
@@ -407,62 +401,46 @@ export const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Global Navigation Links */}
-      <div className="p-3 border-t border-hairline space-y-1 bg-surface-elevated/40 shrink-0">
+      {/* Bottom Navigation */}
+      <div className="px-2.5 py-2 border-t border-hairline space-y-0.5 shrink-0">
         <button
           onClick={onOpenSync}
-          className="w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium text-mute hover:bg-surface-elevated hover:text-ink transition-colors group"
+          className="w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium text-mute hover:bg-surface-elevated hover:text-ink group"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <Cloud className="w-4 h-4 text-accent-blue shrink-0" />
-            <span className="truncate">Google Drive Sync</span>
+            <Cloud className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Drive Sync</span>
           </div>
           {isSyncConnected ? (
-            <span className="text-[9px] px-1.5 py-0.2 rounded-xs bg-accent-green-soft text-accent-green font-mono border border-accent-green/30">
-              Synced
-            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-green shrink-0" />
           ) : (
-            <span className="text-[10px] text-stone group-hover:text-mute">
-              Setup
-            </span>
+            <span className="text-[10px] text-stone group-hover:text-mute">Setup</span>
           )}
         </button>
 
         <button
           onClick={() => onNavigate('overviews_history')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
-            activeView === 'overviews_history'
-              ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
-              : 'text-mute hover:bg-surface-elevated hover:text-ink'
-          }`}
+          className={navItem(activeView === 'overviews_history')}
         >
-          <Activity className="w-4 h-4 text-accent-blue shrink-0" />
-          <span className="truncate">Health Overviews</span>
+          <Activity className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Overviews</span>
         </button>
 
         <button
           onClick={() => onNavigate('settings')}
-          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
-            activeView === 'settings'
-              ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
-              : 'text-mute hover:bg-surface-elevated hover:text-ink'
-          }`}
+          className={navItem(activeView === 'settings')}
         >
-          <Cpu className="w-4 h-4 text-accent-yellow shrink-0" />
-          <span className="truncate">AI Provider Setup</span>
+          <Cpu className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">AI Providers</span>
         </button>
 
         <button
           onClick={() => onNavigate('logs')}
-          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-colors ${
-            activeView === 'logs'
-              ? 'bg-surface-card text-ink font-semibold border border-hairline shadow-sm'
-              : 'text-mute hover:bg-surface-elevated hover:text-ink'
-          }`}
+          className={`${navItem(activeView === 'logs')} justify-between`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <Terminal className="w-4 h-4 text-stone shrink-0" />
-            <span className="truncate">Diagnostics & Logs</span>
+            <Terminal className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Diagnostics</span>
           </div>
           <Keycap>⌘L</Keycap>
         </button>
