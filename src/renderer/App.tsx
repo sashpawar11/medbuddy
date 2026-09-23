@@ -546,6 +546,7 @@ export const App: React.FC = () => {
                 );
               }}
               onDelete={handleDeleteAnalysis}
+              onPreviewDoc={(doc) => setPreviewDoc(doc)}
             />
           )}
 

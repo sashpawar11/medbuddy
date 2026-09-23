@@ -72,7 +72,7 @@ DISCLAIMER: The summaries and metrics are for personal organization and informat
 You MUST respond with a single, valid, raw JSON object matching this schema:
 {
   "schemaVersion": "1.1",
-  "summary": "In-depth, comprehensive clinical synthesis (3-5 rich sentences). Summarize the overall health trajectory across visits and dates, identify which organ systems or panels were evaluated (e.g. metabolic, lipid, oncology, renal), highlight key positive or stable findings, and pinpoint specific areas requiring follow-up.",
+  "summary": "In-depth, comprehensive clinical synthesis (3-5 rich sentences). Use markdown bold (**term**) sparingly to emphasize key diagnoses, primary findings, or abnormal values (e.g. '**Invasive Carcinoma**', '**elevated ESR (35 mm/hr)**', '**HER2 negative**'). Summarize the overall health trajectory, organ systems evaluated, key positive or stable findings, and pinpoint areas requiring follow-up.",
   "keyHighlights": [
     "High-impact takeaway summarizing patient status",
     "Key trend or finding across the records"
