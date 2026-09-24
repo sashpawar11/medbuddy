@@ -56,7 +56,7 @@ export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis, 
                   <div
                     key={rec.id}
                     onClick={() => onSelectAnalysis(rec)}
-                    className="p-5 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer group flex items-start justify-between gap-4"
+                    className="p-5 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-sm transition-[background-color,border-color,box-shadow] duration-100 ease-out cursor-pointer group flex items-start justify-between gap-4"
                   >
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2.5">

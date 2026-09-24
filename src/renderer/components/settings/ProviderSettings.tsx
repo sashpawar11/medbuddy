@@ -144,7 +144,7 @@ export const ProviderSettings: React.FC<Props> = ({
         {editingId && (
           <form
             onSubmit={handleSave}
-            className="p-5 rounded-md bg-surface border border-border space-y-4 animate-in fade-in"
+            className="p-5 rounded-md bg-surface border border-border space-y-4 animate-fade-in"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <h3 className="text-h3 font-semibold text-primary">

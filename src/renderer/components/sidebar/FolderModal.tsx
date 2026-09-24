@@ -37,8 +37,8 @@ export const FolderModal: React.FC<Props> = ({ isOpen, onClose, onSave, memberNa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[420px] p-6 shadow-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[420px] p-6 shadow-md animate-modal-enter">
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center">

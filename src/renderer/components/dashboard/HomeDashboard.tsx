@@ -246,7 +246,7 @@ export const HomeDashboard: React.FC<Props> = ({
               {/* Card 1: Add Member */}
               <div
                 onClick={onOpenAddMember}
-                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-[border-color,box-shadow] duration-100 ease-out cursor-pointer group flex flex-col justify-between"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center shrink-0">
@@ -271,7 +271,7 @@ export const HomeDashboard: React.FC<Props> = ({
               {/* Card 2: Health Overviews */}
               <div
                 onClick={() => onNavigate('overviews_history')}
-                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-[border-color,box-shadow] duration-100 ease-out cursor-pointer group flex flex-col justify-between"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center shrink-0">
@@ -296,7 +296,7 @@ export const HomeDashboard: React.FC<Props> = ({
               {/* Card 3: AI Provider Setup */}
               <div
                 onClick={() => onNavigate('settings')}
-                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-[border-color,box-shadow] duration-100 ease-out cursor-pointer group flex flex-col justify-between"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-sm bg-surface-recessed text-primary flex items-center justify-center shrink-0 border border-border">
@@ -321,7 +321,7 @@ export const HomeDashboard: React.FC<Props> = ({
               {/* Card 4: Google Drive Sync */}
               <div
                 onClick={onOpenSync}
-                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer group flex flex-col justify-between"
+                className="p-5 rounded-md bg-surface border border-border hover:border-border-strong hover:shadow-sm transition-[border-color,box-shadow] duration-100 ease-out cursor-pointer group flex flex-col justify-between"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-9 h-9 rounded-sm bg-surface-recessed text-primary flex items-center justify-center shrink-0 border border-border">
@@ -375,7 +375,7 @@ export const HomeDashboard: React.FC<Props> = ({
                     <div
                       key={rec.id}
                       onClick={() => onSelectAnalysis(rec)}
-                      className="p-4 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-4 group"
+                      className="p-4 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-sm transition-[background-color,border-color,box-shadow] duration-100 ease-out cursor-pointer flex items-center justify-between gap-4 group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-sm bg-vault-50 text-vault-600 flex items-center justify-center shrink-0">

@@ -53,7 +53,7 @@ export const ToastContainer: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
         return (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 p-3.5 bg-surface rounded-md border border-border border-l-[3px] ${item.border} shadow-lg transition-all animate-in fade-in slide-in-from-bottom-2`}
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 bg-surface rounded-md border border-border border-l-[3px] ${item.border} shadow-lg transition-[opacity,transform] duration-150 ease-out animate-toast-enter`}
           >
             <div className="mt-0.5">{item.icon}</div>
             <div className="flex-1 min-w-0">

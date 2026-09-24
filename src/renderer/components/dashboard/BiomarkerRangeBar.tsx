@@ -247,7 +247,7 @@ export const BiomarkerRangeBar: React.FC<RangeBarProps> = ({
 
       {/* Refined SVG Value Pointer & Callout */}
       <div
-        className="absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-10"
+        className="absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-10 transition-[left] duration-200 ease-out"
         style={{ left: `${clampedValPct}%` }}
       >
         {/* Circular indicator pin on track */}

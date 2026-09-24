@@ -109,8 +109,8 @@ export const AnalyzeModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[560px] p-6 shadow-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[560px] p-6 shadow-md animate-modal-enter">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
           <div className="flex items-center gap-2">
@@ -161,8 +161,8 @@ export const AnalyzeModal: React.FC<Props> = ({
             {/* Progress bar per §9.12: 4px height, radius-full, ink-200 track / vault-600 fill */}
             <div className="w-full bg-ink-200 rounded-full h-1 overflow-hidden">
               <div
-                className="bg-vault-600 h-full transition-[width] duration-300 ease-out"
-                style={{ width: `${progress?.progressPercent || 25}%` }}
+                className="bg-vault-600 h-full w-full origin-left transition-transform duration-200 ease-out"
+                style={{ transform: `scaleX(${(progress?.progressPercent || 25) / 100})` }}
               />
             </div>
 

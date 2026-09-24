@@ -233,8 +233,8 @@ export const OrganizeModal: React.FC<Props> = ({
   const selectedCount = items.filter((i) => i.selected).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-180">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[840px] max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[840px] max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-modal-enter">
         {/* Modal Header */}
         <header className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0 bg-surface">
           <div className="flex items-center gap-2.5">

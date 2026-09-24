@@ -134,7 +134,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative bg-surface rounded-lg border border-border/80 p-4 flex flex-col justify-between transition-all duration-150 shadow-xs hover:shadow-sm ${statusGlow} ${
+      className={`relative bg-surface rounded-lg border border-border/80 p-4 flex flex-col justify-between transition-[border-color,box-shadow] duration-100 ease-out shadow-xs hover:shadow-sm ${statusGlow} ${
         onClick
           ? 'cursor-pointer hover:border-border-strong'
           : ''

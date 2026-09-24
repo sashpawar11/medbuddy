@@ -19,7 +19,7 @@ export const MedBuddyLogo: React.FC<LogoProps> = ({
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
       <div
-        className="relative flex items-center justify-center shrink-0 rounded-xl shadow-xs transition-transform hover:scale-[1.02]"
+        className="relative flex items-center justify-center shrink-0 rounded-xl shadow-xs"
         style={{
           width: size,
           height: size,

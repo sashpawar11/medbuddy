@@ -122,6 +122,8 @@
 
   /* Motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --duration-fast: 100ms;
   --duration-base: 180ms;
   --duration-panel: 200ms;
@@ -244,3 +246,82 @@ button:active:not(:disabled) {
   line-height: 16px;
   box-shadow: var(--shadow-md);
 }
+
+/* ==========================================================================
+   Motion System (§12 in docs/Designv2.md)
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 180ms var(--ease-standard) forwards;
+}
+
+.animate-modal-enter {
+  animation: modalEnter 180ms var(--ease-standard) forwards;
+}
+
+.animate-drawer-in {
+  animation: drawerSlideIn 200ms var(--ease-standard) forwards;
+}
+
+.animate-toast-enter {
+  animation: toastEnter 200ms var(--ease-standard) forwards;
+}
+
+/* Reduced Motion (§12, WCAG 2.1 AA) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-pulse,
+  .animate-ping,
+  .animate-spin {
+    animation: none !important;
+  }
+}
+

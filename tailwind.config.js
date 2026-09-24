@@ -130,6 +130,16 @@ module.exports = {
         '9': 'var(--space-9)',
         '10': 'var(--space-10)',
       },
+      transitionTimingFunction: {
+        'standard': 'cubic-bezier(0.2, 0, 0, 1)',
+        'out': 'cubic-bezier(0.2, 0, 0, 1)',
+        'in-out': 'cubic-bezier(0.77, 0, 0.175, 1)',
+      },
+      transitionDuration: {
+        '80': '80ms',
+        '180': '180ms',
+        '200': '200ms',
+      },
     },
   },
   plugins: [],

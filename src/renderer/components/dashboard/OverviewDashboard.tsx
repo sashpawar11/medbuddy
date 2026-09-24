@@ -576,7 +576,7 @@ export const OverviewDashboard: React.FC<Props> = ({
                     return (
                       <div
                         key={cf.id}
-                        className="bg-surface dark:bg-ink-900 rounded-xl border border-border dark:border-ink-800 p-5 shadow-xs hover:border-border-strong dark:hover:border-ink-700 transition-all space-y-3.5"
+                        className="bg-surface dark:bg-ink-900 rounded-xl border border-border dark:border-ink-800 p-5 shadow-xs hover:border-border-strong dark:hover:border-ink-700 transition-[border-color] duration-100 ease-out space-y-3.5"
                       >
                         {/* Top: Name & Severity Badge */}
                         <div className="flex items-start justify-between gap-3">
@@ -688,7 +688,7 @@ export const OverviewDashboard: React.FC<Props> = ({
                 {normalMarkersToDisplay.map((m, idx) => (
                   <div
                     key={idx}
-                    className="bg-surface dark:bg-ink-900 rounded-lg border border-border dark:border-ink-800 p-3.5 flex flex-col justify-between shadow-xs hover:border-border-strong dark:hover:border-ink-700 transition-all"
+                    className="bg-surface dark:bg-ink-900 rounded-lg border border-border dark:border-ink-800 p-3.5 flex flex-col justify-between shadow-xs hover:border-border-strong dark:hover:border-ink-700 transition-[border-color] duration-100 ease-out"
                   >
                     <div>
                       {/* Name & Normal Badge */}
@@ -771,7 +771,7 @@ export const OverviewDashboard: React.FC<Props> = ({
                   return (
                     <div
                       key={i}
-                      className="bg-surface dark:bg-ink-900 rounded-xl border border-border dark:border-ink-800 p-5 shadow-xs flex flex-col justify-between hover:border-border-strong dark:hover:border-ink-700 transition-all space-y-3"
+                      className="bg-surface dark:bg-ink-900 rounded-xl border border-border dark:border-ink-800 p-5 shadow-xs flex flex-col justify-between hover:border-border-strong dark:hover:border-ink-700 transition-[border-color] duration-100 ease-out space-y-3"
                     >
                       {/* Top Badges & Individual Copy */}
                       <div className="flex flex-wrap items-center justify-between gap-2">

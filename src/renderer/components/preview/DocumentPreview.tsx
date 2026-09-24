@@ -55,7 +55,7 @@ export const DocumentPreview: React.FC<Props> = ({ document, onClose }) => {
   const isImage = document.file_type.includes('image');
 
   return (
-    <aside className="w-[380px] bg-surface border-l border-border flex flex-col h-full shrink-0 animate-in slide-in-from-right duration-200 select-none font-sans">
+    <aside className="w-[380px] bg-surface border-l border-border flex flex-col h-full shrink-0 animate-drawer-in select-none font-sans">
       {/* Detail Panel Header */}
       <div className="h-14 px-4 border-b border-border flex items-center justify-between shrink-0">
         <div className="min-w-0 pr-2">

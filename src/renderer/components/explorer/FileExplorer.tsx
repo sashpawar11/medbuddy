@@ -191,7 +191,7 @@ export const FileExplorer: React.FC<Props> = ({
     >
       {/* Drag & Drop Target State (§9.6): vault-500 dashed 2px border + vault-50 bg tint */}
       {isDragging && (
-        <div className="absolute inset-4 z-40 bg-vault-50/90 border-2 border-dashed border-vault-500 rounded-lg flex flex-col items-center justify-center pointer-events-none text-center p-6 animate-in fade-in">
+        <div className="absolute inset-4 z-40 bg-vault-50/90 border-2 border-dashed border-vault-500 rounded-lg flex flex-col items-center justify-center pointer-events-none text-center p-6 animate-fade-in">
           <Upload className="w-10 h-10 text-vault-600 mb-3" strokeWidth={1.75} />
           <h3 className="text-h2 font-semibold text-primary">
             Drop files to add to <em className="italic">{folder.name}</em>
@@ -303,7 +303,7 @@ export const FileExplorer: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedTagFilter(null)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-medium border transition-all whitespace-nowrap ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-medium border transition-[background-color,border-color,color] duration-100 ease-out whitespace-nowrap ${
                     selectedTagFilter === null
                       ? 'bg-vault-600 text-white border-vault-600 shadow-xs'
                       : 'bg-surface border-border text-secondary hover:text-primary hover:border-border-strong hover:bg-surface-hover'
@@ -329,7 +329,7 @@ export const FileExplorer: React.FC<Props> = ({
                       key={tag}
                       type="button"
                       onClick={() => setSelectedTagFilter(isSelected ? null : tag)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-medium border transition-all whitespace-nowrap ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-caption font-medium border transition-[background-color,border-color,color] duration-100 ease-out whitespace-nowrap ${
                         isSelected
                           ? 'bg-vault-600 text-white border-vault-600 shadow-xs'
                           : `${color.full} hover:opacity-85 shadow-xs`

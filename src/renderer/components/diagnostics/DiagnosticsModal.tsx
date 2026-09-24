@@ -69,8 +69,8 @@ export const DiagnosticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-6 animate-in fade-in duration-180">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-4xl h-[640px] flex flex-col shadow-md select-none font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-6 animate-fade-in">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-4xl h-[640px] flex flex-col shadow-md select-none font-sans animate-modal-enter">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
