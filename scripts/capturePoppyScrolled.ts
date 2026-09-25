@@ -18,8 +18,8 @@ app.whenReady().then(async () => {
   registerIpcHandlers();
 
   const win = new BrowserWindow({
-    width: 1320,
-    height: 900,
+    width: 1340,
+    height: 920,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload/index.js'),
@@ -46,40 +46,56 @@ app.whenReady().then(async () => {
   `);
   await wait(1200);
 
-  // Capture top portion
+  // 1. Capture Top view with formatted Patient Info table
   let img = await win.webContents.capturePage();
-  fs.writeFileSync(path.join(outputDir, 'chat_poppy_response_top.png'), img.toPNG());
+  fs.writeFileSync(path.join(outputDir, 'chat_poppy_pro_top.png'), img.toPNG());
 
-  // Scroll to show abnormal observations and tables
+  // 2. Scroll to show formatted abnormal findings & callouts
   await win.webContents.executeJavaScript(`
     (() => {
       const scrollContainers = document.querySelectorAll('.overflow-y-auto');
-      const target = scrollContainers[1] || scrollContainers[0];
-      if (target) {
-        target.scrollTop = Math.floor(target.scrollHeight * 0.45);
+      // Main message area is the second scroll container
+      for (const el of scrollContainers) {
+        if (el.scrollHeight > 1000) {
+          el.scrollTop = 580;
+        }
       }
     })()
   `);
   await wait(800);
 
   img = await win.webContents.capturePage();
-  fs.writeFileSync(path.join(outputDir, 'chat_poppy_response_middle.png'), img.toPNG());
+  fs.writeFileSync(path.join(outputDir, 'chat_poppy_pro_tables.png'), img.toPNG());
 
-  // Scroll all the way down to show blood group and grounded citation sources
+  // 3. Scroll to bottom to show Perplexity-style Grounded Sources Cards
   await win.webContents.executeJavaScript(`
     (() => {
       const scrollContainers = document.querySelectorAll('.overflow-y-auto');
-      const target = scrollContainers[1] || scrollContainers[0];
-      if (target) {
-        target.scrollTop = target.scrollHeight;
+      for (const el of scrollContainers) {
+        if (el.scrollHeight > 1000) {
+          el.scrollTop = el.scrollHeight;
+        }
       }
     })()
   `);
   await wait(800);
 
   img = await win.webContents.capturePage();
-  fs.writeFileSync(path.join(outputDir, 'chat_poppy_response_citations.png'), img.toPNG());
+  fs.writeFileSync(path.join(outputDir, 'chat_poppy_pro_sources.png'), img.toPNG());
 
-  console.log('✅ Captured detailed screenshots!');
+  // 4. Click New Chat to capture sleek empty state
+  await win.webContents.executeJavaScript(`
+    (() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const newBtn = btns.find(b => b.textContent && b.textContent.includes('New'));
+      if (newBtn) newBtn.click();
+    })()
+  `);
+  await wait(800);
+
+  img = await win.webContents.capturePage();
+  fs.writeFileSync(path.join(outputDir, 'chat_poppy_pro_empty.png'), img.toPNG());
+
+  console.log('✅ Captured all 4 professional UI screenshots!');
   app.quit();
 });

@@ -64,6 +64,7 @@
     "canvas": "^3.2.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
+    "marked": "^18.0.14",
     "onnxruntime-node": "^1.30.0",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^6.3.289",

@@ -371,6 +371,180 @@ button:active:not(:disabled) {
 }
 
 /* ==========================================================================
+   Chat Assistant Prose & Clinical Report Typography
+   ========================================================================== */
+.chat-prose {
+  font-size: 0.925rem;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.chat-prose p {
+  margin-top: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.chat-prose p:first-child {
+  margin-top: 0;
+}
+
+.chat-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-prose h1,
+.chat-prose h2,
+.chat-prose h3,
+.chat-prose h4 {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.chat-prose h1 {
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chat-prose h2 {
+  font-size: 1.1rem;
+  margin-top: 1.4rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-prose h3 {
+  font-size: 0.975rem;
+  margin-top: 1.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.chat-prose strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.chat-prose ul {
+  list-style-type: disc;
+  margin: 0.6rem 0;
+  padding-left: 1.3rem;
+}
+
+.chat-prose ol {
+  list-style-type: decimal;
+  margin: 0.6rem 0;
+  padding-left: 1.3rem;
+}
+
+.chat-prose li {
+  margin-bottom: 0.35rem;
+  line-height: 1.6;
+}
+
+.chat-prose li::marker {
+  color: var(--color-text-tertiary);
+}
+
+/* Clinical Tables */
+.chat-prose .table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.chat-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+  text-align: left;
+}
+
+.chat-prose thead {
+  background-color: var(--color-bg-recessed);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-prose th {
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.chat-prose td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.05));
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+
+.chat-prose tr:last-child td {
+  border-bottom: none;
+}
+
+.chat-prose tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.chat-prose tbody tr:hover {
+  background-color: var(--color-bg-recessed);
+}
+
+/* Callouts & Blockquotes */
+.chat-prose blockquote {
+  margin: 1rem 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: 0.6rem;
+  background-color: rgba(20, 184, 166, 0.05);
+  border-left: 4px solid #0d9488;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.chat-prose hr {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.chat-prose code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.825em;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+  background-color: var(--color-bg-recessed);
+  border: 1px solid var(--color-border);
+  color: #0d9488;
+}
+
+.chat-prose pre {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background-color: var(--ink-900);
+  color: var(--ink-100);
+  overflow-x: auto;
+  font-size: 0.825rem;
+}
+
+.chat-prose pre code {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+}
+
+/* ==========================================================================
    Print & PDF Export Engine
    Renders pixel-perfect, clean, multi-page clinical reports without app chrome
    ========================================================================== */

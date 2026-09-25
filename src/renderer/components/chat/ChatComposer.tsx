@@ -1,97 +1,124 @@
-import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
   Square,
-  ChevronDown,
-  User,
   Sparkles,
-  FileText,
+  ChevronDown,
+  AtSign,
+  ShieldCheck,
   CornerDownLeft,
 } from 'lucide-react';
 import type { FamilyMember } from '../../../shared/types';
 import { MentionAutocomplete } from './MentionAutocomplete';
 
 interface ChatComposerProps {
-  selectedMember: FamilyMember | null;
   members: FamilyMember[];
+  selectedMember: FamilyMember | null;
   memberDocCounts?: Record<string, number>;
   onSelectMember: (member: FamilyMember) => void;
   onSendMessage: (text: string, memberId: string) => void;
-  onStopStreaming?: () => void;
-  isStreaming?: boolean;
+  onStopStreaming: () => void;
+  isStreaming: boolean;
   disabled?: boolean;
 }
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
-  selectedMember,
   members,
-  memberDocCounts = {},
+  selectedMember,
+  memberDocCounts: propDocCounts,
   onSelectMember,
   onSendMessage,
   onStopStreaming,
-  isStreaming = false,
+  isStreaming,
   disabled = false,
 }) => {
   const [inputText, setInputText] = useState('');
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [internalDocCounts, setInternalDocCounts] = useState<Record<string, number>>({});
+  const memberDocCounts = propDocCounts || internalDocCounts;
+
+  // @mention state
   const [mentionState, setMentionState] = useState<{
     isOpen: boolean;
     filterText: string;
-    mentionIndex: number;
     selectedIndex: number;
+    matchIndex: number;
   }>({
     isOpen: false,
     filterText: '',
-    mentionIndex: -1,
     selectedIndex: 0,
+    matchIndex: -1,
   });
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-resize textarea height
+  // Fetch document counts for members to display in scoping badges
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-  }, [inputText]);
+    let isSubscribed = true;
+    const loadCounts = async () => {
+      const counts: Record<string, number> = {};
+      for (const m of members) {
+        try {
+          const folders = await window.medbuddy.listFolders(m.id);
+          let total = 0;
+          for (const f of folders) {
+            const docs = await window.medbuddy.listDocuments(f.id);
+            total += docs.length;
+          }
+          counts[m.id] = total;
+        } catch {
+          counts[m.id] = 0;
+        }
+      }
+      if (isSubscribed) {
+        setInternalDocCounts(counts);
+      }
+    };
+    loadCounts();
+    return () => {
+      isSubscribed = false;
+    };
+  }, [members]);
 
-  // Close member dropdown when clicking outside
+  // Click outside to close member dropdown
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsMemberDropdownOpen(false);
       }
     };
-    if (isMemberDropdownOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-resize textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
     }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isMemberDropdownOpen]);
+  }, [inputText]);
 
-  // Handle text changes and detect '@'
+  // Handle typing to trigger @mention menu
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    const cursorPos = e.target.selectionStart;
-    setInputText(value);
+    const val = e.target.value;
+    const cursorPos = e.target.selectionStart || val.length;
+    setInputText(val);
 
-    // Look back from cursor to find if we're in an '@' mention
-    const textBeforeCursor = value.slice(0, cursorPos);
-    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const lastAtIdx = textBeforeCursor.lastIndexOf('@');
 
-    if (lastAtPos !== -1) {
-      const charBeforeAt = lastAtPos > 0 ? textBeforeCursor[lastAtPos - 1] : ' ';
-      // Ensure '@' is preceded by whitespace or at start of input
-      if (/\s/.test(charBeforeAt) || lastAtPos === 0) {
-        const query = textBeforeCursor.slice(lastAtPos + 1);
-        // Only trigger if no spaces after '@'
+    if (lastAtIdx !== -1) {
+      const charBeforeAt = lastAtIdx > 0 ? textBeforeCursor[lastAtIdx - 1] : ' ';
+      if (/\s/.test(charBeforeAt) || lastAtIdx === 0) {
+        const query = textBeforeCursor.slice(lastAtIdx + 1);
         if (!/\s/.test(query)) {
           setMentionState({
             isOpen: true,
             filterText: query,
-            mentionIndex: lastAtPos,
             selectedIndex: 0,
+            matchIndex: lastAtIdx,
           });
           return;
         }
@@ -103,39 +130,32 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   };
 
+  // Select member from @mention menu
   const handleSelectMention = (member: FamilyMember) => {
     onSelectMember(member);
-
-    // Replace the '@partial' with the member mention or clear it cleanly
-    if (mentionState.mentionIndex !== -1) {
-      const beforeMention = inputText.slice(0, mentionState.mentionIndex);
-      const afterCursor = inputText.slice(textareaRef.current?.selectionStart || inputText.length);
-      const newText = `${beforeMention}@${member.name} ${afterCursor}`;
-      setInputText(newText);
+    if (mentionState.matchIndex !== -1 && textareaRef.current) {
+      const before = inputText.slice(0, mentionState.matchIndex);
+      const after = inputText.slice(textareaRef.current.selectionStart || inputText.length);
+      setInputText(before + after);
     }
-
-    setMentionState({
-      isOpen: false,
-      filterText: '',
-      mentionIndex: -1,
-      selectedIndex: 0,
-    });
-
-    textareaRef.current?.focus();
+    setMentionState((prev) => ({ ...prev, isOpen: false }));
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  // Keyboard navigation for @mention and submit
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (mentionState.isOpen) {
-      const filtered = members.filter((m) => {
-        const q = mentionState.filterText.toLowerCase();
-        return !q || m.name.toLowerCase().includes(q) || m.relationship.toLowerCase().includes(q);
-      });
+      const filtered = members.filter((m) =>
+        m.name.toLowerCase().includes(mentionState.filterText.toLowerCase())
+      );
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setMentionState((prev) => ({
           ...prev,
-          selectedIndex: (prev.selectedIndex + 1) % Math.max(1, filtered.length),
+          selectedIndex: (prev.selectedIndex + 1) % (filtered.length || 1),
         }));
         return;
       }
@@ -143,7 +163,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         e.preventDefault();
         setMentionState((prev) => ({
           ...prev,
-          selectedIndex: (prev.selectedIndex - 1 + filtered.length) % Math.max(1, filtered.length),
+          selectedIndex: (prev.selectedIndex - 1 + (filtered.length || 1)) % (filtered.length || 1),
         }));
         return;
       }
@@ -201,26 +221,26 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         />
       )}
 
-      {/* Main Composer Box */}
-      <div className="bg-surface rounded-2xl border border-border focus-within:border-teal-500/60 focus-within:ring-2 focus-within:ring-teal-500/15 shadow-sm transition-all flex flex-col">
+      {/* Main Composer Card */}
+      <div className="bg-surface rounded-2xl border border-border/80 focus-within:border-teal-500/60 focus-within:ring-2 focus-within:ring-teal-500/10 shadow-sm transition-all flex flex-col">
         {/* Scoped Profile Control Header */}
-        <div className="px-3.5 pt-3 pb-1.5 flex items-center justify-between gap-2 border-b border-border/40 select-none">
+        <div className="px-3.5 pt-2.5 pb-1.5 flex items-center justify-between gap-2 border-b border-border/30 select-none">
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsMemberDropdownOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border transition-colors cursor-pointer group"
+              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border/70 hover:border-teal-500/40 text-secondary hover:text-primary transition-all cursor-pointer group shadow-2xs"
               title="Click to switch profile documents scope"
             >
               <div
                 className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white/20"
                 style={{ backgroundColor: selectedMember?.avatar_color || '#14b8a6' }}
               />
-              <span className="text-secondary font-medium group-hover:text-primary">
+              <span className="font-semibold text-primary">
                 {selectedMember ? selectedMember.name : 'Select Profile'}
               </span>
-              <span className="text-[10px] text-tertiary">
-                ({activeDocCount} {activeDocCount === 1 ? 'doc' : 'docs'})
+              <span className="text-[10px] text-tertiary font-normal">
+                ({activeDocCount} {activeDocCount === 1 ? 'record' : 'records'})
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-tertiary group-hover:text-secondary shrink-0 transition-transform" />
             </button>
@@ -259,7 +279,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate">{m.name}</span>
-                            <span className="text-[10px] text-tertiary">({m.relationship})</span>
+                            <span className="text-[10px] text-tertiary font-normal">({m.relationship})</span>
                           </div>
                         </div>
                         <span className="text-[11px] text-tertiary shrink-0">
@@ -274,7 +294,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           </div>
 
           <span className="text-[11px] text-tertiary hidden sm:inline-flex items-center gap-1">
-            <span>Type <kbd className="px-1 py-0.5 rounded bg-surface-recessed border border-border text-[10px] font-mono">@</kbd> to mention a profile</span>
+            <span>Type <kbd className="px-1.5 py-0.5 rounded bg-surface-recessed border border-border text-[10px] font-mono">@</kbd> to switch profile</span>
           </span>
         </div>
 
@@ -295,18 +315,25 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         />
 
         {/* Composer Footer Actions */}
-        <div className="px-3 pb-2.5 pt-1 flex items-center justify-between gap-2">
+        <div className="px-3.5 pb-2.5 pt-1 flex items-center justify-between gap-2 border-t border-border/20">
           <div className="flex items-center gap-1.5 text-xs text-tertiary">
             <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-            <span className="text-[11px]">Searches {selectedMember?.name || 'profile'}'s records & citations</span>
+            <span className="text-[11px]">
+              Grounded search in {selectedMember ? `${selectedMember.name}'s` : ''} records
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className="text-[10px] text-tertiary hidden md:inline-flex items-center gap-1">
+              <span>Return to send</span>
+              <CornerDownLeft className="w-2.5 h-2.5" />
+            </span>
+
             {isStreaming ? (
               <button
                 type="button"
                 onClick={onStopStreaming}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 hover:bg-red-600 text-white shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white shadow-xs transition-all cursor-pointer"
                 title="Stop response generation"
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
@@ -317,7 +344,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={!inputText.trim() || disabled}
-                className={`inline-flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer ${
+                className={`inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer ${
                   inputText.trim() && !disabled
                     ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-xs hover:scale-105 active:scale-95'
                     : 'bg-surface-recessed text-tertiary cursor-not-allowed border border-border/50'
