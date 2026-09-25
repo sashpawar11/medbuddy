@@ -345,7 +345,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
               type="button"
               onClick={() => setIsHistorySidebarOpen((prev) => !prev)}
               className="p-1.5 rounded text-tertiary hover:text-secondary hover:bg-surface-recessed transition-colors cursor-pointer"
-              title={isHistorySidebarOpen ? 'Hide consultation history' : 'Show consultation history'}
+              title={isHistorySidebarOpen ? 'Hide chat history' : 'Show chat history'}
             >
               {isHistorySidebarOpen ? (
                 <PanelLeftClose className="w-4 h-4" />
@@ -356,7 +356,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
 
             <div className="flex items-center gap-2 truncate">
               <span className="font-semibold text-sm text-primary truncate">
-                {activeSession ? activeSession.title : 'New Consultation'}
+                {activeSession ? activeSession.title : 'New Chat'}
               </span>
 
               {selectedMember && (

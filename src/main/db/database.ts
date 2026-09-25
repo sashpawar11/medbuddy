@@ -1502,7 +1502,7 @@ export function createChatSession(params: {
   const db = getDatabase();
   const id = params.id || 'cs_' + crypto.randomUUID().slice(0, 12);
   const now = new Date().toISOString();
-  const title = params.title || 'New Consultation';
+  const title = params.title || 'New Chat';
 
   db.prepare(`
     INSERT INTO chat_sessions (id, member_id, title, provider_profile_id, model_name, created_at, updated_at)

@@ -89,7 +89,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           <span className="text-xs font-semibold text-primary tracking-tight">
-            Consultations
+            Chats
           </span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-recessed text-tertiary border border-border">
             {filteredSessions.length}
@@ -100,7 +100,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
           type="button"
           onClick={onNewChat}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white shadow-2xs transition-all cursor-pointer"
-          title="Start new consultation (⌘N)"
+          title="Start new chat (⌘N)"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>
@@ -116,7 +116,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search consultations..."
+            placeholder="Search chats..."
             className="w-full text-xs pl-8 pr-7 py-1.5 rounded border border-border bg-surface text-primary placeholder:text-tertiary focus:outline-hidden focus:border-teal-500/60 transition-colors"
           />
           {searchQuery && (
@@ -174,9 +174,9 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
         {filteredSessions.length === 0 ? (
           <div className="py-12 px-4 text-center">
             <MessageSquare className="w-8 h-8 text-tertiary/40 mx-auto mb-2" />
-            <p className="text-xs font-medium text-secondary">No consultations found</p>
+            <p className="text-xs font-medium text-secondary">No chats found</p>
             <p className="text-[11px] text-tertiary mt-0.5">
-              {searchQuery ? 'Try a different search term' : 'Start a new consultation above'}
+              {searchQuery ? 'Try a different search term' : 'Start a new chat above'}
             </p>
           </div>
         ) : (
@@ -233,7 +233,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
                         onDeleteSession(session.id);
                       }}
                       className="absolute right-2 p-1 rounded text-tertiary hover:text-red-500 hover:bg-surface opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Delete consultation"
+                      title="Delete chat"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
