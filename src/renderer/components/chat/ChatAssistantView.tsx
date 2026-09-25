@@ -97,18 +97,22 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
       // Auto-select latest session on initial mount only
       if (!hasAutoSelectedRef.current && list.length > 0) {
         hasAutoSelectedRef.current = true;
-        setActiveSessionId(list[0].id);
+        const memberSession = selectedMember ? list.find((s) => s.memberId === selectedMember.id) : null;
+        setActiveSessionId(memberSession ? memberSession.id : list[0].id);
       }
     } catch {
       // Ignore
     }
-  }, []);
+  }, [selectedMember]);
 
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
 
-  // Load messages when activeSessionId changes
+  // Synchronize session context if selectedMember changes externally (e.g. App sidebar)
+  const prevMemberIdRef = useRef<string | null>(selectedMember?.id || null);
+
+  // Load messages when activeSessionId changes (isolated from selectedMember changes)
   useEffect(() => {
     if (!activeSessionId) {
       setMessages([]);
@@ -122,7 +126,8 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
         // If session is bound to a member, synchronize selected member
         if (result.session.memberId) {
           const matchingMember = members.find((m) => m.id === result.session.memberId);
-          if (matchingMember && selectedMember?.id !== matchingMember.id) {
+          if (matchingMember && prevMemberIdRef.current !== matchingMember.id) {
+            prevMemberIdRef.current = matchingMember.id;
             onSelectMember(matchingMember);
           }
         }
@@ -132,7 +137,40 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     return () => {
       isSubscribed = false;
     };
-  }, [activeSessionId, members, onSelectMember, selectedMember?.id]);
+  }, [activeSessionId, members, onSelectMember]);
+
+  // Switch profile in chat context: switches selected profile and loads that member's consultation
+  const handleSwitchMember = useCallback(
+    (member: FamilyMember) => {
+      prevMemberIdRef.current = member.id;
+      onSelectMember(member);
+      // Find latest session for this newly selected member, if any
+      const memberSession = sessions.find((s) => s.memberId === member.id);
+      if (memberSession) {
+        setActiveSessionId(memberSession.id);
+      } else {
+        setActiveSessionId(null);
+        setMessages([]);
+      }
+    },
+    [onSelectMember, sessions]
+  );
+
+  useEffect(() => {
+    if (selectedMember && selectedMember.id !== prevMemberIdRef.current) {
+      prevMemberIdRef.current = selectedMember.id;
+      const currentSession = sessions.find((s) => s.id === activeSessionId);
+      if (currentSession && currentSession.memberId !== selectedMember.id) {
+        const memberSession = sessions.find((s) => s.memberId === selectedMember.id);
+        if (memberSession) {
+          setActiveSessionId(memberSession.id);
+        } else {
+          setActiveSessionId(null);
+          setMessages([]);
+        }
+      }
+    }
+  }, [selectedMember, activeSessionId, sessions]);
 
   // Listen to live streaming IPC events
   useEffect(() => {
@@ -404,7 +442,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
             selectedMember={selectedMember}
             members={members}
             memberDocCounts={memberDocCounts}
-            onSelectMember={onSelectMember}
+            onSelectMember={handleSwitchMember}
             onSendMessage={handleSendMessage}
             onStopStreaming={handleStopStreaming}
             isStreaming={isStreaming}
