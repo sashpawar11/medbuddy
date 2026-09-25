@@ -58,7 +58,7 @@
     "lm-studio"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "dependencies": {
     "better-sqlite3": "^11.8.1",
     "canvas": "^3.2.3",

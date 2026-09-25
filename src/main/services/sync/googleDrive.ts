@@ -1470,7 +1470,7 @@ export class GoogleDriveSyncService {
             );
             const folderObj = snapshot.folders.find((f) => f.id === doc.folder_id);
             const memberName = (memberObj?.name || 'General').replace(/[/\\?%*:|"<>]/g, '_');
-            const folderName = (folderObj?.name || 'General Records').replace(/[/\\?%*:|"<>]/g, '_');
+            const folderName = (folderObj?.name || 'Medical Documents').replace(/[/\\?%*:|"<>]/g, '_');
 
             const candidatePaths = [
               path.join(localMountPath, memberName, folderName, doc.filename),

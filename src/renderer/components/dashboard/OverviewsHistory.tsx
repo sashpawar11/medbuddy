@@ -1,13 +1,16 @@
 import React from 'react';
 import { Activity, Clock, ChevronRight, Trash2 } from 'lucide-react';
-import type { AnalysisRecord } from '../../../shared/types';
+import type { AnalysisRecord, FamilyMember } from '../../../shared/types';
 import { ProvenancePill } from '../common/ProvenancePill';
 import { DisclaimerBar } from '../common/DisclaimerBar';
+import { Button } from '../common/Button';
 
 interface Props {
   analyses: AnalysisRecord[];
+  selectedMember?: FamilyMember | null;
   onSelectAnalysis: (analysis: AnalysisRecord) => void;
   onDeleteAnalysis?: (id: string) => void;
+  onOpenChronicle?: () => void;
 }
 
 /** Format dates consistently app-wide per §4.3: "Mar 12, 2024" */
@@ -20,7 +23,13 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis, onDeleteAnalysis }) => {
+export const OverviewsHistory: React.FC<Props> = ({
+  analyses,
+  selectedMember,
+  onSelectAnalysis,
+  onDeleteAnalysis,
+  onOpenChronicle,
+}) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-app overflow-y-auto select-none font-sans">
       <header className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-surface sticky top-0 z-10">
@@ -29,6 +38,19 @@ export const OverviewsHistory: React.FC<Props> = ({ analyses, onSelectAnalysis, 
           <p className="text-caption text-tertiary">
             Master vault archive of synthesized clinical intelligence reports across all family profiles
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedMember && onOpenChronicle && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenChronicle}
+              icon={<Clock className="w-3.5 h-3.5 text-vault-600 dark:text-vault-400" strokeWidth={2} />}
+              title={`View ${selectedMember.name}'s Health Chronicle`}
+            >
+              Health Chronicle
+            </Button>
+          )}
         </div>
       </header>
 

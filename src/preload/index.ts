@@ -78,6 +78,9 @@ const api: MedBuddyAPI = {
       ipcRenderer.removeListener('log:emitted', handler);
     };
   },
+
+  // PDF Export
+  exportPdf: (defaultFilename?: string) => ipcRenderer.invoke('analysis:exportPdf', defaultFilename),
 };
 
 contextBridge.exposeInMainWorld('medbuddy', api);

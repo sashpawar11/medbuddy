@@ -53,7 +53,7 @@ async function runTests() {
 
   // 4. Folder Management
   const folders = listFolders(member.id);
-  assert(folders.length >= 1, 'Default General Records folder should be created with member');
+  assert(folders.length >= 1, 'Default Medical Documents folder should be created with member');
   const bloodworkFolder = createFolder(member.id, 'Bloodwork 2024', null);
   assert.strictEqual(bloodworkFolder.name, 'Bloodwork 2024');
   console.log('✅ Folder management verified');

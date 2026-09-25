@@ -442,6 +442,9 @@ export interface MedBuddyAPI {
   getLogs: (limit?: number, category?: string) => Promise<AppLogEntry[]>;
   clearLogs: () => Promise<void>;
   onLogEmitted: (callback: (entry: AppLogEntry) => void) => () => void;
+
+  // PDF Export
+  exportPdf: (defaultFilename?: string) => Promise<{ success: boolean; canceled?: boolean; filePath?: string; error?: string }>;
 }
 
 declare global {

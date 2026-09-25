@@ -87,6 +87,56 @@ export const Sidebar: React.FC<Props> = ({
   const [memberMenuOpen, setMemberMenuOpen] = useState(false);
   const [reportsFolderExpanded, setReportsFolderExpanded] = useState(true);
 
+  // Resizable sidebar width with local persistence (§5.2)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('medbuddy-sidebar-width');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val >= 180 && val <= 500) {
+          return val;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 240;
+  });
+
+  const isResizingRef = React.useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const newWidth = Math.min(Math.max(moveEvent.clientX, 180), 500);
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      try {
+        setSidebarWidth((w) => {
+          localStorage.setItem('medbuddy-sidebar-width', String(w));
+          return w;
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   // Helper for member avatar color deterministic lookup
   const getMemberColor = (m: FamilyMember, idx: number) => {
     if (m.avatar_color && MEMBER_AVATAR_COLORS.includes(m.avatar_color)) {
@@ -120,7 +170,7 @@ export const Sidebar: React.FC<Props> = ({
   // --------------------------------------------------------------------------
   if (isCollapsed) {
     return (
-      <aside className="w-14 bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0">
+      <aside className="w-14 bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 print:hidden">
         <div className="p-2.5 border-b border-border flex flex-col items-center gap-2 shrink-0">
           <button
             onClick={onToggleCollapse}
@@ -173,7 +223,7 @@ export const Sidebar: React.FC<Props> = ({
                 ? 'bg-vault-50 text-vault-600'
                 : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
-            title="Medical Records"
+            title="Medical Documents"
           >
             <FolderIcon className="w-4 h-4" strokeWidth={1.75} />
           </button>
@@ -197,18 +247,6 @@ export const Sidebar: React.FC<Props> = ({
           </button>
 
           <button
-            onClick={() => onNavigate('timeline')}
-            className={`p-2 rounded-sm transition-colors ${
-              activeView === 'timeline'
-                ? 'bg-vault-50 text-vault-600'
-                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
-            }`}
-            title="Health Chronicle"
-          >
-            <Clock className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-
-          <button
             onClick={() => onNavigate('settings')}
             className={`p-2 rounded-sm relative transition-colors ${
               activeView === 'settings'
@@ -227,10 +265,25 @@ export const Sidebar: React.FC<Props> = ({
   }
 
   // --------------------------------------------------------------------------
-  // Standard Sidebar (240px fixed per §5.2)
+  // Standard Sidebar (Resizable with hold and drag)
   // --------------------------------------------------------------------------
   return (
-    <aside className="w-[240px] bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 font-sans">
+    <aside
+      style={{ width: `${sidebarWidth}px` }}
+      className="bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 font-sans relative group/sidebar print:hidden"
+    >
+      {/* Resizing Hold and Drag Handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        onDoubleClick={() => {
+          setSidebarWidth(240);
+          try {
+            localStorage.setItem('medbuddy-sidebar-width', '240');
+          } catch {}
+        }}
+        className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-vault-500/40 active:bg-vault-500 transition-colors z-20"
+        title="Hold and drag to resize sidebar (double click to reset)"
+      />
       {/* Brand Header - Spacious and Breathable */}
       <div className="px-4 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-surface">
         <button
@@ -371,32 +424,7 @@ export const Sidebar: React.FC<Props> = ({
           )}
         </div>
 
-        {/* 1. Health Chronicle for the Profile */}
-        {selectedMember && (
-          <div
-            onClick={() => onNavigate('timeline')}
-            className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-body cursor-pointer transition-colors mb-1 ${
-              activeView === 'timeline'
-                ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold'
-                : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium'
-            }`}
-            title={`View ${selectedMember.name}'s Health Chronicle`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-4 h-4 rounded flex items-center justify-center text-vault-600 dark:text-vault-400 shrink-0 ml-0.5">
-                <Clock className="w-3.5 h-3.5" strokeWidth={2} />
-              </div>
-              <span className="truncate text-small font-medium">
-                {selectedMember.name}'s Chronicle
-              </span>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface border border-border text-tertiary">
-              Timeline
-            </span>
-          </div>
-        )}
-
-        {/* 2. Default 'Generated Reports' Folder for the Profile */}
+        {/* 1. Default 'AI Summaries' Folder for the Profile */}
         {selectedMember && (
           <div className="mb-1.5">
             <div
@@ -427,8 +455,8 @@ export const Sidebar: React.FC<Props> = ({
                 <div className="w-4 h-4 rounded flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
                   <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
                 </div>
-                <span className="truncate text-small">
-                  {selectedMember ? `${selectedMember.name}'s Reports` : 'Profile Reports'}
+                <span className="truncate text-small font-medium">
+                  {selectedMember ? `${selectedMember.name}'s AI Summaries` : 'AI Summaries'}
                 </span>
               </div>
               <span className="text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/80 shrink-0">
@@ -441,7 +469,7 @@ export const Sidebar: React.FC<Props> = ({
               <div className="pl-4 pr-1 space-y-0.5 mt-0.5 mb-1.5 border-l-2 border-teal-500/20 dark:border-teal-500/30 ml-4">
                 {memberAnalyses.length === 0 ? (
                   <div className="px-2 py-1.5 text-caption text-tertiary italic">
-                    No generated reports yet
+                    No generated summaries yet
                   </div>
                 ) : (
                   memberAnalyses.map((rec) => {
@@ -460,7 +488,7 @@ export const Sidebar: React.FC<Props> = ({
                             ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold shadow-2xs'
                             : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
                         }`}
-                        title={`${rec.scope_name || 'Report'} (${dateStr})`}
+                        title={`${rec.scope_name || 'Generated Summary'} (${dateStr})`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <FileText
@@ -469,7 +497,7 @@ export const Sidebar: React.FC<Props> = ({
                             }`}
                             strokeWidth={1.75}
                           />
-                          <span className="truncate text-[12px]">{rec.scope_name || 'Health Overview'}</span>
+                          <span className="truncate text-[12px]">{rec.scope_name || 'Generated Summary'}</span>
                         </div>
                         <span className="text-[10px] text-tertiary tabular-nums shrink-0 ml-1.5">
                           {dateStr}
@@ -571,16 +599,7 @@ export const Sidebar: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* 2. Health Chronicle */}
-        <button
-          onClick={() => onNavigate('timeline')}
-          className={navItemClass(activeView === 'timeline')}
-        >
-          <Clock className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-          <span className="truncate">Health Chronicle</span>
-        </button>
-
-        {/* 3. AI Providers */}
+        {/* 2. AI Providers */}
         <button
           onClick={() => onNavigate('settings')}
           className={navItemClass(activeView === 'settings')}

@@ -1,4 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
+import fs from 'fs';
 import {
   listMembers,
   createMember,
@@ -159,6 +160,44 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('analysis:delete', async (_, id) => {
     return deleteAnalysisById(id);
+  });
+
+  ipcMain.handle('analysis:exportPdf', async (event, defaultFilename?: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { success: false, error: 'No active window found' };
+
+    const saveResult = await dialog.showSaveDialog(win, {
+      title: 'Export Medical Summary Report as PDF',
+      defaultPath: defaultFilename || 'Medical_Summary_Report.pdf',
+      filters: [
+        { name: 'PDF Document', extensions: ['pdf'] },
+      ],
+    });
+
+    if (saveResult.canceled || !saveResult.filePath) {
+      return { canceled: true };
+    }
+
+    try {
+      const pdfBuffer = await win.webContents.printToPDF({
+        printBackground: true,
+        pageSize: 'A4',
+        margins: {
+          marginType: 'custom',
+          top: 0.4,
+          bottom: 0.4,
+          left: 0.4,
+          right: 0.4,
+        },
+      });
+
+      await fs.promises.writeFile(saveResult.filePath, pdfBuffer);
+      logger.info('vault', 'Exported medical report PDF successfully', { filePath: saveResult.filePath });
+      return { success: true, filePath: saveResult.filePath };
+    } catch (err: any) {
+      logger.error('vault', 'Failed to export medical report PDF', { error: err?.message });
+      return { success: false, error: err?.message || 'Failed to generate PDF' };
+    }
   });
 
   // --- Logs ---

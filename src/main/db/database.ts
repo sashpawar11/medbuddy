@@ -74,9 +74,22 @@ export function initDatabase(dbPath?: string): Database.Database {
     try { dbInstance.exec(sql); } catch { /* column already exists */ }
   }
 
+  // Rename legacy "General Records" default folder to "Medical Documents"
+  try {
+    dbInstance.exec("UPDATE folders SET name = 'Medical Documents' WHERE name = 'General Records'");
+  } catch {
+    // ignore
+  }
+
+  // Schema migration for analysis_results.title
+  try {
+    dbInstance.exec("ALTER TABLE analysis_results ADD COLUMN title TEXT");
+  } catch {
+    // column already exists
+  }
+
   // Seed default profiles if none exist
   seedDefaultProfiles(dbInstance);
-
 
   return dbInstance;
 }
@@ -134,8 +147,8 @@ export function createMember(member: Omit<FamilyMember, 'id' | 'created_at' | 'u
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(id, member.name, member.relationship, member.dob || null, member.avatar_color || '#57c1ff', now, now);
 
-  // Automatically create a default "General Records" root folder for new member
-  createFolder(id, 'General Records', null);
+  // Automatically create a default "Medical Documents" root folder for new member
+  createFolder(id, 'Medical Documents', null);
 
   return {
     id,
@@ -585,6 +598,20 @@ export function getAppStateSnapshot(
   };
 }
 
+export function formatSummaryName(memberName: string | null | undefined, createdAt: string): string {
+  const d = new Date(createdAt);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const namePart = (memberName || 'Profile').trim().replace(/\s+/g, '_');
+  if (isNaN(d.getTime())) {
+    return `${namePart}_generated_summary`;
+  }
+  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const timeStr = (hours !== 0 || minutes !== 0) ? `_${pad(hours)}${pad(minutes)}` : '';
+  return `${namePart}_${dateStr}${timeStr}_generated_summary`;
+}
+
 function hydrateAnalysisRecord(row: any): AnalysisRecord {
   const db = getDatabase();
   const docRows = db.prepare(`
@@ -593,7 +620,7 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
     WHERE s.analysis_id = ?
   `).all(row.id) as DocumentItem[];
 
-  let scopeName = row.scope_id;
+  let scopeName = row.title;
   let memberId: string | null = null;
   let memberName: string | null = null;
   let memberColor: string | null = null;
@@ -606,7 +633,7 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
       WHERE f.id = ?
     `).get(row.scope_id) as { folder_name: string; member_id?: string; member_name?: string; member_color?: string } | undefined;
     if (f) {
-      scopeName = f.folder_name;
+      if (!scopeName) scopeName = f.folder_name;
       if (f.member_id) {
         memberId = f.member_id;
         memberName = f.member_name || null;
@@ -622,7 +649,7 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
       WHERE d.id = ?
     `).get(row.scope_id) as { filename: string; member_id?: string; member_name?: string; member_color?: string } | undefined;
     if (d) {
-      scopeName = d.filename;
+      if (!scopeName) scopeName = d.filename;
       if (d.member_id) {
         memberId = d.member_id;
         memberName = d.member_name || null;
@@ -645,6 +672,11 @@ function hydrateAnalysisRecord(row: any): AnalysisRecord {
       memberName = m.name;
       memberColor = m.avatar_color;
     }
+  }
+
+  // Enforce automatic naming requirement with timestamp and profile name + generated_summary
+  if (!scopeName || scopeName === 'General Records' || scopeName === 'Medical Documents' || row.scope_type === 'folder' || row.scope_type === 'selection') {
+    scopeName = formatSummaryName(memberName, row.created_at);
   }
 
   let parsedJson: StructuredAnalysisResult;
@@ -702,9 +734,29 @@ export function storeAnalysisResult(
   const now = new Date().toISOString();
   const jsonStr = JSON.stringify(result);
 
+  let memberName: string | null = null;
+  if (scopeType === 'folder') {
+    const f = db.prepare(`
+      SELECT m.name FROM folders f
+      JOIN members m ON f.member_id = m.id
+      WHERE f.id = ?
+    `).get(scopeId) as { name: string } | undefined;
+    if (f) memberName = f.name;
+  } else if (documentIds.length > 0) {
+    const m = db.prepare(`
+      SELECT m.name FROM documents d
+      JOIN folders f ON d.folder_id = f.id
+      JOIN members m ON f.member_id = m.id
+      WHERE d.id = ?
+    `).get(documentIds[0]) as { name: string } | undefined;
+    if (m) memberName = m.name;
+  }
+
+  const title = formatSummaryName(memberName, now);
+
   const insertAnalysis = db.prepare(`
-    INSERT INTO analysis_results (id, cache_key, scope_type, scope_id, provider_profile_id, prompt_version, result_json, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO analysis_results (id, cache_key, scope_type, scope_id, provider_profile_id, prompt_version, result_json, created_at, title)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertSource = db.prepare(`
@@ -713,7 +765,7 @@ export function storeAnalysisResult(
   `);
 
   const transaction = db.transaction(() => {
-    insertAnalysis.run(id, cacheKey, scopeType, scopeId, providerProfileId, promptVersion, jsonStr, now);
+    insertAnalysis.run(id, cacheKey, scopeType, scopeId, providerProfileId, promptVersion, jsonStr, now, title);
     for (const docId of documentIds) {
       insertSource.run(id, docId);
     }

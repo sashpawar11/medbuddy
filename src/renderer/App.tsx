@@ -408,7 +408,7 @@ export const App: React.FC = () => {
     : documents;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-app text-primary select-none font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-app text-primary select-none font-sans print:h-auto print:w-auto print:overflow-visible print:block print:bg-white">
       {/* Sidebar Navigation (240px fixed per §5.2) */}
       <Sidebar
         members={members}
@@ -458,7 +458,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main View Area (§5.2 flexible min 640px) */}
-      <main className="flex-1 flex overflow-hidden relative min-w-[640px] bg-app">
+      <main className="flex-1 flex overflow-hidden relative min-w-[640px] bg-app print:overflow-visible print:h-auto print:w-full print:block print:min-w-0 print:bg-white">
         <ErrorBoundary fallbackTitle="Error Loading View">
           {activeView === 'home' && (
             <HomeDashboard
@@ -550,17 +550,21 @@ export const App: React.FC = () => {
               }}
               onDelete={handleDeleteAnalysis}
               onPreviewDoc={(doc) => setPreviewDoc(doc)}
+              onOpenChronicle={selectedMember ? () => setActiveView('timeline') : undefined}
+              onShowToast={(type, text) => (type === 'success' ? showSuccess(text) : showError(text))}
             />
           )}
 
           {activeView === 'overviews_history' && (
             <OverviewsHistory
               analyses={analyses}
+              selectedMember={selectedMember}
               onSelectAnalysis={(rec) => {
                 setCurrentAnalysis(rec);
                 setActiveView('overview');
               }}
               onDeleteAnalysis={handleDeleteAnalysis}
+              onOpenChronicle={selectedMember ? () => setActiveView('timeline') : undefined}
             />
           )}
 
@@ -591,9 +595,11 @@ export const App: React.FC = () => {
           {activeView === 'settings' && (
             <ProviderSettings
               providers={providers}
+              selectedMember={selectedMember}
               onSaveProvider={handleSaveProvider}
               onDeleteProvider={handleDeleteProvider}
               onTestConnection={handleTestConnection}
+              onOpenChronicle={selectedMember ? () => setActiveView('timeline') : undefined}
             />
           )}
         </ErrorBoundary>

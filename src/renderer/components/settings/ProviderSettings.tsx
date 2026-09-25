@@ -6,16 +6,19 @@ import {
   Shield,
   Edit2,
   Check,
+  Clock,
 } from 'lucide-react';
-import type { ProviderProfile, ConnectionTestResult } from '../../../shared/types';
+import type { ProviderProfile, ConnectionTestResult, FamilyMember } from '../../../shared/types';
 import { ProvenancePill } from '../common/ProvenancePill';
 import { Button } from '../common/Button';
 
 interface Props {
   providers: ProviderProfile[];
+  selectedMember?: FamilyMember | null;
   onSaveProvider: (profile: Omit<ProviderProfile, 'id' | 'created_at'> & { id?: string }) => Promise<void>;
   onDeleteProvider: (id: string) => Promise<void>;
   onTestConnection: (profile: Partial<ProviderProfile>) => Promise<ConnectionTestResult>;
+  onOpenChronicle?: () => void;
 }
 
 /** Mask secret per §9.2: sk-••••••••1a2b */
@@ -29,9 +32,11 @@ const maskApiKey = (key?: string) => {
 
 export const ProviderSettings: React.FC<Props> = ({
   providers,
+  selectedMember,
   onSaveProvider,
   onDeleteProvider,
   onTestConnection,
+  onOpenChronicle,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -115,7 +120,18 @@ export const ProviderSettings: React.FC<Props> = ({
             Local on-device engines (LM Studio, Ollama) and BYOK cloud endpoints
           </p>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
+          {selectedMember && onOpenChronicle && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenChronicle}
+              icon={<Clock className="w-3.5 h-3.5 text-vault-600 dark:text-vault-400" strokeWidth={2} />}
+              title={`View ${selectedMember.name}'s Health Chronicle`}
+            >
+              Health Chronicle
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"
