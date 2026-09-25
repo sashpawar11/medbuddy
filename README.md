@@ -18,9 +18,9 @@
 
 ## 🩺 Overview
 
-**MedBuddy** is a secure, local-first desktop application designed to organize, catalog, and analyze your entire family's medical records. From messy lab PDFs and physical doctor prescriptions to hospital discharge summaries and radiology scans, MedBuddy turns scattered health documents into structured, searchable health profiles and longitudinal timelines.
+**MedBuddy** is a secure, local-first desktop application designed to organize, catalog, and analyze your entire family's medical records. From messy lab PDFs and physical doctor prescriptions to hospital discharge summaries and radiology scans, MedBuddy turns scattered health documents into structured, searchable health profiles, interactive conversational consultations, and longitudinal timelines.
 
-Built with a **privacy-first architecture**, all sensitive documents, profiles, and SQLite databases remain strictly on your local machine. When analyzing reports, you have complete control over whether processing stays **100% offline** (via local LLMs like Ollama or LM Studio) or connects via **BYOK** (Bring Your Own Key) to leading cloud providers.
+Built with a **privacy-first architecture**, all sensitive documents, profiles, and SQLite databases remain strictly on your local machine. When analyzing reports or querying medical records, you have complete control over whether processing stays **100% offline** (via local LLMs like Ollama or LM Studio) or connects via **BYOK** (Bring Your Own Key) to leading cloud providers.
 
 ---
 
@@ -41,6 +41,7 @@ Prebuilt, ready-to-run installation packages and standalone bundles are publishe
 ## ✨ Key Features
 
 - **👨‍👩‍👧‍👦 Multi-Profile Family Vault**: Manage discrete records for yourself, children, and elderly parents under segregated profiles with custom avatars, dates of birth, and health notes.
+- **💬 Profile-Scoped Document Chat & Local RAG**: Interactively chat with medical records powered by local LLMs (Ollama, LM Studio) or BYOK cloud models. Features strict SQL-level profile isolation (zero cross-profile data leakage), SQLite FTS5 BM25 retrieval across chunked records, in-input profile scoping pills, `@mention` autocomplete, collapsible chain-of-thought reasoning drawer, and clickable page-level source citations.
 - **📁 Nested Folder Organization**: Hierarchical file system (e.g., `Mom → Cardiology → 2024 → Echocardiogram`) supporting multi-format files (PDFs, JPEG, PNG, TIFF, HEIC).
 - **🔍 Offline Local OCR**: Embedded **PaddleOCR** running via **ONNX Runtime** extracts text from low-contrast scans, mobile photos, and multi-page PDFs with zero internet connectivity.
 - **🧠 Flexible Dual-Engine AI (Local vs. BYOK Cloud)**:
@@ -66,7 +67,10 @@ Before visiting a specialist, select all reports from the last 12 months and run
 ### 3. Tracking Chronic Trends Over Time
 Track key indicators such as **HbA1c**, **Lipid Profiles (LDL/HDL)**, **Thyroid (TSH)**, or **Kidney Function (Creatinine/eGFR)** over years, even when tests were performed across different hospitals with differing lab formats.
 
-### 4. Emergency Preparedness & Travel
+### 4. Interactive Record Consultation & Medication Inquiries
+Ask natural language questions like *"What was Dad's PSA trend between 2023 and 2024?"* or *"What dosage of Atorvastatin was prescribed?"* and get streaming answers grounded strictly in the target profile's documents, accompanied by page-level citations and previews.
+
+### 5. Emergency Preparedness & Travel
 Carry a completely offline, searchable medical history on your laptop during travel without relying on internet access or hospital patient portals.
 
 ---
@@ -79,20 +83,20 @@ Carry a completely offline, searchable medical history on your laptop during tra
 │                                                        │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │     React 18 + TailwindCSS + Lucide UI           │  │
-│  │     (Dashboard, Timeline, File Explorer, OCR)    │  │
+│  │     (Dashboard, Chat Assistant, Timeline, OCR)   │  │
 │  └────────────────────────┬─────────────────────────┘  │
 │                           │ IPC Bridge                 │
 │  ┌────────────────────────▼─────────────────────────┐  │
 │  │                Electron Main Process             │  │
 │  │  ┌─────────────────────────────────────────────┐ │  │
-│  │  │ Local SQLite Engine (better-sqlite3)        │ │  │
-│  │  │ Documents, Family Members, Cached Overviews │ │  │
+│  │  │ Local SQLite Engine (better-sqlite3 + FTS5) │ │  │
+│  │  │ Documents, Chunks, Chat Sessions, Overviews │ │  │
 │  │  └─────────────────────────────────────────────┘ │  │
 │  │  ┌─────────────────────────────────────────────┐ │  │
 │  │  │ Local OCR Engine (ONNX + PaddleOCR + Canvas)│ │  │
 │  │  └─────────────────────────────────────────────┘ │  │
 │  │  ┌─────────────────────────────────────────────┐ │  │
-│  │  │ AI Orchestrator (Local Ollama / BYOK Cloud) │ │  │
+│  │  │ AI & RAG Orchestrator (Ollama / LM Studio)  │ │  │
 │  │  └─────────────────────────────────────────────┘ │  │
 │  └──────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────┘
@@ -113,6 +117,7 @@ Carry a completely offline, searchable medical history on your laptop during tra
    - If using **LM Studio**: Start local server mode at `http://localhost:1234/v1`.
    - If using **Cloud BYOK**: Enter your OpenAI, Anthropic, or Gemini API key.
 5. Click **Analyze** on any file or folder to generate your first medical overview.
+6. Open **Chat with MedBuddy** (`Ctrl+4` / `⌘4`) to ask questions across any family profile's records with in-input `@mentions`, starter prompt chips, and verified document citations.
 
 ---
 
@@ -155,7 +160,7 @@ npm run dev
 
 ### 4. Run Automated Test Suites
 
-Executes integration, database sync, folder organization, and timeline unit tests:
+Executes integration, database sync, profile-scoped chat RAG (`test/chat.test.ts`), folder organization, and timeline unit tests:
 
 ```bash
 npm test
@@ -205,6 +210,7 @@ GitHub Actions will automatically spin up native build runners across **Windows*
 ## 🔒 Privacy & Security
 
 - **Local Storage by Default**: Your documents, parsed text, and health history remain on your machine in an isolated SQLite database.
+- **Strict Profile Isolation**: SQL query-level scoping prevents cross-profile medical data leakage during search and document chat.
 - **Zero Telemetry**: No third-party usage trackers, external analytics, or remote logging.
 - **Explicit Cloud Boundaries**: Cloud models and cloud backups are strictly opt-in. The UI always displays whether a requested action will communicate with an external API.
 
