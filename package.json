@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "package": "electron-builder",
     "dist": "electron-builder",
-    "test": "ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/integration.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/sync.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/organize.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs --test test/timeline.test.ts"
+    "test": "ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/integration.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/sync.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/organize.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs --test test/timeline.test.ts && ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron ./node_modules/tsx/dist/cli.mjs test/chat.test.ts"
   },
   "build": {
     "appId": "com.medbuddy.app",
@@ -64,6 +64,7 @@
     "canvas": "^3.2.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
+    "marked": "^18.0.14",
     "onnxruntime-node": "^1.30.0",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^6.3.289",

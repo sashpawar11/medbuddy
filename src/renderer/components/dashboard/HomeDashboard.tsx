@@ -13,6 +13,7 @@ import {
   Database,
   CheckCircle2,
   Sparkles,
+  MessageSquareText,
 } from 'lucide-react';
 import type {
   FamilyMember,
@@ -34,7 +35,7 @@ interface Props {
   analyses: AnalysisRecord[];
   providers: ProviderProfile[];
   syncSettings?: GoogleSyncSettings | null;
-  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'timeline' | 'settings' | 'logs') => void;
+  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'timeline' | 'chat' | 'settings' | 'logs') => void;
   onOpenAddMember: () => void;
   onSelectFolder: (folderId: string) => void;
   onSelectAnalysis: (analysis: AnalysisRecord) => void;
@@ -182,12 +183,20 @@ export const HomeDashboard: React.FC<Props> = ({
                 {/* Quick Action CTAs */}
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button
+                    onClick={() => onNavigate('chat')}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-medium text-small shadow-sm hover:shadow transition-all duration-150 group cursor-pointer"
+                  >
+                    <MessageSquareText className="w-4 h-4 text-white shrink-0" />
+                    <span>Chat with MedBuddy</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+                  </button>
+
+                  <button
                     onClick={() => onNavigate('files')}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-vault-600 hover:bg-vault-700 active:bg-vault-800 text-white font-medium text-small shadow-sm hover:shadow transition-all duration-150 group"
                   >
                     <Folder className="w-4 h-4 text-vault-200 group-hover:text-white transition-colors" />
                     <span>Browse Medical Records</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                   </button>
 
                   <button

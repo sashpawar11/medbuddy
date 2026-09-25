@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Loader2,
   Clock,
+  MessageSquareText,
 } from 'lucide-react';
 import type { FamilyMember, Folder, AnalysisRecord } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
@@ -33,10 +34,10 @@ interface Props {
   selectedMember: FamilyMember | null;
   folders: Folder[];
   selectedFolderId: string | null;
-  activeView: 'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'settings' | 'logs';
+  activeView: 'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'chat' | 'settings' | 'logs';
   onSelectMember: (member: FamilyMember) => void;
   onSelectFolder: (folderId: string) => void;
-  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'timeline' | 'settings' | 'logs') => void;
+  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'timeline' | 'chat' | 'settings' | 'logs') => void;
   onOpenAddMember: () => void;
   onOpenEditMember: (member: FamilyMember) => void;
   onOpenAddFolder: () => void;
@@ -214,8 +215,6 @@ export const Sidebar: React.FC<Props> = ({
             </button>
           )}
 
-          <div className="w-5 h-px bg-border my-1" />
-
           <button
             onClick={() => onNavigate('files')}
             className={`p-2 rounded-sm transition-colors ${
@@ -308,8 +307,8 @@ export const Sidebar: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Home Navigation Link */}
-      <div className="px-3 pt-3 pb-1.5 shrink-0">
+      {/* Navigation Links */}
+      <div className="px-3 pt-3 pb-1.5 space-y-1 shrink-0">
         <button
           onClick={() => onNavigate('home')}
           className={navItemClass(activeView === 'home')}

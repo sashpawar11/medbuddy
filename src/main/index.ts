@@ -8,6 +8,7 @@ import { ocrQueue } from './services/ocrQueue';
 
 // Disable hardware acceleration issues if running in certain container environments
 app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.setName('medbuddy');
 
 let mainWindow: BrowserWindow | null = null;
 

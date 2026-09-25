@@ -22,8 +22,10 @@ import { ProviderSettings } from './components/settings/ProviderSettings';
 import { DiagnosticsModal } from './components/diagnostics/DiagnosticsModal';
 import { GoogleSyncModal } from './components/sync/GoogleSyncModal';
 import { HealthTimeline } from './components/timeline/HealthTimeline';
+import { ChatAssistantView } from './components/chat/ChatAssistantView';
 import { ToastContainer } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { MessageSquareText } from 'lucide-react';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
 import { buildTimeline } from './utils/buildTimeline';
@@ -42,7 +44,7 @@ export const App: React.FC = () => {
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
 
   // Navigation State (Home is default per user request)
-  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'settings' | 'logs'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'chat' | 'settings' | 'logs'>('home');
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisRecord | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
 
@@ -251,6 +253,9 @@ export const App: React.FC = () => {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setIsSidebarCollapsed((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === '4') {
+        e.preventDefault();
+        setActiveView('chat');
       } else if (e.key === 'Escape') {
         if (previewDoc) setPreviewDoc(null);
         if (isDiagnosticsOpen) setIsDiagnosticsOpen(false);
@@ -602,6 +607,21 @@ export const App: React.FC = () => {
               onOpenChronicle={selectedMember ? () => setActiveView('timeline') : undefined}
             />
           )}
+
+          {activeView === 'chat' && (
+            <ChatAssistantView
+              members={members}
+              selectedMember={selectedMember}
+              onSelectMember={(m) => setSelectedMember(m)}
+              providers={providers}
+              onOpenDocumentPreview={(doc) => setPreviewDoc(doc)}
+              onUploadDocument={(folderId) => {
+                setSelectedFolderId(folderId);
+                setActiveView('files');
+              }}
+              onOpenSettings={() => setActiveView('settings')}
+            />
+          )}
         </ErrorBoundary>
 
         {/* Document Preview Pane (Split-screen) */}
@@ -609,9 +629,37 @@ export const App: React.FC = () => {
           <DocumentPreview
             document={previewDoc}
             onClose={() => setPreviewDoc(null)}
+            onAskAssistant={() => setActiveView('chat')}
           />
         )}
       </main>
+
+      {/* Floating Chat with MedBuddy Button */}
+      {activeView !== 'chat' && (
+        <button
+          type="button"
+          onClick={() => setActiveView('chat')}
+          className={`fixed bottom-6 ${
+            previewDoc ? 'right-[404px]' : 'right-6'
+          } z-40 group flex items-center gap-2.5 px-4 py-3 rounded-full bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-teal-400/30 dark:border-teal-500/40`}
+          title="Chat with MedBuddy (⌘4)"
+          aria-label="Chat with MedBuddy"
+        >
+          <div className="relative flex items-center justify-center">
+            <MessageSquareText className="w-5 h-5 text-white" strokeWidth={2} />
+            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-200 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+          </div>
+          <span className="text-xs font-semibold tracking-wide pr-0.5">
+            Chat with MedBuddy
+          </span>
+          <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-700/60 text-teal-100 border border-teal-500/40">
+            ⌘4
+          </span>
+        </button>
+      )}
 
       {/* Member Modal */}
       <MemberModal
