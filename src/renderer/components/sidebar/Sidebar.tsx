@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import type { FamilyMember, Folder, AnalysisRecord } from '../../../shared/types';
 import { Keycap } from '../common/Keycap';
@@ -32,10 +33,10 @@ interface Props {
   selectedMember: FamilyMember | null;
   folders: Folder[];
   selectedFolderId: string | null;
-  activeView: 'home' | 'files' | 'overview' | 'overviews_history' | 'settings' | 'logs';
+  activeView: 'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'settings' | 'logs';
   onSelectMember: (member: FamilyMember) => void;
   onSelectFolder: (folderId: string) => void;
-  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'settings' | 'logs') => void;
+  onNavigate: (view: 'home' | 'files' | 'overviews_history' | 'timeline' | 'settings' | 'logs') => void;
   onOpenAddMember: () => void;
   onOpenEditMember: (member: FamilyMember) => void;
   onOpenAddFolder: () => void;
@@ -196,24 +197,27 @@ export const Sidebar: React.FC<Props> = ({
           </button>
 
           <button
+            onClick={() => onNavigate('timeline')}
+            className={`p-2 rounded-sm transition-colors ${
+              activeView === 'timeline'
+                ? 'bg-vault-50 text-vault-600'
+                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
+            }`}
+            title="Health Chronicle"
+          >
+            <Clock className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+
+          <button
             onClick={() => onNavigate('settings')}
             className={`p-2 rounded-sm relative transition-colors ${
               activeView === 'settings'
                 ? 'bg-vault-50 text-vault-600'
                 : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
-            title={`AI Engine: ${aiHealth.providerName || 'Configured'} (${aiHealth.status})`}
+            title="AI Providers"
           >
             <Cpu className="w-4 h-4" strokeWidth={1.75} />
-            {aiHealth.status === 'active' && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-sage-600" />
-            )}
-            {aiHealth.status === 'failure' && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-clay-600" />
-            )}
-            {aiHealth.status === 'checking' && (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-vault-500 animate-ping" />
-            )}
           </button>
 
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
@@ -367,7 +371,32 @@ export const Sidebar: React.FC<Props> = ({
           )}
         </div>
 
-        {/* 1. Default 'Generated Reports' Folder for the Profile */}
+        {/* 1. Health Chronicle for the Profile */}
+        {selectedMember && (
+          <div
+            onClick={() => onNavigate('timeline')}
+            className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-body cursor-pointer transition-colors mb-1 ${
+              activeView === 'timeline'
+                ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold'
+                : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium'
+            }`}
+            title={`View ${selectedMember.name}'s Health Chronicle`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-4 h-4 rounded flex items-center justify-center text-vault-600 dark:text-vault-400 shrink-0 ml-0.5">
+                <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+              </div>
+              <span className="truncate text-small font-medium">
+                {selectedMember.name}'s Chronicle
+              </span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface border border-border text-tertiary">
+              Timeline
+            </span>
+          </div>
+        )}
+
+        {/* 2. Default 'Generated Reports' Folder for the Profile */}
         {selectedMember && (
           <div className="mb-1.5">
             <div
@@ -542,51 +571,24 @@ export const Sidebar: React.FC<Props> = ({
           </span>
         </button>
 
-        {/* 2. AI Providers with Health Status Indicator */}
+        {/* 2. Health Chronicle */}
+        <button
+          onClick={() => onNavigate('timeline')}
+          className={navItemClass(activeView === 'timeline')}
+        >
+          <Clock className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+          <span className="truncate">Health Chronicle</span>
+        </button>
+
+        {/* 3. AI Providers */}
         <button
           onClick={() => onNavigate('settings')}
-          className={`${navItemClass(activeView === 'settings')} justify-between`}
+          className={navItemClass(activeView === 'settings')}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Cpu className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-            <span className="truncate">AI Providers</span>
-          </div>
-
-          {/* AI Health Status Indicator */}
-          {aiHealth.status === 'active' && (
-            <div
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sage-50 dark:bg-sage-950/60 border border-sage-200 dark:border-sage-800 text-[11px] font-medium text-sage-700 dark:text-sage-300 shrink-0"
-              title={`Active: ${aiHealth.providerName || 'AI Engine'} (${aiHealth.latencyMs ? `${aiHealth.latencyMs}ms` : 'online'})`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-sage-600 animate-pulse" />
-              <span>Active</span>
-            </div>
-          )}
-
-          {aiHealth.status === 'failure' && (
-            <div
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-clay-50 dark:bg-clay-950/60 border border-clay-200 dark:border-clay-800 text-[11px] font-medium text-clay-700 dark:text-clay-300 shrink-0"
-              title={`Connection Failure: ${aiHealth.error || 'Provider offline'}. Click to configure.`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-clay-600" />
-              <span>Offline</span>
-            </div>
-          )}
-
-          {aiHealth.status === 'checking' && (
-            <div
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface text-[11px] text-tertiary shrink-0 border border-border"
-              title="Checking AI provider health..."
-            >
-              <Loader2 className="w-3 h-3 animate-spin text-vault-600" />
-              <span>Testing</span>
-            </div>
-          )}
-
-          {aiHealth.status === 'idle' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-border-strong shrink-0" title="Not configured" />
-          )}
+          <Cpu className="w-4 h-4 shrink-0" strokeWidth={1.75} />
+          <span className="truncate">AI Providers</span>
         </button>
+
 
         {/* 4. Diagnostics & Theme Utility Bar */}
         <div className="flex items-center justify-between pt-1 border-t border-border">

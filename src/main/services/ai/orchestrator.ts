@@ -86,8 +86,8 @@ You MUST respond with a single, valid, raw JSON object matching this schema:
     }
   ],
   "documentDateRange": {
-    "earliest": "YYYY-MM-DD",
-    "latest": "YYYY-MM-DD"
+    "earliest": "YYYY-MM-DD (Exact earliest clinical report/collection date found in records)",
+    "latest": "YYYY-MM-DD (Exact latest clinical report/collection date found in records)"
   },
   "metrics": [
     {
@@ -152,7 +152,8 @@ STRICT CLINICAL GUIDELINES:
 4. Carefully scrutinize cross-document relationships for anomalies (discrepancies between reports, sharp velocity shifts in biomarkers, missing follow-ups for flagged tests, or non-digital scanned notes).
 5. In discussionPoints, frame 3-5 high-yield, specific questions with clinical rationale to empower the patient during physician consultations.
 6. Prioritize the top 12-18 most clinically significant biomarkers in the metrics list. Group multi-date values in the history array chronologically.
-7. NEVER use unescaped double quotes inside text values. Use single quotes for clinic names, test names, and notes (e.g. 'Lipid Panel' or 'Sunrise Oncology', not "Lipid Panel").`;
+7. NEVER use unescaped double quotes inside text values. Use single quotes for clinic names, test names, and notes (e.g. 'Lipid Panel' or 'Sunrise Oncology', not "Lipid Panel").
+8. EXACT REPORT DATES: In documentDateRange (and in metric history dates), you MUST extract the exact clinical report date, specimen collection date, test date, or exam date written inside the document text or header (e.g. 'Collection Date: 12-Mar-2024' -> '2024-03-12'). If analyzing a single report or single date, set both earliest and latest to that exact date. NEVER default to current/today's date or placeholder strings.`;
   }
 
   /**

@@ -59,6 +59,7 @@ const api: MedBuddyAPI = {
   testDriveMount: (config) => ipcRenderer.invoke('sync:testMount', config),
   selectLocalMountFolder: () => ipcRenderer.invoke('sync:selectLocalMount'),
   startSync: (options) => ipcRenderer.invoke('sync:start', options),
+  startRestore: (config) => ipcRenderer.invoke('sync:startRestore', config),
   onSyncProgress: (callback: (event: SyncProgressEvent) => void) => {
     const handler = (_: any, event: SyncProgressEvent) => callback(event);
     ipcRenderer.on('sync:progress', handler);

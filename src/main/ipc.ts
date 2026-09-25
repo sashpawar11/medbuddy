@@ -207,6 +207,10 @@ export function registerIpcHandlers() {
     return googleDriveSync.startSync(options);
   });
 
+  ipcMain.handle('sync:startRestore', async (_, config) => {
+    return googleDriveSync.startRestore(config);
+  });
+
   // Forward sync progress events to all browser windows
   googleDriveSync.setProgressCallback((event) => {
     const windows = BrowserWindow.getAllWindows();

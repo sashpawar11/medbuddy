@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Tags,
   X,
+  Clock,
 } from 'lucide-react';
 import type { DocumentItem, Folder, FamilyMember } from '../../../shared/types';
 import { OcrStatusBadge } from '../common/OcrStatusBadge';
@@ -32,6 +33,7 @@ interface Props {
   onTriggerAnalysis: (scopeType: 'file' | 'selection' | 'folder', docIds: string[], title: string) => void;
   onTriggerOrganize?: (docIds: string[]) => void;
   onOpenSyncFolder?: (folderId: string) => void;
+  onOpenChronicle?: () => void;
 }
 
 /** Format dates consistently app-wide per §4.3: "Mar 12, 2024" */
@@ -56,6 +58,7 @@ export const FileExplorer: React.FC<Props> = ({
   onTriggerAnalysis,
   onTriggerOrganize,
   onOpenSyncFolder,
+  onOpenChronicle,
 }) => {
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
@@ -232,6 +235,18 @@ export const FileExplorer: React.FC<Props> = ({
               title={`Sync "${folder.name}" to Google Drive`}
             >
               Sync
+            </Button>
+          )}
+
+          {onOpenChronicle && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onOpenChronicle}
+              icon={<Clock className="w-3.5 h-3.5 text-vault-600 dark:text-vault-400" strokeWidth={2} />}
+              title={`View ${member.name}'s chronological health history`}
+            >
+              Health Chronicle
             </Button>
           )}
 

@@ -21,10 +21,12 @@ import { OverviewsHistory } from './components/dashboard/OverviewsHistory';
 import { ProviderSettings } from './components/settings/ProviderSettings';
 import { DiagnosticsModal } from './components/diagnostics/DiagnosticsModal';
 import { GoogleSyncModal } from './components/sync/GoogleSyncModal';
+import { HealthTimeline } from './components/timeline/HealthTimeline';
 import { ToastContainer } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
+import { buildTimeline } from './utils/buildTimeline';
 
 export const App: React.FC = () => {
   const { toasts, dismissToast, showSuccess, showError } = useToast();
@@ -40,7 +42,7 @@ export const App: React.FC = () => {
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
 
   // Navigation State (Home is default per user request)
-  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'settings' | 'logs'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'settings' | 'logs'>('home');
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisRecord | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
 
@@ -502,6 +504,7 @@ export const App: React.FC = () => {
               onTriggerAnalysis={handleTriggerAnalysis}
               onTriggerOrganize={handleTriggerOrganize}
               onOpenSyncFolder={(fid) => handleOpenSync('folders', selectedMember.id, fid)}
+              onOpenChronicle={() => setActiveView('timeline')}
             />
           )}
 
@@ -558,6 +561,30 @@ export const App: React.FC = () => {
                 setActiveView('overview');
               }}
               onDeleteAnalysis={handleDeleteAnalysis}
+            />
+          )}
+
+          {activeView === 'timeline' && (
+            <HealthTimeline
+              timelineData={buildTimeline(analyses, selectedMember?.id, selectedMember?.name)}
+              onBack={() => setActiveView(selectedMember && currentFolder ? 'files' : 'home')}
+              onViewAnalysis={(analysisId) => {
+                const rec = analyses.find((a) => a.id === analysisId);
+                if (rec) {
+                  setCurrentAnalysis(rec);
+                  setActiveView('overview');
+                }
+              }}
+              onPreviewDoc={(docId) => {
+                // Find the document across all analyses source docs
+                for (const a of analyses) {
+                  const doc = a.source_documents?.find((d) => d.id === docId);
+                  if (doc) {
+                    setPreviewDoc(doc);
+                    return;
+                  }
+                }
+              }}
             />
           )}
 
@@ -640,7 +667,11 @@ export const App: React.FC = () => {
         initialFolderId={syncScopeOverride.folderId}
         onSyncComplete={() => {
           refreshSyncSettings();
-          if (selectedMember) refreshFolders(selectedMember.id);
+          refreshMembers();
+          if (selectedMember) {
+            refreshFolders(selectedMember.id);
+            refreshAnalyses();
+          }
         }}
       />
 

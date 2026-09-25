@@ -15,6 +15,7 @@ import type {
   GoogleSyncSettings,
   SyncScope,
   SyncMountType,
+  AppStateSnapshot,
 } from '../../shared/types';
 import { logger } from '../services/logger';
 
@@ -25,6 +26,15 @@ export function getDatabase(): Database.Database {
     throw new Error('Database has not been initialized. Call initDatabase() first.');
   }
   return dbInstance;
+}
+
+export function closeDatabase(): void {
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {}
+    dbInstance = null;
+  }
 }
 
 export function initDatabase(dbPath?: string): Database.Database {
@@ -465,6 +475,116 @@ export function listRecentAnalyses(limit: number = 20): AnalysisRecord[] {
   return rows.map(hydrateAnalysisRecord);
 }
 
+export function listAllAnalyses(): AnalysisRecord[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT a.*, p.name as provider_name, p.model as model_name
+    FROM analysis_results a
+    LEFT JOIN provider_profiles p ON a.provider_profile_id = p.id
+    ORDER BY a.created_at DESC
+  `).all() as any[];
+
+  return rows.map(hydrateAnalysisRecord);
+}
+
+export function listAnalysesForMember(memberId: string): AnalysisRecord[] {
+  const all = listAllAnalyses();
+  return all.filter((a) => a.member_id === memberId);
+}
+
+export function listAnalysesForFolders(folderIds: string[]): AnalysisRecord[] {
+  const set = new Set(folderIds);
+  const all = listAllAnalyses();
+  return all.filter((a) => {
+    if (a.scope_type === 'folder' && set.has(a.scope_id)) return true;
+    if (a.source_documents.some((d) => set.has(d.folder_id))) return true;
+    return false;
+  });
+}
+
+export function getAppStateSnapshot(
+  scope: SyncScope = 'all',
+  targetMemberId?: string | null,
+  targetFolderIds?: string[]
+): AppStateSnapshot {
+  const allMembers = listMembers();
+  let members = allMembers;
+  let folders: Folder[] = [];
+  let documents: DocumentItem[] = [];
+  let analyses: AnalysisRecord[] = [];
+
+  if (scope === 'all') {
+    members = allMembers;
+    for (const m of members) {
+      folders.push(...listFolders(m.id));
+    }
+    documents = listAllDocuments();
+    analyses = listAllAnalyses();
+  } else if (scope === 'profile') {
+    members = allMembers.filter((m) => m.id === targetMemberId);
+    if (targetMemberId) {
+      folders = listFolders(targetMemberId);
+      documents = listDocumentsForMember(targetMemberId);
+      analyses = listAnalysesForMember(targetMemberId);
+    }
+  } else if (scope === 'folders') {
+    const fIds = targetFolderIds || [];
+    const fSet = new Set(fIds);
+    for (const m of allMembers) {
+      const mFolders = listFolders(m.id);
+      const matched = mFolders.filter((f) => fSet.has(f.id));
+      if (matched.length > 0) {
+        folders.push(...matched);
+      }
+    }
+    const memberIdSet = new Set(folders.map((f) => f.member_id));
+    members = allMembers.filter((m) => memberIdSet.has(m.id));
+    for (const fid of fIds) {
+      documents.push(...listDocuments(fid));
+    }
+    analyses = listAnalysesForFolders(fIds);
+  }
+
+  return {
+    version: '1.0.0',
+    exportedAt: new Date().toISOString(),
+    scope,
+    vaultSummary: {
+      membersCount: members.length,
+      foldersCount: folders.length,
+      documentsCount: documents.length,
+      analysesCount: analyses.length,
+    },
+    members,
+    folders,
+    documents: documents.map((doc) => ({
+      id: doc.id,
+      folder_id: doc.folder_id,
+      filename: doc.filename,
+      file_type: doc.file_type,
+      file_size: doc.file_size,
+      content_hash: doc.content_hash,
+      ocr_status: doc.ocr_status,
+      ocr_stage: doc.ocr_stage,
+      tags: doc.tags ? (typeof doc.tags === 'string' ? JSON.parse(doc.tags) : doc.tags) : [],
+      created_at: doc.created_at,
+      updated_at: doc.updated_at,
+    })),
+    analyses: analyses.map((a) => ({
+      id: a.id,
+      scope_type: a.scope_type,
+      scope_id: a.scope_id,
+      scope_name: a.scope_name || '',
+      member_id: a.member_id || null,
+      member_name: a.member_name || null,
+      provider_name: a.provider_name || null,
+      model_name: a.model_name || null,
+      created_at: a.created_at,
+      result: a.result_json,
+    })),
+  };
+}
+
 function hydrateAnalysisRecord(row: any): AnalysisRecord {
   const db = getDatabase();
   const docRows = db.prepare(`
@@ -776,7 +896,7 @@ export function saveSyncTokens(tokens: { accessToken?: string | null; refreshTok
 }
 
 export function recordSyncItem(item: {
-  item_type: 'document' | 'folder' | 'member';
+  item_type: 'document' | 'folder' | 'member' | 'analysis_summary' | 'app_state';
   local_id: string;
   remote_id: string;
   content_hash?: string;
@@ -839,4 +959,200 @@ export function listDocumentsForMember(memberId: string): DocumentItem[] {
     ORDER BY d.created_at DESC
   `).all(memberId);
   return rows.map(mapDocumentRow);
+}
+
+export interface RestoreAppSnapshotResult {
+  counts: {
+    members: number;
+    folders: number;
+    documents: number;
+    skippedDocs: number;
+    analyses: number;
+  };
+  memberIdMap: Map<string, string>;
+  folderIdMap: Map<string, string>;
+  docIdMap: Map<string, string>;
+}
+
+export function restoreAppStateFromSnapshot(
+  snapshot: AppStateSnapshot,
+  vaultDir: string
+): RestoreAppSnapshotResult {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+
+  const counts = {
+    members: 0,
+    folders: 0,
+    documents: 0,
+    skippedDocs: 0,
+    analyses: 0,
+  };
+
+  const memberIdMap = new Map<string, string>();
+  const folderIdMap = new Map<string, string>();
+  const docIdMap = new Map<string, string>();
+
+  const tx = db.transaction(() => {
+    // 1. Members
+    for (const mem of snapshot.members || []) {
+      const existingById = db.prepare('SELECT id FROM members WHERE id = ?').get(mem.id) as any;
+      if (existingById) {
+        memberIdMap.set(mem.id, existingById.id);
+        continue;
+      }
+      const existingByName = db.prepare('SELECT id FROM members WHERE LOWER(name) = LOWER(?)').get(mem.name) as any;
+      if (existingByName) {
+        memberIdMap.set(mem.id, existingByName.id);
+        continue;
+      }
+
+      const memId = mem.id || 'mem_' + crypto.randomUUID().slice(0, 12);
+      db.prepare(`
+        INSERT INTO members (id, name, relationship, dob, avatar_color, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        memId,
+        mem.name,
+        mem.relationship || 'Self',
+        mem.dob || null,
+        mem.avatar_color || '#57c1ff',
+        mem.created_at || now,
+        now
+      );
+      memberIdMap.set(mem.id, memId);
+      counts.members++;
+    }
+
+    // 2. Folders
+    for (const f of snapshot.folders || []) {
+      const targetMemberId = memberIdMap.get(f.member_id) || f.member_id;
+      const memCheck = db.prepare('SELECT id FROM members WHERE id = ?').get(targetMemberId);
+      if (!memCheck) continue;
+
+      const existingById = db.prepare('SELECT id FROM folders WHERE id = ?').get(f.id) as any;
+      if (existingById) {
+        folderIdMap.set(f.id, existingById.id);
+        continue;
+      }
+      const existingByName = db.prepare('SELECT id FROM folders WHERE member_id = ? AND LOWER(name) = LOWER(?)').get(targetMemberId, f.name) as any;
+      if (existingByName) {
+        folderIdMap.set(f.id, existingByName.id);
+        continue;
+      }
+
+      const folderId = f.id || 'fld_' + crypto.randomUUID().slice(0, 12);
+      db.prepare(`
+        INSERT INTO folders (id, member_id, parent_folder_id, name, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        folderId,
+        targetMemberId,
+        f.parent_folder_id || null,
+        f.name,
+        f.created_at || now
+      );
+      folderIdMap.set(f.id, folderId);
+      counts.folders++;
+    }
+
+    // 3. Documents
+    for (const doc of snapshot.documents || []) {
+      const targetFolderId = folderIdMap.get(doc.folder_id) || doc.folder_id;
+      const folderCheck = db.prepare('SELECT id FROM folders WHERE id = ?').get(targetFolderId);
+      if (!folderCheck) continue;
+
+      const existingById = db.prepare('SELECT id FROM documents WHERE id = ?').get(doc.id) as any;
+      if (existingById) {
+        docIdMap.set(doc.id, existingById.id);
+        counts.skippedDocs++;
+        continue;
+      }
+
+      const existingByNameOrHash = db.prepare(`
+        SELECT id FROM documents WHERE folder_id = ? AND (filename = ? OR content_hash = ?)
+      `).get(targetFolderId, doc.filename, doc.content_hash) as any;
+
+      if (existingByNameOrHash) {
+        docIdMap.set(doc.id, existingByNameOrHash.id);
+        counts.skippedDocs++;
+        continue;
+      }
+
+      const docId = doc.id || 'doc_' + crypto.randomUUID().slice(0, 12);
+      const safeBase = doc.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const storageFilename = `${doc.content_hash.slice(0, 16)}_${safeBase}`;
+      const storagePath = path.join(vaultDir, storageFilename);
+
+      db.prepare(`
+        INSERT INTO documents (
+          id, folder_id, filename, file_type, file_size, storage_path, content_hash,
+          extracted_text, ocr_status, ocr_stage, tags, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        docId,
+        targetFolderId,
+        doc.filename,
+        doc.file_type || 'application/octet-stream',
+        doc.file_size || 0,
+        storagePath,
+        doc.content_hash,
+        null,
+        doc.ocr_status || 'completed',
+        doc.ocr_stage || null,
+        JSON.stringify(doc.tags || []),
+        doc.created_at || now,
+        now
+      );
+      docIdMap.set(doc.id, docId);
+      counts.documents++;
+    }
+
+    // 4. Analyses
+    const defaultProvider = db.prepare('SELECT id FROM provider_profiles WHERE is_default = 1 LIMIT 1').get() as any;
+    const fallbackProvider = db.prepare('SELECT id FROM provider_profiles LIMIT 1').get() as any;
+    const activeProviderId = defaultProvider?.id || fallbackProvider?.id || 'profile_lm_studio';
+
+    for (const a of snapshot.analyses || []) {
+      const existing = db.prepare('SELECT id FROM analysis_results WHERE id = ?').get(a.id) as any;
+      if (existing) continue;
+
+      let targetScopeId = a.scope_id;
+      if (a.scope_type === 'profile') {
+        targetScopeId = memberIdMap.get(a.scope_id) || a.scope_id;
+      } else if (a.scope_type === 'folders') {
+        targetScopeId = folderIdMap.get(a.scope_id) || a.scope_id;
+      } else if (a.scope_type === 'file') {
+        targetScopeId = docIdMap.get(a.scope_id) || a.scope_id;
+      }
+
+      const resultJsonStr = JSON.stringify(a.result || {});
+      const cacheKey = `restored:${a.id}`;
+
+      db.prepare(`
+        INSERT INTO analysis_results (
+          id, cache_key, scope_type, scope_id, provider_profile_id, prompt_version, result_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        a.id,
+        cacheKey,
+        a.scope_type,
+        targetScopeId,
+        activeProviderId,
+        1,
+        resultJsonStr,
+        a.created_at || now
+      );
+      counts.analyses++;
+    }
+  });
+
+  tx();
+
+  return {
+    counts,
+    memberIdMap,
+    folderIdMap,
+    docIdMap,
+  };
 }

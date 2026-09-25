@@ -15,6 +15,8 @@ export interface Folder {
   member_id: string;
   parent_folder_id: string | null;
   name: string;
+  color?: string;
+  icon?: string;
   created_at: string;
   document_count?: number;
 }
@@ -208,6 +210,8 @@ export type SyncStage =
   | 'mounting'
   | 'scanning'
   | 'uploading'
+  | 'downloading'
+  | 'restoring'
   | 'completed'
   | 'error';
 
@@ -226,8 +230,64 @@ export interface SyncResult {
   syncedCount: number;
   skippedCount: number;
   failedCount: number;
+  syncedSummariesCount?: number;
+  skippedSummariesCount?: number;
+  syncedStateCount?: number;
+  skippedStateCount?: number;
+  totalSyncedCount?: number;
+  totalSkippedCount?: number;
   errors: string[];
   syncedAt: string;
+}
+
+export interface RestoreResult {
+  success: boolean;
+  restoredMembersCount: number;
+  restoredFoldersCount: number;
+  restoredDocumentsCount: number;
+  skippedDocumentsCount: number;
+  restoredAnalysesCount: number;
+  errors: string[];
+  restoredAt: string;
+}
+
+export interface AppStateSnapshot {
+  version: string;
+  exportedAt: string;
+  scope: SyncScope;
+  vaultSummary: {
+    membersCount: number;
+    foldersCount: number;
+    documentsCount: number;
+    analysesCount: number;
+  };
+  members: FamilyMember[];
+  folders: Folder[];
+  documents: Array<{
+    id: string;
+    folder_id: string;
+    filename: string;
+    file_type: string;
+    file_size: number;
+    content_hash: string;
+    ocr_status: string;
+    ocr_stage?: string | null;
+    tags: string[];
+    created_at: string;
+    updated_at: string;
+  }>;
+  analyses: Array<{
+    id: string;
+    scope_type: string;
+    scope_id: string;
+    scope_name: string;
+    member_id: string | null;
+    member_name: string | null;
+    provider_name: string | null;
+    model_name: string | null;
+    created_at: string;
+    result: StructuredAnalysisResult;
+  }>;
 }
 
 export interface SyncMountTestResult {
@@ -253,6 +313,75 @@ export interface OrganizeApplyPayload {
   documentId: string;
   filename: string;
   tags: string[];
+}
+
+// ──────────────────────────────────────────────────────────────
+// Health Chronicle / Timeline Types
+// ──────────────────────────────────────────────────────────────
+
+export type TimelineEventType =
+  | 'report'          // A medical report/document was added
+  | 'biomarker'       // A specific biomarker reading
+  | 'flag'            // A clinical flag was raised
+  | 'anomaly'         // Cross-record anomaly detected
+  | 'milestone';      // User-annotated milestone (future: surgery, diagnosis, etc.)
+
+export type TimelineEventSeverity = 'normal' | 'borderline' | 'flagged' | 'info';
+
+export interface TimelineEvent {
+  id: string;
+  date: string;                      // ISO date string
+  type: TimelineEventType;
+  title: string;
+  subtitle?: string;
+  severity: TimelineEventSeverity;
+
+  // Biomarker-specific fields
+  metric?: {
+    name: string;
+    value: number | string;
+    unit: string;
+    referenceRange?: string;
+    status: 'normal' | 'borderline' | 'flagged';
+    trendDirection?: 'up' | 'down' | 'stable';
+    previousValue?: number | string;
+    previousDate?: string;
+    history?: Array<{
+      date: string;
+      value: number | string;
+    }>;
+  };
+
+  // Flag/Anomaly-specific fields
+  finding?: {
+    explanation: string;
+    category?: string;
+    pinpointNotes?: string[];
+    severity?: 'low' | 'moderate' | 'high';
+  };
+
+  // Source traceability
+  sourceDocumentId?: string;
+  sourceDocumentFilename?: string;
+  sourceAnalysisId?: string;
+
+  // Grouping — multiple biomarkers from one report cluster together
+  groupId?: string;
+  childEvents?: TimelineEvent[];
+}
+
+export interface TimelineData {
+  memberId: string;
+  memberName: string;
+  events: TimelineEvent[];
+  dateRange: { earliest: string; latest: string };
+  stats: {
+    totalEvents: number;
+    totalReports: number;
+    flaggedCount: number;
+    anomalyCount: number;
+    trackedBiomarkers: number;
+  };
 }
 
 // Window API exposed to renderer
@@ -306,6 +435,7 @@ export interface MedBuddyAPI {
   testDriveMount: (config: { mountType: SyncMountType; driveFolderName?: string; localMountPath?: string }) => Promise<SyncMountTestResult>;
   selectLocalMountFolder: () => Promise<string | null>;
   startSync: (options?: { scope?: SyncScope; memberId?: string; folderIds?: string[] }) => Promise<SyncResult>;
+  startRestore: (config?: { mountType?: SyncMountType; driveFolderName?: string; localMountPath?: string }) => Promise<RestoreResult>;
   onSyncProgress: (callback: (event: SyncProgressEvent) => void) => () => void;
 
   // Logs

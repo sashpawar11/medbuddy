@@ -4,14 +4,17 @@ import fs from 'fs';
 import os from 'os';
 import {
   initDatabase,
+  closeDatabase,
   getSyncSettings,
   saveSyncSettings,
   createMember,
   createFolder,
   insertDocument,
   getSyncItem,
+  storeAnalysisResult,
+  getAppStateSnapshot,
 } from '../src/main/db/database';
-import { googleDriveSync } from '../src/main/services/sync/googleDrive';
+import { googleDriveSync, DEFAULT_GOOGLE_CLIENT_ID } from '../src/main/services/sync/googleDrive';
 import { vault } from '../src/main/services/vault';
 import type { SyncProgressEvent } from '../src/shared/types';
 
@@ -200,15 +203,131 @@ async function runSyncTests() {
   assert.strictEqual(content, 'Normal sinus rhythm');
   console.log('✅ Local Mount folder hierarchy mirroring verified');
 
-  // 11. Disconnect Flow
+  // 11. Test Health Summaries (JSON) and Application Cached State Sync
+  console.log('🔄 Testing Generated Health Summaries (JSON) & Application State Cache Sync...');
+  const mockAnalysis = {
+    schemaVersion: '1.0' as const,
+    summary: 'Lipid panel indicates total cholesterol is well-controlled with normal fasting glucose.',
+    metrics: [
+      {
+        name: 'Total Cholesterol',
+        value: 180,
+        unit: 'mg/dL',
+        status: 'normal' as const,
+        range: '125-200',
+        interpretation: 'Optimal level',
+      },
+    ],
+    flags: [],
+    recommendations: ['Maintain current balanced diet and exercise regimen.'],
+    extractedEntities: { medications: ['Atorvastatin 10mg'] },
+    sourceDocuments: ['lipid_panel.pdf'],
+    confidence: 'high' as const,
+  };
+
+  const storedRecord = storeAnalysisResult(
+    'test_bloodwork_analysis_cache_key',
+    'folder',
+    folderBloodwork.id,
+    'profile_lm_studio',
+    '1.0',
+    mockAnalysis,
+    [doc1.id, doc2.id]
+  );
+  assert(storedRecord.id, 'Stored analysis should have an ID');
+  console.log('✅ Stored mock clinical analysis summary in SQLite');
+
+  const summarySyncRes = await googleDriveSync.startSync({
+    scope: 'all',
+  });
+  assert.strictEqual(summarySyncRes.success, true);
+  assert.strictEqual(summarySyncRes.syncedSummariesCount, 1, 'Should sync 1 newly generated health summary');
+  assert.strictEqual(summarySyncRes.syncedStateCount, 1, 'Should sync 1 updated app state cache');
+
+  // Verify health summary JSON file created on disk in local mount
+  const summariesDir = path.join(localMountDir, 'Eleanor Vance', 'Health Summaries');
+  assert(fs.existsSync(summariesDir), `Expected Health Summaries directory to exist at: ${summariesDir}`);
+  const summaryFiles = fs.readdirSync(summariesDir);
+  assert(summaryFiles.length >= 1, 'Should have at least 1 summary JSON file');
+  const summaryJsonPath = path.join(summariesDir, summaryFiles[0]);
+  const parsedSummary = JSON.parse(fs.readFileSync(summaryJsonPath, 'utf-8'));
+  assert.strictEqual(parsedSummary.type, 'health_summary');
+  assert.strictEqual(parsedSummary.patient.name, 'Eleanor Vance');
+  assert.strictEqual(parsedSummary.clinicalAnalysis.summary, mockAnalysis.summary);
+  console.log('✅ Health summary JSON file structure and content verified');
+
+  // Verify application state cache JSON on disk
+  const stateCachePath = path.join(localMountDir, 'medbuddy_app_state_cache.json');
+  assert(fs.existsSync(stateCachePath), `Expected app state cache file at: ${stateCachePath}`);
+  const parsedState = JSON.parse(fs.readFileSync(stateCachePath, 'utf-8'));
+  assert.strictEqual(parsedState.scope, 'all');
+  assert(parsedState.vaultSummary.membersCount >= 2);
+  assert(parsedState.vaultSummary.documentsCount >= 4);
+  assert(parsedState.vaultSummary.analysesCount >= 1);
+  console.log('✅ Application state and metadata cache JSON verified');
+
+  // Verify deduplication on re-sync (both summary and state should be skipped)
+  const dedupeSummariesRes = await googleDriveSync.startSync({
+    scope: 'all',
+  });
+  assert.strictEqual(dedupeSummariesRes.syncedSummariesCount, 0, 'No new summaries should be synced');
+  assert.strictEqual(dedupeSummariesRes.skippedSummariesCount, 1, 'Summary should be skipped as up-to-date');
+  assert.strictEqual(dedupeSummariesRes.syncedStateCount, 0, 'No state cache changes should be re-synced');
+  assert.strictEqual(dedupeSummariesRes.skippedStateCount, 1, 'App state should be skipped as up-to-date');
+  console.log('✅ Incremental deduplication for health summaries and app state cache verified');
+
+  // 12. Verify Pre-configured Google OAuth Configuration
+  assert(typeof DEFAULT_GOOGLE_CLIENT_ID === 'string');
+  assert(DEFAULT_GOOGLE_CLIENT_ID.includes('apps.googleusercontent.com'));
+  console.log('✅ Pre-configured app OAuth Client ID verified');
+
+  // 13. Disconnect Flow
   await googleDriveSync.disconnect();
   const finalSettings = getSyncSettings();
   assert.strictEqual(finalSettings.isSignedIn, false);
   console.log('✅ Google Drive disconnect flow verified');
 
+  // 14. Fresh Install / Device Migration: Restore Vault from Backup
+  console.log('🔄 Testing Fresh Install / Device Migration Restore from Vault...');
+  const freshDbPath = path.join(tempDir, 'fresh-install.db');
+  const freshVaultDir = path.join(tempDir, 'fresh_vault_docs');
+  fs.mkdirSync(freshVaultDir, { recursive: true });
+
+  // Switch database and vault storage to simulated fresh install
+  closeDatabase();
+  initDatabase(freshDbPath);
+  (vault as any).vaultDir = freshVaultDir;
+
+  const restoreRes = await googleDriveSync.startRestore({
+    mountType: 'local_mount',
+    localMountPath: localMountDir,
+  });
+
+  assert.strictEqual(restoreRes.success, true, 'Restore operation should succeed');
+  assert(restoreRes.restoredMembersCount >= 2, `Expected >= 2 members, got ${restoreRes.restoredMembersCount}`);
+  assert(restoreRes.restoredFoldersCount >= 2, `Expected >= 2 folders, got ${restoreRes.restoredFoldersCount}`);
+  assert(restoreRes.restoredDocumentsCount >= 4, `Expected >= 4 documents, got ${restoreRes.restoredDocumentsCount}`);
+  assert(restoreRes.restoredAnalysesCount >= 1, `Expected >= 1 analyses, got ${restoreRes.restoredAnalysesCount}`);
+  console.log('✅ Fresh install metadata restored successfully into SQLite');
+
+  // Check physical files in the fresh vault directory
+  const restoredVaultFiles = fs.readdirSync(freshVaultDir);
+  assert(restoredVaultFiles.length >= 4, `Expected >= 4 physical files in vault, found ${restoredVaultFiles.length}`);
+  console.log('✅ Physical document files downloaded and verified in new vault directory');
+
+  // Test repeat restore deduplication
+  const repeatRestoreRes = await googleDriveSync.startRestore({
+    mountType: 'local_mount',
+    localMountPath: localMountDir,
+  });
+  assert.strictEqual(repeatRestoreRes.success, true);
+  assert.strictEqual(repeatRestoreRes.restoredDocumentsCount, 0, 'No new documents should be inserted');
+  assert(repeatRestoreRes.skippedDocumentsCount >= 4, 'Existing documents should be skipped as up-to-date');
+  console.log('✅ Incremental deduplication on repeated restore verified');
+
   // Cleanup
   fs.rmSync(tempDir, { recursive: true, force: true });
-  console.log('🎉 ALL GOOGLE DRIVE SYNC INTEGRATION TESTS PASSED SUCCESSFULLY!');
+  console.log('🎉 ALL GOOGLE DRIVE SYNC & RESTORE INTEGRATION TESTS PASSED SUCCESSFULLY!');
 }
 
 runSyncTests().catch((err) => {

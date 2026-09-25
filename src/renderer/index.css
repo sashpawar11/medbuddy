@@ -307,6 +307,48 @@ button:active:not(:disabled) {
   animation: toastEnter 200ms var(--ease-standard) forwards;
 }
 
+@keyframes ecgTravel {
+  0% {
+    stroke-dashoffset: 600;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes sweepScan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-ecg-trace {
+  stroke-dasharray: 600;
+  animation: ecgTravel 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.animate-sweep-scan {
+  animation: sweepScan 3s ease-in-out infinite;
+}
+
 /* Reduced Motion (§12, WCAG 2.1 AA) */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -320,7 +362,10 @@ button:active:not(:disabled) {
 
   .animate-pulse,
   .animate-ping,
-  .animate-spin {
+  .animate-spin,
+  .animate-ecg-trace,
+  .animate-pulse-glow,
+  .animate-sweep-scan {
     animation: none !important;
   }
 }
