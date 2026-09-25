@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Eye, AlignLeft } from 'lucide-react';
+import { X, FileText, Eye, AlignLeft, MessageSquareText } from 'lucide-react';
 import type { DocumentItem } from '../../../shared/types';
 
 interface Props {
   document: DocumentItem | null;
   onClose: () => void;
+  onAskAssistant?: (document: DocumentItem) => void;
 }
 
 /**
@@ -12,7 +13,7 @@ interface Props {
  * - 380px fixed width, collapsible
  * - Underline style tabs: active has primary text + 2px vault-600 underline
  */
-export const DocumentPreview: React.FC<Props> = ({ document, onClose }) => {
+export const DocumentPreview: React.FC<Props> = ({ document, onClose, onAskAssistant }) => {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'preview' | 'text'>('preview');
@@ -149,6 +150,19 @@ export const DocumentPreview: React.FC<Props> = ({ document, onClose }) => {
           </div>
         )}
       </div>
+
+      {onAskAssistant && (
+        <div className="p-3 border-t border-border bg-surface-recessed shrink-0">
+          <button
+            type="button"
+            onClick={() => onAskAssistant(document)}
+            className="w-full py-2 px-3 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <MessageSquareText className="w-3.5 h-3.5" />
+            <span>Ask Assistant about this record</span>
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

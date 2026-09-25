@@ -79,6 +79,23 @@ const api: MedBuddyAPI = {
     };
   },
 
+  // Chat Assistant & Document RAG
+  listChatSessions: (memberId) => ipcRenderer.invoke('chat:listSessions', memberId),
+  getChatSession: (sessionId) => ipcRenderer.invoke('chat:getSession', sessionId),
+  createChatSession: (params) => ipcRenderer.invoke('chat:createSession', params),
+  deleteChatSession: (sessionId) => ipcRenderer.invoke('chat:deleteSession', sessionId),
+  sendMessage: (params) => ipcRenderer.invoke('chat:sendMessage', params),
+  abortStream: (sessionId) => ipcRenderer.invoke('chat:abortStream', sessionId),
+  onChatStream: (callback: (event: any) => void) => {
+    const handler = (_: any, event: any) => callback(event);
+    ipcRenderer.on('chat:stream', handler);
+    return () => {
+      ipcRenderer.removeListener('chat:stream', handler);
+    };
+  },
+  searchProfileDocuments: (memberId, query, limit) =>
+    ipcRenderer.invoke('chat:searchProfileDocuments', memberId, query, limit),
+
   // PDF Export
   exportPdf: (defaultFilename?: string) => ipcRenderer.invoke('analysis:exportPdf', defaultFilename),
 };

@@ -22,6 +22,7 @@ import { ProviderSettings } from './components/settings/ProviderSettings';
 import { DiagnosticsModal } from './components/diagnostics/DiagnosticsModal';
 import { GoogleSyncModal } from './components/sync/GoogleSyncModal';
 import { HealthTimeline } from './components/timeline/HealthTimeline';
+import { ChatAssistantView } from './components/chat/ChatAssistantView';
 import { ToastContainer } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { useToast } from './hooks/useToast';
@@ -42,7 +43,7 @@ export const App: React.FC = () => {
   const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
 
   // Navigation State (Home is default per user request)
-  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'settings' | 'logs'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'files' | 'overview' | 'overviews_history' | 'timeline' | 'chat' | 'settings' | 'logs'>('home');
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisRecord | null>(null);
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
 
@@ -251,6 +252,9 @@ export const App: React.FC = () => {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setIsSidebarCollapsed((prev) => !prev);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === '4') {
+        e.preventDefault();
+        setActiveView('chat');
       } else if (e.key === 'Escape') {
         if (previewDoc) setPreviewDoc(null);
         if (isDiagnosticsOpen) setIsDiagnosticsOpen(false);
@@ -602,6 +606,21 @@ export const App: React.FC = () => {
               onOpenChronicle={selectedMember ? () => setActiveView('timeline') : undefined}
             />
           )}
+
+          {activeView === 'chat' && (
+            <ChatAssistantView
+              members={members}
+              selectedMember={selectedMember}
+              onSelectMember={(m) => setSelectedMember(m)}
+              providers={providers}
+              onOpenDocumentPreview={(doc) => setPreviewDoc(doc)}
+              onUploadDocument={(folderId) => {
+                setSelectedFolderId(folderId);
+                setActiveView('files');
+              }}
+              onOpenSettings={() => setActiveView('settings')}
+            />
+          )}
         </ErrorBoundary>
 
         {/* Document Preview Pane (Split-screen) */}
@@ -609,6 +628,7 @@ export const App: React.FC = () => {
           <DocumentPreview
             document={previewDoc}
             onClose={() => setPreviewDoc(null)}
+            onAskAssistant={() => setActiveView('chat')}
           />
         )}
       </main>

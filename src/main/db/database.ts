@@ -16,6 +16,9 @@ import type {
   SyncScope,
   SyncMountType,
   AppStateSnapshot,
+  CitedChunk,
+  ChatMessageItem,
+  ChatSessionItem,
 } from '../../shared/types';
 import { logger } from '../services/logger';
 
@@ -181,6 +184,12 @@ export function updateMember(id: string, updates: Partial<FamilyMember>): Family
 export function deleteMember(id: string): void {
   const db = getDatabase();
   db.prepare('DELETE FROM members WHERE id = ?').run(id);
+}
+
+export function getMemberById(id: string): FamilyMember | null {
+  const db = getDatabase();
+  const row = db.prepare('SELECT * FROM members WHERE id = ?').get(id) as FamilyMember | undefined;
+  return row || null;
 }
 
 // ---------------- Folders Repository ---------------- //
@@ -1208,3 +1217,364 @@ export function restoreAppStateFromSnapshot(
     docIdMap,
   };
 }
+
+// ──────────────────────────────────────────────────────────────
+// Document Chunks & FTS5 Repository for Profile RAG
+// ──────────────────────────────────────────────────────────────
+
+export function insertDocumentChunk(chunk: {
+  id: string;
+  documentId: string;
+  memberId: string;
+  chunkIndex: number;
+  chunkText: string;
+  pageNumber: number;
+  documentDate?: string | null;
+  embeddingModel?: string | null;
+  embedding?: Buffer | null;
+}): void {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT OR REPLACE INTO document_chunks (
+      id, document_id, member_id, chunk_index, chunk_text, page_number, document_date, embedding_model, embedding, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    chunk.id,
+    chunk.documentId,
+    chunk.memberId,
+    chunk.chunkIndex,
+    chunk.chunkText,
+    chunk.pageNumber,
+    chunk.documentDate || null,
+    chunk.embeddingModel || null,
+    chunk.embedding || null,
+    now
+  );
+}
+
+export function deleteDocumentChunks(documentId: string): void {
+  const db = getDatabase();
+  db.prepare('DELETE FROM document_chunks WHERE document_id = ?').run(documentId);
+}
+
+export function getChunksCountForDocument(documentId: string): number {
+  const db = getDatabase();
+  const res = db.prepare('SELECT COUNT(*) as cnt FROM document_chunks WHERE document_id = ?').get(documentId) as { cnt: number } | undefined;
+  return res ? res.cnt : 0;
+}
+
+export function getChunksCountForMember(memberId: string): number {
+  const db = getDatabase();
+  const res = db.prepare('SELECT COUNT(*) as cnt FROM document_chunks WHERE member_id = ?').get(memberId) as { cnt: number } | undefined;
+  return res ? res.cnt : 0;
+}
+
+export function sanitizeFtsQuery(raw: string): string {
+  const stopWords = new Set([
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+    'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were',
+    'will', 'with', 'what', 'when', 'where', 'who', 'how', 'why', 'can', 'could',
+    'did', 'do', 'does', 'tell', 'show', 'give', 'me', 'my', 'his', 'her', 'their'
+  ]);
+  const tokens = raw
+    .replace(/[^\w\s-]/g, ' ')
+    .split(/\s+/)
+    .map(t => t.trim().toLowerCase())
+    .filter(t => t.length > 1 && !stopWords.has(t));
+  
+  if (tokens.length === 0) {
+    const rawTokens = raw.replace(/[^\w\s-]/g, ' ').split(/\s+/).filter(t => t.length > 1);
+    if (rawTokens.length === 0) return '';
+    return rawTokens.map(t => `"${t.replace(/"/g, '')}"`).join(' OR ');
+  }
+  return tokens.map(t => `"${t.replace(/"/g, '')}"`).join(' OR ');
+}
+
+export function searchChunksFts(memberId: string, query: string, limit: number = 8): CitedChunk[] {
+  const db = getDatabase();
+  const cleanMatch = sanitizeFtsQuery(query);
+  if (!cleanMatch) {
+    return getRecentChunksForMember(memberId, limit);
+  }
+
+  try {
+    const rows = db.prepare(`
+      SELECT 
+        dc.id as chunk_id,
+        dc.document_id,
+        d.filename,
+        dc.page_number,
+        dc.document_date,
+        dc.chunk_text,
+        fts.rank
+      FROM document_chunks dc
+      JOIN document_chunks_fts fts ON dc.rowid = fts.rowid
+      JOIN documents d ON dc.document_id = d.id
+      WHERE dc.member_id = ? AND document_chunks_fts MATCH ?
+      ORDER BY fts.rank ASC
+      LIMIT ?
+    `).all(memberId, cleanMatch, limit) as any[];
+
+    if (rows.length === 0) {
+      return getRecentChunksForMember(memberId, limit);
+    }
+
+    return rows.map(r => ({
+      chunkId: r.chunk_id,
+      documentId: r.document_id,
+      filename: r.filename,
+      pageNumber: r.page_number || 1,
+      documentDate: r.document_date || undefined,
+      snippet: r.chunk_text,
+      similarityScore: typeof r.rank === 'number' ? Math.max(0.1, Math.min(1.0, 1.0 / (1.0 + Math.abs(r.rank)))) : 0.8,
+    }));
+  } catch (err: any) {
+    logger.warn('db', `FTS search failed for member ${memberId}: ${err.message}`);
+    return getRecentChunksForMember(memberId, limit);
+  }
+}
+
+export function getRecentChunksForMember(memberId: string, limit: number = 8): CitedChunk[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT 
+      dc.id as chunk_id,
+      dc.document_id,
+      d.filename,
+      dc.page_number,
+      dc.document_date,
+      dc.chunk_text
+    FROM document_chunks dc
+    JOIN documents d ON dc.document_id = d.id
+    WHERE dc.member_id = ?
+    ORDER BY dc.created_at DESC, dc.chunk_index ASC
+    LIMIT ?
+  `).all(memberId, limit) as any[];
+
+  return rows.map(r => ({
+    chunkId: r.chunk_id,
+    documentId: r.document_id,
+    filename: r.filename,
+    pageNumber: r.page_number || 1,
+    documentDate: r.document_date || undefined,
+    snippet: r.chunk_text,
+    similarityScore: 0.5,
+  }));
+}
+
+// ──────────────────────────────────────────────────────────────
+// Chat Sessions & Messages Repository
+// ──────────────────────────────────────────────────────────────
+
+export function createChatSession(params: {
+  id?: string;
+  memberId?: string | null;
+  title?: string;
+  providerProfileId?: string;
+  modelName?: string;
+}): ChatSessionItem {
+  const db = getDatabase();
+  const id = params.id || 'cs_' + crypto.randomUUID().slice(0, 12);
+  const now = new Date().toISOString();
+  const title = params.title || 'New Consultation';
+
+  db.prepare(`
+    INSERT INTO chat_sessions (id, member_id, title, provider_profile_id, model_name, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    params.memberId || null,
+    title,
+    params.providerProfileId || null,
+    params.modelName || null,
+    now,
+    now
+  );
+
+  let memberName: string | null = null;
+  let memberColor: string | null = null;
+  if (params.memberId) {
+    const mem = getMemberById(params.memberId);
+    if (mem) {
+      memberName = mem.name;
+      memberColor = mem.avatar_color;
+    }
+  }
+
+  return {
+    id,
+    memberId: params.memberId || null,
+    memberName,
+    memberColor,
+    title,
+    providerProfileId: params.providerProfileId || null,
+    modelName: params.modelName || null,
+    createdAt: now,
+    updatedAt: now,
+    messageCount: 0,
+  };
+}
+
+export function listChatSessions(memberId?: string): ChatSessionItem[] {
+  const db = getDatabase();
+  let query = `
+    SELECT 
+      cs.*,
+      m.name as member_name,
+      m.avatar_color as member_color,
+      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.session_id = cs.id) as message_count
+    FROM chat_sessions cs
+    LEFT JOIN members m ON cs.member_id = m.id
+  `;
+  const params: any[] = [];
+  if (memberId) {
+    query += ` WHERE cs.member_id = ? `;
+    params.push(memberId);
+  }
+  query += ` ORDER BY cs.updated_at DESC`;
+
+  const rows = db.prepare(query).all(...params) as any[];
+  return rows.map(r => ({
+    id: r.id,
+    memberId: r.member_id,
+    memberName: r.member_name || null,
+    memberColor: r.member_color || null,
+    title: r.title,
+    providerProfileId: r.provider_profile_id,
+    modelName: r.model_name,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    messageCount: r.message_count || 0,
+  }));
+}
+
+export function getChatSessionById(sessionId: string): ChatSessionItem | null {
+  const db = getDatabase();
+  const r = db.prepare(`
+    SELECT 
+      cs.*,
+      m.name as member_name,
+      m.avatar_color as member_color,
+      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.session_id = cs.id) as message_count
+    FROM chat_sessions cs
+    LEFT JOIN members m ON cs.member_id = m.id
+    WHERE cs.id = ?
+  `).get(sessionId) as any;
+
+  if (!r) return null;
+  return {
+    id: r.id,
+    memberId: r.member_id,
+    memberName: r.member_name || null,
+    memberColor: r.member_color || null,
+    title: r.title,
+    providerProfileId: r.provider_profile_id,
+    modelName: r.model_name,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    messageCount: r.message_count || 0,
+  };
+}
+
+export function updateChatSessionTitle(sessionId: string, title: string): void {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  db.prepare(`UPDATE chat_sessions SET title = ?, updated_at = ? WHERE id = ?`).run(title, now, sessionId);
+}
+
+export function touchChatSession(sessionId: string): void {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+  db.prepare(`UPDATE chat_sessions SET updated_at = ? WHERE id = ?`).run(now, sessionId);
+}
+
+export function deleteChatSession(sessionId: string): void {
+  const db = getDatabase();
+  db.prepare(`DELETE FROM chat_sessions WHERE id = ?`).run(sessionId);
+}
+
+export function createChatMessage(params: {
+  id?: string;
+  sessionId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  reasoningContent?: string;
+  scopedMemberId?: string;
+  citedChunks?: CitedChunk[];
+  latencyMs?: number;
+  tokenCount?: number;
+}): ChatMessageItem {
+  const db = getDatabase();
+  const id = params.id || 'cm_' + crypto.randomUUID().slice(0, 12);
+  const now = new Date().toISOString();
+  const citedJson = JSON.stringify(params.citedChunks || []);
+
+  db.prepare(`
+    INSERT INTO chat_messages (
+      id, session_id, role, content, reasoning_content, scoped_member_id, cited_chunks_json, latency_ms, token_count, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id,
+    params.sessionId,
+    params.role,
+    params.content,
+    params.reasoningContent || null,
+    params.scopedMemberId || null,
+    citedJson,
+    params.latencyMs || null,
+    params.tokenCount || null,
+    now
+  );
+
+  touchChatSession(params.sessionId);
+
+  return {
+    id,
+    sessionId: params.sessionId,
+    role: params.role,
+    content: params.content,
+    reasoningContent: params.reasoningContent,
+    scopedMemberId: params.scopedMemberId,
+    citedChunks: params.citedChunks || [],
+    latencyMs: params.latencyMs,
+    tokenCount: params.tokenCount,
+    createdAt: now,
+  };
+}
+
+export function getChatMessages(sessionId: string): ChatMessageItem[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM chat_messages
+    WHERE session_id = ?
+    ORDER BY created_at ASC
+  `).all(sessionId) as any[];
+
+  return rows.map(r => {
+    let citedChunks: CitedChunk[] = [];
+    try {
+      citedChunks = JSON.parse(r.cited_chunks_json || '[]');
+    } catch {
+      citedChunks = [];
+    }
+    return {
+      id: r.id,
+      sessionId: r.session_id,
+      role: r.role,
+      content: r.content,
+      reasoningContent: r.reasoning_content || undefined,
+      scopedMemberId: r.scoped_member_id || undefined,
+      citedChunks,
+      latencyMs: r.latency_ms || undefined,
+      tokenCount: r.token_count || undefined,
+      createdAt: r.created_at,
+    };
+  });
+}
+
+export function deleteChatMessage(messageId: string): void {
+  const db = getDatabase();
+  db.prepare(`DELETE FROM chat_messages WHERE id = ?`).run(messageId);
+}
+

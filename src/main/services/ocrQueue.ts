@@ -21,6 +21,7 @@ import { vault } from './vault';
 import { paddleOcrService, OCR_MIN_CHARS_THRESHOLD } from './paddleOcr';
 import { llmVisionExtractor } from './llmVisionExtractor';
 import { logger } from './logger';
+import { documentChunker } from './ai/chunker';
 import type { OcrProgressEvent } from '../../shared/types';
 
 /** Maximum number of documents processed concurrently. */
@@ -256,6 +257,11 @@ class OcrQueue {
     logger.info('extract', `OCR complete: ${doc.filename}`, {
       stage: finalStage,
       chars: finalText.length,
+    });
+
+    // Automatically chunk and index the document for Profile RAG
+    documentChunker.chunkDocument(doc.id).catch((err) => {
+      logger.warn('extract', `Background chunking failed for ${doc.filename}: ${err.message}`);
     });
   }
 }

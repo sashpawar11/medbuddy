@@ -116,6 +116,69 @@ CREATE TABLE IF NOT EXISTS sync_items (
   error_message TEXT
 );
 
+-- Document Chunks for Profile-Scoped Document RAG
+CREATE TABLE IF NOT EXISTS document_chunks (
+  id TEXT PRIMARY KEY,
+  document_id TEXT NOT NULL,
+  member_id TEXT NOT NULL,
+  chunk_index INTEGER NOT NULL,
+  chunk_text TEXT NOT NULL,
+  page_number INTEGER NOT NULL DEFAULT 1,
+  document_date TEXT,
+  embedding_model TEXT,
+  embedding BLOB,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
+  FOREIGN KEY (member_id) REFERENCES members (id) ON DELETE CASCADE
+);
+
+-- FTS5 Virtual Table for Keyword Match
+CREATE VIRTUAL TABLE IF NOT EXISTS document_chunks_fts USING fts5(
+  chunk_text,
+  content='document_chunks',
+  content_rowid='rowid'
+);
+
+-- Triggers to keep FTS index synchronized with document_chunks
+CREATE TRIGGER IF NOT EXISTS trg_chunks_ai AFTER INSERT ON document_chunks BEGIN
+  INSERT INTO document_chunks_fts(rowid, chunk_text) VALUES (new.rowid, new.chunk_text);
+END;
+CREATE TRIGGER IF NOT EXISTS trg_chunks_ad AFTER DELETE ON document_chunks BEGIN
+  INSERT INTO document_chunks_fts(document_chunks_fts, rowid, chunk_text) VALUES('delete', old.rowid, old.chunk_text);
+END;
+CREATE TRIGGER IF NOT EXISTS trg_chunks_au AFTER UPDATE ON document_chunks BEGIN
+  INSERT INTO document_chunks_fts(document_chunks_fts, rowid, chunk_text) VALUES('delete', old.rowid, old.chunk_text);
+  INSERT INTO document_chunks_fts(rowid, chunk_text) VALUES (new.rowid, new.chunk_text);
+END;
+
+-- Chat Sessions
+CREATE TABLE IF NOT EXISTS chat_sessions (
+  id TEXT PRIMARY KEY,
+  member_id TEXT,
+  title TEXT NOT NULL,
+  provider_profile_id TEXT,
+  model_name TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (member_id) REFERENCES members (id) ON DELETE CASCADE,
+  FOREIGN KEY (provider_profile_id) REFERENCES provider_profiles (id) ON DELETE SET NULL
+);
+
+-- Chat Messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  reasoning_content TEXT,
+  scoped_member_id TEXT,
+  cited_chunks_json TEXT NOT NULL DEFAULT '[]',
+  latency_ms INTEGER,
+  token_count INTEGER,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES chat_sessions (id) ON DELETE CASCADE
+);
+
 -- Indexes for lightning fast lookups
 CREATE INDEX IF NOT EXISTS idx_folders_member_id ON folders(member_id);
 CREATE INDEX IF NOT EXISTS idx_documents_folder_id ON documents(folder_id);
@@ -124,4 +187,9 @@ CREATE INDEX IF NOT EXISTS idx_analysis_sources_analysis ON analysis_sources(ana
 CREATE INDEX IF NOT EXISTS idx_app_logs_category ON app_logs(category);
 CREATE INDEX IF NOT EXISTS idx_app_logs_timestamp ON app_logs(timestamp);
 CREATE INDEX IF NOT EXISTS idx_sync_items_local_id ON sync_items(local_id);
+CREATE INDEX IF NOT EXISTS idx_doc_chunks_member ON document_chunks(member_id);
+CREATE INDEX IF NOT EXISTS idx_doc_chunks_doc ON document_chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_member ON chat_sessions(member_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated ON chat_sessions(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, created_at ASC);
 `;

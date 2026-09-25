@@ -21,11 +21,17 @@ import {
   saveSyncSettings,
   updateDocumentOcrStatus,
   updateDocumentsMetadata,
+  listChatSessions,
+  getChatSessionById,
+  createChatSession,
+  deleteChatSession,
+  getChatMessages,
 } from './db/database';
 import { vault } from './services/vault';
 import { aiProvider } from './services/ai/provider';
 import { orchestrator } from './services/ai/orchestrator';
 import { documentOrganizer } from './services/ai/organizer';
+import { chatOrchestrator } from './services/ai/chatOrchestrator';
 import { logger } from './services/logger';
 import { googleDriveSync } from './services/sync/googleDrive';
 import { ocrQueue } from './services/ocrQueue';
@@ -268,6 +274,40 @@ export function registerIpcHandlers() {
         win.webContents.send('ocr:progress', event);
       }
     }
+  });
+
+  // --- Chat Assistant & Profile RAG ---
+  ipcMain.handle('chat:listSessions', async (_, memberId) => {
+    return listChatSessions(memberId);
+  });
+
+  ipcMain.handle('chat:getSession', async (_, sessionId) => {
+    const session = getChatSessionById(sessionId);
+    if (!session) return null;
+    const messages = getChatMessages(sessionId);
+    return { session, messages };
+  });
+
+  ipcMain.handle('chat:createSession', async (_, params) => {
+    return createChatSession(params);
+  });
+
+  ipcMain.handle('chat:deleteSession', async (_, sessionId) => {
+    deleteChatSession(sessionId);
+    return true;
+  });
+
+  ipcMain.handle('chat:sendMessage', async (_, params) => {
+    return chatOrchestrator.sendMessage(params);
+  });
+
+  ipcMain.handle('chat:abortStream', async (_, sessionId) => {
+    chatOrchestrator.abortStream(sessionId);
+    return true;
+  });
+
+  ipcMain.handle('chat:searchProfileDocuments', async (_, memberId, query, limit) => {
+    return chatOrchestrator.searchProfileDocuments(memberId, query, limit);
   });
 
   logger.info('ipc', 'Registered all IPC channels successfully');

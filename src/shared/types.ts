@@ -384,6 +384,63 @@ export interface TimelineData {
   };
 }
 
+// ──────────────────────────────────────────────────────────────
+// Chat Assistant & Profile-Scoped Document RAG Types
+// ──────────────────────────────────────────────────────────────
+
+export interface CitedChunk {
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  pageNumber: number;
+  documentDate?: string;
+  snippet: string;
+  similarityScore?: number;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  reasoningContent?: string;
+  scopedMemberId?: string;
+  citedChunks: CitedChunk[];
+  latencyMs?: number;
+  tokenCount?: number;
+  createdAt: string;
+}
+
+export interface ChatSessionItem {
+  id: string;
+  memberId: string | null;
+  memberName?: string | null;
+  memberColor?: string | null;
+  title: string;
+  providerProfileId?: string | null;
+  modelName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  messageCount?: number;
+}
+
+export interface SendChatMessageParams {
+  sessionId?: string;
+  memberId: string;
+  prompt: string;
+  providerProfileId?: string;
+}
+
+export interface ChatStreamEvent {
+  sessionId: string;
+  messageId: string;
+  tokenDelta?: string;
+  reasoningDelta?: string;
+  citedChunks?: CitedChunk[];
+  done: boolean;
+  error?: string;
+}
+
 // Window API exposed to renderer
 export interface MedBuddyAPI {
   // Members
@@ -427,6 +484,16 @@ export interface MedBuddyAPI {
   deleteAnalysis: (id: string) => Promise<void>;
   onAIProgress: (callback: (event: AIProgressEvent) => void) => () => void;
 
+  // Chat Assistant & Document RAG
+  listChatSessions: (memberId?: string) => Promise<ChatSessionItem[]>;
+  getChatSession: (sessionId: string) => Promise<{ session: ChatSessionItem; messages: ChatMessageItem[] } | null>;
+  createChatSession: (params: { memberId?: string | null; title?: string; providerProfileId?: string }) => Promise<ChatSessionItem>;
+  deleteChatSession: (sessionId: string) => Promise<void>;
+  sendMessage: (params: SendChatMessageParams) => Promise<{ messageId: string; sessionId: string }>;
+  abortStream: (sessionId: string) => Promise<void>;
+  onChatStream: (callback: (event: ChatStreamEvent) => void) => () => void;
+  searchProfileDocuments: (memberId: string, query: string, limit?: number) => Promise<CitedChunk[]>;
+
   // Google Drive Sync
   getSyncSettings: () => Promise<GoogleSyncSettings>;
   saveSyncSettings: (settings: Partial<GoogleSyncSettings>) => Promise<GoogleSyncSettings>;
@@ -452,3 +519,4 @@ declare global {
     medbuddy: MedBuddyAPI;
   }
 }
+

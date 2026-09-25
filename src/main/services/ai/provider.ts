@@ -277,8 +277,10 @@ export class AIProviderService {
     signal?: AbortSignal;
     responseFormat?: any;
     onHeartbeat?: (elapsedSeconds: number, tokenCount?: number) => void;
-  }): Promise<{ content: string; latencyMs: number }> {
-    const { profile, messages, temperature = 0.1, timeoutMs, signal, responseFormat, onHeartbeat } = params;
+    onTokenDelta?: (delta: string) => void;
+    onReasoningDelta?: (delta: string) => void;
+  }): Promise<{ content: string; latencyMs: number; reasoningContent?: string }> {
+    const { profile, messages, temperature = 0.1, timeoutMs, signal, responseFormat, onHeartbeat, onTokenDelta, onReasoningDelta } = params;
     
     // Default 20 minutes (1200 seconds) for local models evaluating large document contexts
     const effectiveTimeoutMs =
@@ -356,10 +358,12 @@ export class AIProviderService {
               if (typeof delta.content === 'string' && delta.content.length > 0) {
                 accumulatedContent += delta.content;
                 tokenCount++;
+                try { onTokenDelta?.(delta.content); } catch {}
               }
               if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) {
                 accumulatedReasoning += delta.reasoning_content;
                 tokenCount++;
+                try { onReasoningDelta?.(delta.reasoning_content); } catch {}
               }
             }
           } catch {
@@ -441,7 +445,11 @@ export class AIProviderService {
         tokensGenerated: tokenCount,
       });
 
-      return { content: finalContent, latencyMs };
+      return {
+        content: finalContent,
+        latencyMs,
+        reasoningContent: accumulatedReasoning || undefined,
+      };
     } catch (err: any) {
       const latencyMs = Date.now() - startTime;
       let msg = err.message || String(err);
