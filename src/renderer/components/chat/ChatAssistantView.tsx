@@ -87,19 +87,22 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     loadDocCounts();
   }, [loadDocCounts]);
 
+  const hasAutoSelectedRef = useRef(false);
+
   // Load chat sessions
   const loadSessions = useCallback(async () => {
     try {
       const list = await window.medbuddy.listChatSessions();
       setSessions(list);
-      // Auto-select latest session if activeSessionId is not set
-      if (list.length > 0 && !activeSessionId) {
+      // Auto-select latest session on initial mount only
+      if (!hasAutoSelectedRef.current && list.length > 0) {
+        hasAutoSelectedRef.current = true;
         setActiveSessionId(list[0].id);
       }
     } catch {
       // Ignore
     }
-  }, [activeSessionId]);
+  }, []);
 
   useEffect(() => {
     loadSessions();
