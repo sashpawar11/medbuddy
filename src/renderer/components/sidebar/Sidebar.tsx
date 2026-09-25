@@ -215,20 +215,6 @@ export const Sidebar: React.FC<Props> = ({
             </button>
           )}
 
-          <div className="w-5 h-px bg-border my-1" />
-
-          <button
-            onClick={() => onNavigate('chat')}
-            className={`p-2 rounded-sm transition-colors ${
-              activeView === 'chat'
-                ? 'bg-vault-50 text-vault-600'
-                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
-            }`}
-            title="Chat with Records (⌘4)"
-          >
-            <MessageSquareText className="w-4 h-4 text-teal-600 dark:text-teal-400" strokeWidth={1.75} />
-          </button>
-
           <button
             onClick={() => onNavigate('files')}
             className={`p-2 rounded-sm transition-colors ${
@@ -329,15 +315,6 @@ export const Sidebar: React.FC<Props> = ({
         >
           <Home className="w-4 h-4 shrink-0" strokeWidth={1.75} />
           <span className="truncate">Home Dashboard</span>
-        </button>
-
-        <button
-          onClick={() => onNavigate('chat')}
-          className={navItemClass(activeView === 'chat')}
-        >
-          <MessageSquareText className="w-4 h-4 shrink-0 text-teal-600 dark:text-teal-400" strokeWidth={1.75} />
-          <span className="truncate">Chat with Records</span>
-          <span className="ml-auto text-[10px] text-tertiary">⌘4</span>
         </button>
       </div>
 

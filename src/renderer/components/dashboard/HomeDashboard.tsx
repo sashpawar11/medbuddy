@@ -187,7 +187,7 @@ export const HomeDashboard: React.FC<Props> = ({
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-medium text-small shadow-sm hover:shadow transition-all duration-150 group cursor-pointer"
                   >
                     <MessageSquareText className="w-4 h-4 text-white shrink-0" />
-                    <span>Chat with Records</span>
+                    <span>Chat with MedBuddy</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                   </button>
 

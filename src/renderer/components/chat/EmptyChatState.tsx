@@ -101,10 +101,10 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
       </div>
 
       <h2 className="text-lg font-bold text-primary mb-1 tracking-tight">
-        Chat with {memberName}'s Records
+        Chat with MedBuddy
       </h2>
       <p className="text-xs text-tertiary mb-3 max-w-md leading-relaxed">
-        Grounded directly in <span className="font-semibold text-secondary">{docCount} medical {docCount === 1 ? 'record' : 'records'}</span>. Strict zero cross-profile data leakage.
+        Consulting <span className="font-semibold text-secondary">{memberName}'s</span> profile • Grounded directly in <span className="font-semibold text-secondary">{docCount} medical {docCount === 1 ? 'record' : 'records'}</span>. Strict zero cross-profile data leakage.
       </p>
 
       {/* Security provenance pill */}

@@ -10,6 +10,7 @@ import {
   getProviderById,
   searchChunksFts,
   updateChatSessionTitle,
+  listDocumentsForMember,
 } from '../../db/database';
 import { documentChunker } from './chunker';
 import { aiProvider, ChatMessage } from './provider';
@@ -22,6 +23,7 @@ import type {
   ChatStreamEvent,
   ProviderProfile,
   FamilyMember,
+  DocumentItem,
 } from '../../../shared/types';
 
 export class ChatOrchestrator {
@@ -49,7 +51,7 @@ export class ChatOrchestrator {
   public async searchProfileDocuments(
     memberId: string,
     query: string,
-    limit: number = 8
+    limit: number = 16
   ): Promise<CitedChunk[]> {
     if (!memberId) return [];
 
@@ -63,9 +65,21 @@ export class ChatOrchestrator {
   /**
    * Build the clinical grounding system prompt for the scoped profile.
    */
-  private buildSystemPrompt(member: FamilyMember, chunks: CitedChunk[]): string {
+  private buildSystemPrompt(member: FamilyMember, chunks: CitedChunk[], allMemberDocs: DocumentItem[] = []): string {
     const dobInfo = member.dob ? `, DOB: ${member.dob}` : '';
     const relationshipInfo = member.relationship ? `, Relationship: ${member.relationship}` : '';
+
+    let archiveCatalog = '';
+    if (allMemberDocs.length > 0) {
+      archiveCatalog = allMemberDocs
+        .map((d, idx) => {
+          const dateStr = d.created_at ? ` (Uploaded: ${d.created_at.split('T')[0]})` : '';
+          return `  ${idx + 1}. "${d.filename}"${dateStr}`;
+        })
+        .join('\n');
+    } else {
+      archiveCatalog = '  [No documents currently in profile repository]';
+    }
 
     let chunksSection = '';
     if (chunks.length > 0) {
@@ -76,21 +90,25 @@ export class ChatOrchestrator {
         })
         .join('\n\n');
     } else {
-      chunksSection = `[No relevant medical documents or records found for ${member.name}.]`;
+      chunksSection = `[No specific document excerpts matched the query for ${member.name}.]`;
     }
 
     return `You are MedBuddy Assistant, a highly capable, compassionate personal medical records assistant.
 You are reviewing personal medical records strictly for family member: "${member.name}"${relationshipInfo}${dobInfo}.
 
-MANDATORY CLINICAL DIRECTIVES:
-1. STRICT PROFILE SCOPE: You ONLY have access to medical documents for ${member.name}. Do NOT invent, assume, or speculate on records from other individuals.
-2. GROUNDED CLINICAL CITATIONS: Every claim regarding lab results, vitals, diagnoses, clinical notes, medications, or doctor visits MUST cite the exact source document and date (e.g. "[Source: CBC_Report.pdf • 2024-06-02 • Page 1]").
-3. CHRONOLOGY & TRENDS: Always mention the date of tests and note whether biomarker values or symptoms are improving, stable, or worsening over time. Include the numeric value, unit, and reference range when provided in the records.
-4. UNKNOWN INFORMATION: If the requested information is not documented in the provided records, clearly and politely inform the user that it does not appear in ${member.name}'s uploaded records.
-5. MEDICAL DISCLAIMER: Provide clear, objective summaries for personal organization and informational reference only. Always advise the patient or caregiver to review abnormal findings or clinical questions with their healthcare provider.
+PATIENT PROFILE REPOSITORY (${allMemberDocs.length} total document(s) on file):
+${archiveCatalog}
 
-RETRIEVED CLINICAL RECORDS FOR ${member.name.toUpperCase()}:
-${chunksSection}`;
+RELEVANT CLINICAL EXCERPTS FOR CURRENT QUERY:
+${chunksSection}
+
+MANDATORY CLINICAL DIRECTIVES:
+1. STRICT PROFILE SCOPE & REPOSITORY AWARENESS: You have access to ${member.name}'s complete record archive containing all ${allMemberDocs.length} document(s) listed above. The retrieved excerpts provide detailed passages for the current query.
+2. ACCURATE REPOSITORY REPORTING: If asked about the patient's records, test history, or specific parameters, reference the documents available in the repository. If a specific biomarker, test result, or detail (such as blood group) is not present in the provided excerpts or documents, state clearly that it is not documented across ${member.name}'s uploaded records (mentioning which records were reviewed). NEVER claim you only have access to 1 or 2 files when ${allMemberDocs.length} files exist in the repository.
+3. GROUNDED CLINICAL CITATIONS: Every claim regarding lab results, vitals, diagnoses, clinical notes, medications, or doctor visits MUST cite the exact source document and date (e.g. "[Source: CBC_Report.pdf • 2024-06-02 • Page 1]").
+4. CHRONOLOGY & TRENDS: Always mention the date of tests and note whether biomarker values or symptoms are improving, stable, or worsening over time. Include the numeric value, unit, and reference range when provided in the records.
+5. UNKNOWN INFORMATION: If the requested information is not documented in the provided records, clearly and politely inform the user that it does not appear in ${member.name}'s uploaded records.
+6. MEDICAL DISCLAIMER: Provide clear, objective summaries for personal organization and informational reference only. Always advise the patient or caregiver to review abnormal findings or clinical questions with their healthcare provider.`;
   }
 
   /**
@@ -147,11 +165,11 @@ ${chunksSection}`;
 
     const sessionId = session.id;
 
-    // 4. Retrieve Profile-Scoped Document Chunks (Strict Isolation)
+    // 4. Retrieve Profile-Scoped Document Chunks (Strict Isolation & Diverse Coverage)
     logger.info('ai', `Searching profile documents for ${member.name} (${member.id})`, {
       query: prompt.slice(0, 60),
     });
-    const retrievedChunks = await this.searchProfileDocuments(member.id, prompt, 8);
+    const retrievedChunks = await this.searchProfileDocuments(member.id, prompt, 16);
 
     // 5. Persist User Message
     createChatMessage({
@@ -161,8 +179,9 @@ ${chunksSection}`;
       scopedMemberId: member.id,
     });
 
-    // 6. Build Conversation Context & System Prompt
-    const systemPrompt = this.buildSystemPrompt(member, retrievedChunks);
+    // 6. Build Conversation Context & System Prompt with Full Profile Document Catalog
+    const allMemberDocs = listDocumentsForMember(member.id);
+    const systemPrompt = this.buildSystemPrompt(member, retrievedChunks, allMemberDocs);
 
     // Retrieve prior turns in this session (bounded to last 8 turns)
     const priorMessages = getChatMessages(sessionId);

@@ -1291,7 +1291,7 @@ export function sanitizeFtsQuery(raw: string): string {
   return tokens.map(t => `"${t.replace(/"/g, '')}"`).join(' OR ');
 }
 
-export function searchChunksFts(memberId: string, query: string, limit: number = 8): CitedChunk[] {
+export function searchChunksFts(memberId: string, query: string, limit: number = 16): CitedChunk[] {
   const db = getDatabase();
   const cleanMatch = sanitizeFtsQuery(query);
   if (!cleanMatch) {
@@ -1299,7 +1299,7 @@ export function searchChunksFts(memberId: string, query: string, limit: number =
   }
 
   try {
-    const rows = db.prepare(`
+    const candidateRows = db.prepare(`
       SELECT 
         dc.id as chunk_id,
         dc.document_id,
@@ -1313,14 +1313,66 @@ export function searchChunksFts(memberId: string, query: string, limit: number =
       JOIN documents d ON dc.document_id = d.id
       WHERE dc.member_id = ? AND document_chunks_fts MATCH ?
       ORDER BY fts.rank ASC
-      LIMIT ?
-    `).all(memberId, cleanMatch, limit) as any[];
+      LIMIT 60
+    `).all(memberId, cleanMatch) as any[];
 
-    if (rows.length === 0) {
+    if (candidateRows.length === 0) {
       return getRecentChunksForMember(memberId, limit);
     }
 
-    return rows.map(r => ({
+    // Ensure document diversity: don't let 1 document monopolize all slots.
+    // Allow up to maxPerDoc (e.g. 3 chunks per document) in the first pass.
+    const maxPerDoc = 3;
+    const docChunkCounts = new Map<string, number>();
+    const selectedRows: any[] = [];
+    const remainingRows: any[] = [];
+
+    for (const row of candidateRows) {
+      const currentCount = docChunkCounts.get(row.document_id) || 0;
+      if (currentCount < maxPerDoc && selectedRows.length < limit) {
+        selectedRows.push(row);
+        docChunkCounts.set(row.document_id, currentCount + 1);
+      } else {
+        remainingRows.push(row);
+      }
+    }
+
+    // If budget remains, backfill from remaining candidate rows
+    for (const row of remainingRows) {
+      if (selectedRows.length >= limit) break;
+      selectedRows.push(row);
+    }
+
+    // Ensure documents with zero matches have at least their initial overview chunk included
+    // if the member has a reasonable number of documents (<= 15)
+    const allDocs = listDocumentsForMember(memberId);
+    if (allDocs.length > 0 && allDocs.length <= 15) {
+      const coveredDocIds = new Set(selectedRows.map((r) => r.document_id));
+      for (const doc of allDocs) {
+        if (!coveredDocIds.has(doc.id)) {
+          const firstChunk = db.prepare(`
+            SELECT 
+              dc.id as chunk_id,
+              dc.document_id,
+              d.filename,
+              dc.page_number,
+              dc.document_date,
+              dc.chunk_text,
+              0.5 as rank
+            FROM document_chunks dc
+            JOIN documents d ON dc.document_id = d.id
+            WHERE dc.document_id = ?
+            ORDER BY dc.chunk_index ASC
+            LIMIT 1
+          `).get(doc.id) as any;
+          if (firstChunk) {
+            selectedRows.push(firstChunk);
+          }
+        }
+      }
+    }
+
+    return selectedRows.map(r => ({
       chunkId: r.chunk_id,
       documentId: r.document_id,
       filename: r.filename,
@@ -1335,24 +1387,65 @@ export function searchChunksFts(memberId: string, query: string, limit: number =
   }
 }
 
-export function getRecentChunksForMember(memberId: string, limit: number = 8): CitedChunk[] {
+export function getRecentChunksForMember(memberId: string, limit: number = 16): CitedChunk[] {
   const db = getDatabase();
-  const rows = db.prepare(`
-    SELECT 
-      dc.id as chunk_id,
-      dc.document_id,
-      d.filename,
-      dc.page_number,
-      dc.document_date,
-      dc.chunk_text
-    FROM document_chunks dc
-    JOIN documents d ON dc.document_id = d.id
-    WHERE dc.member_id = ?
-    ORDER BY dc.created_at DESC, dc.chunk_index ASC
-    LIMIT ?
-  `).all(memberId, limit) as any[];
+  const allDocs = listDocumentsForMember(memberId);
+  const selectedRows: any[] = [];
+  const coveredDocIds = new Set<string>();
 
-  return rows.map(r => ({
+  // First pass: pull the first/overview chunk from each document for broad coverage
+  for (const doc of allDocs) {
+    const chunk = db.prepare(`
+      SELECT 
+        dc.id as chunk_id,
+        dc.document_id,
+        d.filename,
+        dc.page_number,
+        dc.document_date,
+        dc.chunk_text
+      FROM document_chunks dc
+      JOIN documents d ON dc.document_id = d.id
+      WHERE dc.document_id = ?
+      ORDER BY dc.chunk_index ASC
+      LIMIT 1
+    `).get(doc.id) as any;
+
+    if (chunk) {
+      selectedRows.push(chunk);
+      coveredDocIds.add(doc.id);
+    }
+    if (selectedRows.length >= limit) break;
+  }
+
+  // Second pass: if slots remaining, add more chunks from documents
+  if (selectedRows.length < limit) {
+    const remainingLimit = limit - selectedRows.length;
+    const existingChunkIds = new Set(selectedRows.map((r) => r.chunk_id));
+    const extraRows = db.prepare(`
+      SELECT 
+        dc.id as chunk_id,
+        dc.document_id,
+        d.filename,
+        dc.page_number,
+        dc.document_date,
+        dc.chunk_text
+      FROM document_chunks dc
+      JOIN documents d ON dc.document_id = d.id
+      WHERE dc.member_id = ?
+      ORDER BY dc.created_at DESC, dc.chunk_index ASC
+      LIMIT ?
+    `).all(memberId, remainingLimit * 2) as any[];
+
+    for (const r of extraRows) {
+      if (selectedRows.length >= limit) break;
+      if (!existingChunkIds.has(r.chunk_id)) {
+        selectedRows.push(r);
+        existingChunkIds.add(r.chunk_id);
+      }
+    }
+  }
+
+  return selectedRows.map(r => ({
     chunkId: r.chunk_id,
     documentId: r.document_id,
     filename: r.filename,
