@@ -453,10 +453,10 @@ button:active:not(:disabled) {
   width: 100%;
   overflow-x: auto;
   margin: 1rem 0;
-  border-radius: 0.75rem;
+  border-radius: 4px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-surface);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
 }
 
 .chat-prose table {
@@ -504,9 +504,9 @@ button:active:not(:disabled) {
 .chat-prose blockquote {
   margin: 1rem 0;
   padding: 0.85rem 1.1rem;
-  border-radius: 0.6rem;
+  border-radius: 4px;
   background-color: rgba(20, 184, 166, 0.05);
-  border-left: 4px solid #0d9488;
+  border-left: 3px solid #0d9488;
   font-size: 0.875rem;
   color: var(--color-text-primary);
 }
@@ -521,7 +521,7 @@ button:active:not(:disabled) {
   font-family: var(--font-mono, monospace);
   font-size: 0.825em;
   padding: 0.15rem 0.35rem;
-  border-radius: 0.35rem;
+  border-radius: 2px;
   background-color: var(--color-bg-recessed);
   border: 1px solid var(--color-border);
   color: #0d9488;
@@ -530,7 +530,7 @@ button:active:not(:disabled) {
 .chat-prose pre {
   margin: 1rem 0;
   padding: 0.85rem 1rem;
-  border-radius: 0.75rem;
+  border-radius: 4px;
   background-color: var(--ink-900);
   color: var(--ink-100);
   overflow-x: auto;

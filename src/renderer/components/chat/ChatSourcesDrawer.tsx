@@ -122,11 +122,11 @@ export const ChatSourcesDrawer: React.FC<ChatSourcesDrawerProps> = ({
           onClick={() => setIsExpanded((prev) => !prev)}
           className="inline-flex items-center gap-2 text-xs font-semibold text-secondary hover:text-primary transition-colors cursor-pointer group"
         >
-          <div className="w-5 h-5 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+          <div className="w-5 h-5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
             <ShieldCheck className="w-3.5 h-3.5" />
           </div>
           <span>Grounded Document Sources</span>
-          <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-surface-recessed text-tertiary border border-border">
+          <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-surface-recessed text-tertiary border border-border">
             {groupedSources.length} {groupedSources.length === 1 ? 'record' : 'records'} · {citedChunks.length} {citedChunks.length === 1 ? 'citation' : 'citations'}
           </span>
           {isExpanded ? (
@@ -154,12 +154,12 @@ export const ChatSourcesDrawer: React.FC<ChatSourcesDrawerProps> = ({
               <div
                 key={source.documentId}
                 onClick={() => onOpenDocumentPreview?.(source.documentId, sortedPages[0])}
-                className="group relative flex flex-col justify-between p-2.5 rounded-xl border border-border/80 bg-surface hover:bg-surface-recessed hover:border-teal-500/40 shadow-xs hover:shadow-sm transition-all cursor-pointer text-left"
+                className="group relative flex flex-col justify-between p-2.5 rounded border border-border bg-surface hover:bg-surface-recessed hover:border-teal-500/50 shadow-2xs hover:shadow-xs transition-all cursor-pointer text-left"
               >
                 <div>
                   <div className="flex items-center justify-between gap-1.5 mb-1.5">
                     <span
-                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium border ${meta.badgeBg}`}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${meta.badgeBg}`}
                     >
                       <Icon className="w-3 h-3" />
                       <span>{meta.label}</span>

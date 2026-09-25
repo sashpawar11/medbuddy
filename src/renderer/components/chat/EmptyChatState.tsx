@@ -75,7 +75,7 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
           <button
             type="button"
             onClick={onUploadDocument}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer"
           >
             <Upload className="w-4 h-4" />
             <span>Upload Documents for {selectedMember.name}</span>
@@ -90,17 +90,17 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
       {/* Profile Avatar & Badge */}
       <div className="relative mb-4">
         <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md ring-4 ring-black/5 dark:ring-white/10"
+          className="w-12 h-12 rounded flex items-center justify-center text-white text-xl font-bold shadow-xs border border-white/20"
           style={{ backgroundColor: selectedMember?.avatar_color || '#14b8a6' }}
         >
-          {selectedMember ? selectedMember.name.charAt(0).toUpperCase() : <Sparkles className="w-7 h-7" />}
+          {selectedMember ? selectedMember.name.charAt(0).toUpperCase() : <Sparkles className="w-6 h-6" />}
         </div>
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-xs ring-2 ring-surface">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded bg-teal-600 text-white flex items-center justify-center shadow-2xs">
+          <Sparkles className="w-2.5 h-2.5" />
         </div>
       </div>
 
-      <h2 className="text-xl font-bold text-primary mb-1 tracking-tight">
+      <h2 className="text-lg font-bold text-primary mb-1 tracking-tight">
         Chat with {memberName}'s Records
       </h2>
       <p className="text-xs text-tertiary mb-3 max-w-md leading-relaxed">
@@ -108,13 +108,13 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
       </p>
 
       {/* Security provenance pill */}
-      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-recessed border border-border text-[11px] text-tertiary mb-8">
+      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-recessed border border-border text-[11px] text-tertiary mb-6">
         <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
         <span>100% On-Device Search & Inference</span>
       </div>
 
       {/* Suggested Query Chips Grid */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
         {promptSuggestions.map((item, idx) => {
           const Icon = item.icon;
           return (
@@ -122,9 +122,9 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
               key={idx}
               type="button"
               onClick={() => onSelectChipPrompt(item.prompt)}
-              className="group p-3.5 rounded-2xl border border-border/80 bg-surface hover:bg-surface-recessed hover:border-teal-500/50 shadow-xs hover:shadow-sm transition-all text-left cursor-pointer flex items-start gap-3"
+              className="group p-3 rounded border border-border bg-surface hover:bg-surface-recessed hover:border-teal-500/50 shadow-2xs hover:shadow-xs transition-all text-left cursor-pointer flex items-start gap-2.5"
             >
-              <div className="p-2 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+              <div className="p-1.5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
                 <Icon className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">

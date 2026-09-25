@@ -83,7 +83,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         )}
 
         {/* User Message Bubble */}
-        <div className="max-w-[85%] sm:max-w-[70%] px-4 py-3 rounded-2xl rounded-tr-sm bg-teal-600 dark:bg-teal-700 text-white shadow-xs font-normal">
+        <div className="max-w-[85%] sm:max-w-[70%] px-4 py-2.5 rounded bg-teal-600 dark:bg-teal-700 text-white shadow-2xs font-normal border border-teal-500/30">
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
       </div>
@@ -94,8 +94,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   return (
     <div className="flex gap-3.5 my-6 px-4 sm:px-6 group">
       {/* Assistant Avatar */}
-      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-1 ring-2 ring-teal-500/20">
-        <Sparkles className="w-4 h-4" />
+      <div className="w-7 h-7 rounded bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-2xs mt-1">
+        <Sparkles className="w-3.5 h-3.5" />
       </div>
 
       <div className="flex-1 min-w-0">
@@ -105,7 +105,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <span className="text-xs font-semibold text-primary tracking-tight">MedBuddy Assistant</span>
             
             {scopedMember && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-surface-recessed border border-border text-secondary">
+              <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded bg-surface-recessed border border-border text-secondary">
                 <div
                   className="w-1.5 h-1.5 rounded-full"
                   style={{ backgroundColor: scopedMember.avatar_color || '#14b8a6' }}
@@ -115,7 +115,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             )}
 
             {message.latencyMs && (
-              <span className="text-[10px] text-tertiary flex items-center gap-1 bg-surface-recessed/60 px-1.5 py-0.5 rounded-md border border-border/40">
+              <span className="text-[10px] text-tertiary flex items-center gap-1 bg-surface-recessed/60 px-1.5 py-0.5 rounded border border-border/40">
                 <Clock className="w-2.5 h-2.5" />
                 {(message.latencyMs / 1000).toFixed(1)}s
               </span>
@@ -127,7 +127,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-tertiary hover:text-secondary hover:bg-surface-recessed border border-transparent hover:border-border transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-tertiary hover:text-secondary hover:bg-surface-recessed border border-transparent hover:border-border transition-all cursor-pointer"
               title="Copy response"
             >
               {copied ? (
@@ -147,14 +147,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
         {/* Collapsible Clinical Reasoning Accordion */}
         {message.reasoningContent && (
-          <div className="mb-3.5 rounded-xl border border-border/80 bg-surface-recessed/40 overflow-hidden shadow-2xs">
+          <div className="mb-3.5 rounded border border-border bg-surface-recessed/40 overflow-hidden shadow-2xs">
             <button
               type="button"
               onClick={() => setIsReasoningOpen((prev) => !prev)}
               className="w-full px-3 py-2 flex items-center justify-between text-xs text-secondary hover:text-primary hover:bg-surface-recessed/80 cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                <div className="w-5 h-5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
                   <Brain className="w-3 h-3" />
                 </div>
                 <span className="font-medium text-xs">Clinical Reasoning Process</span>

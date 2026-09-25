@@ -304,7 +304,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
             <button
               type="button"
               onClick={() => setIsHistorySidebarOpen((prev) => !prev)}
-              className="p-1.5 rounded-lg text-tertiary hover:text-secondary hover:bg-surface-recessed transition-colors cursor-pointer"
+              className="p-1.5 rounded text-tertiary hover:text-secondary hover:bg-surface-recessed transition-colors cursor-pointer"
               title={isHistorySidebarOpen ? 'Hide consultation history' : 'Show consultation history'}
             >
               {isHistorySidebarOpen ? (
@@ -320,7 +320,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
               </span>
 
               {selectedMember && (
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-recessed border border-border text-xs text-secondary shrink-0">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-recessed border border-border text-xs text-secondary shrink-0">
                   <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: selectedMember.avatar_color || '#14b8a6' }}
@@ -352,7 +352,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
             <button
               type="button"
               onClick={handleNewChat}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border text-secondary hover:text-primary transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border text-secondary hover:text-primary transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">New Chat</span>

@@ -222,18 +222,18 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       )}
 
       {/* Main Composer Card */}
-      <div className="bg-surface rounded-2xl border border-border/80 focus-within:border-teal-500/60 focus-within:ring-2 focus-within:ring-teal-500/10 shadow-sm transition-all flex flex-col">
+      <div className="bg-surface rounded border border-border focus-within:border-teal-500/60 shadow-2xs transition-all flex flex-col">
         {/* Scoped Profile Control Header */}
-        <div className="px-3.5 pt-2.5 pb-1.5 flex items-center justify-between gap-2 border-b border-border/30 select-none">
+        <div className="px-3.5 pt-2 pb-1.5 flex items-center justify-between gap-2 border-b border-border/40 select-none">
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsMemberDropdownOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border/70 hover:border-teal-500/40 text-secondary hover:text-primary transition-all cursor-pointer group shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border hover:border-teal-500/40 text-secondary hover:text-primary transition-all cursor-pointer group shadow-2xs"
               title="Click to switch profile documents scope"
             >
               <div
-                className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white/20"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: selectedMember?.avatar_color || '#14b8a6' }}
               />
               <span className="font-semibold text-primary">
@@ -247,7 +247,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
             {/* Profile Dropdown Menu */}
             {isMemberDropdownOpen && (
-              <div className="absolute top-full mt-1.5 left-0 w-64 bg-surface rounded-xl border border-border shadow-lg py-1.5 z-50 animate-fade-in-scale">
+              <div className="absolute top-full mt-1 left-0 w-64 bg-surface rounded border border-border shadow-md py-1 z-50">
                 <div className="px-3 py-1 text-[10px] uppercase font-semibold text-tertiary tracking-wider border-b border-border/40 mb-1">
                   Scope Query to Profile
                 </div>
@@ -271,7 +271,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                         }`}
                       >
                         <div
-                          className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
+                          className="w-4 h-4 rounded flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
                           style={{ backgroundColor: m.avatar_color || '#14b8a6' }}
                         >
                           {m.name.charAt(0).toUpperCase()}
@@ -294,7 +294,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           </div>
 
           <span className="text-[11px] text-tertiary hidden sm:inline-flex items-center gap-1">
-            <span>Type <kbd className="px-1.5 py-0.5 rounded bg-surface-recessed border border-border text-[10px] font-mono">@</kbd> to switch profile</span>
+            <span>Type <kbd className="px-1 py-0.5 rounded bg-surface-recessed border border-border text-[10px] font-mono">@</kbd> to switch profile</span>
           </span>
         </div>
 
@@ -315,7 +315,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         />
 
         {/* Composer Footer Actions */}
-        <div className="px-3.5 pb-2.5 pt-1 flex items-center justify-between gap-2 border-t border-border/20">
+        <div className="px-3.5 pb-2 pt-1 flex items-center justify-between gap-2 border-t border-border/30">
           <div className="flex items-center gap-1.5 text-xs text-tertiary">
             <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
             <span className="text-[11px]">
@@ -333,10 +333,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               <button
                 type="button"
                 onClick={onStopStreaming}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white shadow-xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white shadow-2xs transition-all cursor-pointer"
                 title="Stop response generation"
               >
-                <Square className="w-3.5 h-3.5 fill-current" />
+                <Square className="w-3 h-3 fill-current" />
                 <span>Stop</span>
               </button>
             ) : (
@@ -344,15 +344,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                 type="button"
                 onClick={handleSubmit}
                 disabled={!inputText.trim() || disabled}
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer ${
+                className={`inline-flex items-center justify-center w-7 h-7 rounded transition-all cursor-pointer ${
                   inputText.trim() && !disabled
-                    ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-xs hover:scale-105 active:scale-95'
+                    ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-2xs hover:bg-teal-500'
                     : 'bg-surface-recessed text-tertiary cursor-not-allowed border border-border/50'
                 }`}
                 title="Send message (Enter)"
                 aria-label="Send message"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
               </button>
             )}
           </div>

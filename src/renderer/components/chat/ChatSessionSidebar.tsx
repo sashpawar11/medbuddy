@@ -91,7 +91,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
           <span className="text-xs font-semibold text-primary tracking-tight">
             Consultations
           </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-recessed text-tertiary border border-border">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-recessed text-tertiary border border-border">
             {filteredSessions.length}
           </span>
         </div>
@@ -99,7 +99,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
         <button
           type="button"
           onClick={onNewChat}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white shadow-2xs transition-all cursor-pointer"
           title="Start new consultation (⌘N)"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -108,7 +108,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
       </div>
 
       {/* Search & Profile Scope Filter */}
-      <div className="p-2.5 border-b border-border/50 bg-surface-recessed/30 space-y-2">
+      <div className="p-2 border-b border-border/50 bg-surface-recessed/30 space-y-1.5">
         {/* Search Input */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-tertiary absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -117,7 +117,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search consultations..."
-            className="w-full text-xs pl-8 pr-7 py-1.5 rounded-lg border border-border bg-surface text-primary placeholder:text-tertiary focus:outline-hidden focus:border-teal-500/60 transition-colors"
+            className="w-full text-xs pl-8 pr-7 py-1.5 rounded border border-border bg-surface text-primary placeholder:text-tertiary focus:outline-hidden focus:border-teal-500/60 transition-colors"
           />
           {searchQuery && (
             <button
@@ -136,7 +136,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
             <button
               type="button"
               onClick={() => onFilterMemberChange(null)}
-              className={`px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0 transition-colors cursor-pointer border ${
+              className={`px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors cursor-pointer border ${
                 filterMemberId === null
                   ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-500/40 text-teal-700 dark:text-teal-300'
                   : 'bg-surface border-border text-tertiary hover:text-secondary'
@@ -151,7 +151,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
                   key={m.id}
                   type="button"
                   onClick={() => onFilterMemberChange(isSelected ? null : m.id)}
-                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0 transition-colors cursor-pointer border ${
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium shrink-0 transition-colors cursor-pointer border ${
                     isSelected
                       ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-500/40 text-teal-700 dark:text-teal-300'
                       : 'bg-surface border-border text-tertiary hover:text-secondary'
@@ -170,7 +170,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
       </div>
 
       {/* Sessions List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2 space-y-3">
         {filteredSessions.length === 0 ? (
           <div className="py-12 px-4 text-center">
             <MessageSquare className="w-8 h-8 text-tertiary/40 mx-auto mb-2" />
@@ -194,9 +194,9 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
                   <div
                     key={session.id}
                     onClick={() => onSelectSession(session.id)}
-                    className={`group relative flex items-center justify-between px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-all ${
+                    className={`group relative flex items-center justify-between px-2.5 py-2 rounded text-xs cursor-pointer transition-all ${
                       isActive
-                        ? 'bg-teal-500/10 text-primary font-medium border border-teal-500/30 shadow-2xs'
+                        ? 'bg-teal-500/10 text-primary font-medium border border-teal-500/40 shadow-2xs'
                         : 'hover:bg-surface-recessed text-secondary border border-transparent'
                     }`}
                   >
@@ -232,7 +232,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
                         e.stopPropagation();
                         onDeleteSession(session.id);
                       }}
-                      className="absolute right-2 p-1.5 rounded-lg text-tertiary hover:text-red-500 hover:bg-surface opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-2 p-1 rounded text-tertiary hover:text-red-500 hover:bg-surface opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Delete consultation"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
