@@ -7,8 +7,12 @@ import {
   AtSign,
   ShieldCheck,
   CornerDownLeft,
+  FileText,
+  X,
+  Search,
+  Check,
 } from 'lucide-react';
-import type { FamilyMember } from '../../../shared/types';
+import type { FamilyMember, DocumentItem } from '../../../shared/types';
 import { MentionAutocomplete } from './MentionAutocomplete';
 
 interface ChatComposerProps {
@@ -16,7 +20,7 @@ interface ChatComposerProps {
   selectedMember: FamilyMember | null;
   memberDocCounts?: Record<string, number>;
   onSelectMember: (member: FamilyMember) => void;
-  onSendMessage: (text: string, memberId: string) => void;
+  onSendMessage: (text: string, memberId: string, documentIds?: string[]) => void;
   onStopStreaming: () => void;
   isStreaming: boolean;
   disabled?: boolean;
@@ -36,6 +40,27 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [internalDocCounts, setInternalDocCounts] = useState<Record<string, number>>({});
   const memberDocCounts = propDocCounts || internalDocCounts;
+
+  // Specific document scoping state
+  const [memberDocuments, setMemberDocuments] = useState<DocumentItem[]>([]);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [isDocDropdownOpen, setIsDocDropdownOpen] = useState(false);
+  const [docFilterQuery, setDocFilterQuery] = useState('');
+  const docDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load documents for current member whenever member changes
+  useEffect(() => {
+    setSelectedDocumentIds([]);
+    setDocFilterQuery('');
+    if (!selectedMember) {
+      setMemberDocuments([]);
+      return;
+    }
+    window.medbuddy
+      .listDocumentsForMember(selectedMember.id)
+      .then((docs) => setMemberDocuments(docs))
+      .catch(() => setMemberDocuments([]));
+  }, [selectedMember?.id]);
 
   // @mention state
   const [mentionState, setMentionState] = useState<{
@@ -81,11 +106,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     };
   }, [members]);
 
-  // Click outside to close member dropdown
+  // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsMemberDropdownOpen(false);
+      }
+      if (docDropdownRef.current && !docDropdownRef.current.contains(e.target as Node)) {
+        setIsDocDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -188,6 +216,29 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   };
 
+  const filteredDocs = memberDocuments.filter((doc) => {
+    if (!docFilterQuery.trim()) return true;
+    return doc.filename.toLowerCase().includes(docFilterQuery.toLowerCase().trim());
+  });
+
+  const toggleDocSelection = (docId: string) => {
+    if (selectedDocumentIds.length === 0) {
+      // If currently all were implicitly selected, clicking one isolates to just that one
+      setSelectedDocumentIds([docId]);
+    } else {
+      if (selectedDocumentIds.includes(docId)) {
+        const next = selectedDocumentIds.filter((id) => id !== docId);
+        setSelectedDocumentIds(next);
+      } else {
+        setSelectedDocumentIds([...selectedDocumentIds, docId]);
+      }
+    }
+  };
+
+  const handleSelectAllDocs = () => {
+    setSelectedDocumentIds([]);
+  };
+
   const handleSubmit = () => {
     const trimmed = inputText.trim();
     if (!trimmed || isStreaming || disabled) return;
@@ -195,13 +246,21 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     if (!selectedMember) {
       if (members.length > 0) {
         onSelectMember(members[0]);
-        onSendMessage(trimmed, members[0].id);
+        onSendMessage(
+          trimmed,
+          members[0].id,
+          selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined
+        );
         setInputText('');
       }
       return;
     }
 
-    onSendMessage(trimmed, selectedMember.id);
+    onSendMessage(
+      trimmed,
+      selectedMember.id,
+      selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined
+    );
     setInputText('');
   };
 
@@ -223,72 +282,221 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
       {/* Main Composer Card */}
       <div className="bg-surface rounded border border-border focus-within:border-teal-500/60 shadow-2xs transition-all flex flex-col">
-        {/* Scoped Profile Control Header */}
+        {/* Scoped Profile & Document Control Header */}
         <div className="px-3.5 pt-2 pb-1.5 flex items-center justify-between gap-2 border-b border-border/40 select-none">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsMemberDropdownOpen((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border hover:border-teal-500/40 text-secondary hover:text-primary transition-all cursor-pointer group shadow-2xs"
-              title="Click to switch profile documents scope"
-            >
-              <div
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: selectedMember?.avatar_color || '#14b8a6' }}
-              />
-              <span className="font-semibold text-primary">
-                {selectedMember ? selectedMember.name : 'Select Profile'}
-              </span>
-              <span className="text-[10px] text-tertiary font-normal">
-                ({activeDocCount} {activeDocCount === 1 ? 'record' : 'records'})
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-tertiary group-hover:text-secondary shrink-0 transition-transform" />
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 1. Profile Scope Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsMemberDropdownOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-surface-recessed hover:bg-surface-raised border border-border hover:border-teal-500/40 text-secondary hover:text-primary transition-all cursor-pointer group shadow-2xs"
+                title="Click to switch profile scope"
+              >
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: selectedMember?.avatar_color || '#14b8a6' }}
+                />
+                <span className="font-semibold text-primary">
+                  {selectedMember ? selectedMember.name : 'Select Profile'}
+                </span>
+                <span className="text-[10px] text-tertiary font-normal">
+                  ({activeDocCount} {activeDocCount === 1 ? 'record' : 'records'})
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-tertiary group-hover:text-secondary shrink-0 transition-transform" />
+              </button>
 
-            {/* Profile Dropdown Menu */}
-            {isMemberDropdownOpen && (
-              <div className="absolute top-full mt-1 left-0 w-64 bg-surface rounded border border-border shadow-md py-1 z-50">
-                <div className="px-3 py-1 text-[10px] uppercase font-semibold text-tertiary tracking-wider border-b border-border/40 mb-1">
-                  Scope Query to Profile
-                </div>
-                <div className="max-h-56 overflow-y-auto">
-                  {members.map((m) => {
-                    const isCurrent = m.id === selectedMember?.id;
-                    const docCount = memberDocCounts[m.id] || 0;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectMember(m);
-                          setIsMemberDropdownOpen(false);
-                          textareaRef.current?.focus();
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
-                          isCurrent
-                            ? 'bg-teal-50 dark:bg-teal-950/40 text-primary font-medium'
-                            : 'hover:bg-surface-recessed text-secondary'
-                        }`}
-                      >
-                        <div
-                          className="w-4 h-4 rounded flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
-                          style={{ backgroundColor: m.avatar_color || '#14b8a6' }}
+              {/* Profile Dropdown Menu */}
+              {isMemberDropdownOpen && (
+                <div className="absolute top-full mt-1 left-0 w-64 bg-surface rounded border border-border shadow-md py-1 z-50">
+                  <div className="px-3 py-1 text-[10px] uppercase font-semibold text-tertiary tracking-wider border-b border-border/40 mb-1">
+                    Scope Query to Profile
+                  </div>
+                  <div className="max-h-56 overflow-y-auto">
+                    {members.map((m) => {
+                      const isCurrent = m.id === selectedMember?.id;
+                      const docCount = memberDocCounts[m.id] || 0;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectMember(m);
+                            setIsMemberDropdownOpen(false);
+                            textareaRef.current?.focus();
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
+                            isCurrent
+                              ? 'bg-teal-500/10 text-primary font-medium'
+                              : 'hover:bg-surface-recessed text-secondary'
+                          }`}
                         >
-                          {m.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="truncate">{m.name}</span>
-                            <span className="text-[10px] text-tertiary font-normal">({m.relationship})</span>
+                          <div
+                            className="w-4 h-4 rounded flex items-center justify-center text-white text-[10px] font-semibold shrink-0"
+                            style={{ backgroundColor: m.avatar_color || '#14b8a6' }}
+                          >
+                            {m.name.charAt(0).toUpperCase()}
                           </div>
-                        </div>
-                        <span className="text-[11px] text-tertiary shrink-0">
-                          {docCount} docs
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate">{m.name}</span>
+                              <span className="text-[10px] text-tertiary font-normal">({m.relationship})</span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-tertiary shrink-0">
+                            {docCount} docs
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* 2. Specific Documents Selector Dropdown */}
+            {selectedMember && memberDocuments.length > 0 && (
+              <div className="relative" ref={docDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDocDropdownOpen((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border transition-all cursor-pointer group shadow-2xs ${
+                    selectedDocumentIds.length > 0
+                      ? 'bg-teal-500/15 text-teal-800 dark:text-teal-200 border-teal-500/40 hover:bg-teal-500/25'
+                      : 'bg-surface-recessed hover:bg-surface-raised border-border hover:border-teal-500/40 text-secondary hover:text-primary'
+                  }`}
+                  title="Click to scope query to specific documents"
+                >
+                  <FileText className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                  <span className="font-medium">
+                    {selectedDocumentIds.length > 0
+                      ? `${selectedDocumentIds.length} of ${memberDocuments.length} docs`
+                      : `All Documents (${memberDocuments.length})`}
+                  </span>
+                  {selectedDocumentIds.length > 0 && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDocumentIds([]);
+                      }}
+                      className="ml-0.5 p-0.5 rounded hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 transition-colors"
+                      title="Clear document filter (search all)"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </span>
+                  )}
+                  <ChevronDown className="w-3.5 h-3.5 text-tertiary group-hover:text-secondary shrink-0 transition-transform" />
+                </button>
+
+                {/* Document Picker Popover */}
+                {isDocDropdownOpen && (
+                  <div className="absolute top-full mt-1 left-0 w-80 bg-surface rounded border border-border shadow-lg py-1 z-50 animate-fade-in-scale">
+                    <div className="px-3 py-1.5 border-b border-border/40 flex items-center justify-between">
+                      <div className="text-[10px] uppercase font-semibold text-tertiary tracking-wider">
+                        Filter Documents in Scope
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedDocumentIds.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={handleSelectAllDocs}
+                            className="text-[10px] text-teal-600 hover:text-teal-500 dark:text-teal-400 font-medium cursor-pointer"
+                          >
+                            Reset to All ({memberDocuments.length})
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-tertiary">All included</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Search filter input */}
+                    <div className="p-2 border-b border-border/40">
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-recessed border border-border text-xs">
+                        <Search className="w-3.5 h-3.5 text-tertiary shrink-0" />
+                        <input
+                          type="text"
+                          value={docFilterQuery}
+                          onChange={(e) => setDocFilterQuery(e.target.value)}
+                          placeholder="Search profile records..."
+                          className="bg-transparent border-none outline-none w-full text-xs text-primary placeholder:text-tertiary"
+                          autoFocus
+                        />
+                        {docFilterQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setDocFilterQuery('')}
+                            className="text-tertiary hover:text-primary"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Document List with Checkboxes */}
+                    <div className="max-h-60 overflow-y-auto divide-y divide-border/20 p-1">
+                      {filteredDocs.length === 0 ? (
+                        <div className="py-4 text-center text-xs text-tertiary">
+                          No matching documents found
+                        </div>
+                      ) : (
+                        filteredDocs.map((doc) => {
+                          const isChecked =
+                            selectedDocumentIds.length === 0 || selectedDocumentIds.includes(doc.id);
+                          const isExplicitlyChecked = selectedDocumentIds.includes(doc.id);
+
+                          return (
+                            <div
+                              key={doc.id}
+                              onClick={() => toggleDocSelection(doc.id)}
+                              className="w-full flex items-start gap-2.5 px-2.5 py-1.5 rounded hover:bg-surface-recessed text-left text-xs transition-colors cursor-pointer group"
+                            >
+                              <div className="mt-0.5 shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {}} // handled by parent onClick
+                                  className="w-3.5 h-3.5 rounded-xs accent-teal-600 cursor-pointer pointer-events-none"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-primary font-medium truncate text-xs group-hover:text-teal-600 dark:group-hover:text-teal-400">
+                                  {doc.filename}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-tertiary mt-0.5">
+                                  <span>{doc.created_at ? doc.created_at.split('T')[0] : ''}</span>
+                                  {doc.file_type && (
+                                    <span className="uppercase font-mono">{doc.file_type}</span>
+                                  )}
+                                  {isExplicitlyChecked && (
+                                    <span className="text-teal-600 dark:text-teal-400 font-semibold">• Active</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-3 py-1.5 bg-surface-recessed border-t border-border flex items-center justify-between text-[11px] text-tertiary">
+                      <span>
+                        {selectedDocumentIds.length > 0
+                          ? `Scoped to ${selectedDocumentIds.length} of ${memberDocuments.length} docs`
+                          : `All ${memberDocuments.length} documents included`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsDocDropdownOpen(false)}
+                        className="px-2 py-0.5 rounded text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white cursor-pointer"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

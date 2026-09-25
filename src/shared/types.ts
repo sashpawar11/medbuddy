@@ -429,6 +429,7 @@ export interface SendChatMessageParams {
   memberId: string;
   prompt: string;
   providerProfileId?: string;
+  documentIds?: string[];
 }
 
 export interface ChatStreamEvent {
@@ -456,6 +457,7 @@ export interface MedBuddyAPI {
 
   // Documents
   listDocuments: (folderId: string) => Promise<DocumentItem[]>;
+  listDocumentsForMember: (memberId: string) => Promise<DocumentItem[]>;
   importDocuments: (folderId: string, filePaths: string[]) => Promise<DocumentItem[]>;
   readDocumentData: (documentId: string) => Promise<{ mimeType: string; dataUrl: string; filename: string; text?: string | null }>;
   deleteDocument: (documentId: string) => Promise<void>;

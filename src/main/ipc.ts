@@ -9,6 +9,7 @@ import {
   createFolder,
   deleteFolder,
   listDocuments,
+  listDocumentsForMember,
   listProviders,
   saveProvider,
   deleteProvider,
@@ -72,6 +73,10 @@ export function registerIpcHandlers() {
   // --- Documents ---
   ipcMain.handle('documents:list', async (_, folderId) => {
     return listDocuments(folderId);
+  });
+
+  ipcMain.handle('documents:listForMember', async (_, memberId) => {
+    return listDocumentsForMember(memberId);
   });
 
   ipcMain.handle('documents:import', async (_, folderId, filePaths: string[]) => {

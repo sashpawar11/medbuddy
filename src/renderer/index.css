@@ -504,7 +504,7 @@ button:active:not(:disabled) {
 .chat-prose blockquote {
   margin: 1rem 0;
   padding: 0.85rem 1.1rem;
-  border-radius: 4px;
+  border-radius: 0 4px 4px 0;
   background-color: rgba(20, 184, 166, 0.05);
   border-left: 3px solid #0d9488;
   font-size: 0.875rem;

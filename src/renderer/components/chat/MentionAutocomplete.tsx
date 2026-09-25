@@ -47,7 +47,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-full mb-2 left-0 w-80 bg-surface rounded-xl border border-border shadow-xl overflow-hidden z-50 animate-fade-in-scale"
+      className="absolute bottom-full mb-2 left-0 w-80 bg-surface rounded border border-border shadow-lg overflow-hidden z-50 animate-fade-in-scale"
       role="listbox"
       aria-label="Family Member Profiles"
     >
@@ -66,9 +66,9 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
               key={member.id}
               type="button"
               onClick={() => onSelect(member)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg transition-colors cursor-pointer ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-left rounded transition-colors cursor-pointer ${
                 isSelected
-                  ? 'bg-teal-50 dark:bg-teal-950/40 text-primary border-l-2 border-teal-500'
+                  ? 'bg-teal-500/15 dark:bg-teal-950/60 text-primary font-medium ring-1 ring-teal-500/30'
                   : 'hover:bg-surface-recessed text-secondary'
               }`}
               role="option"
@@ -76,7 +76,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
             >
               {/* Member Avatar */}
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-xs"
+                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-2xs"
                 style={{ backgroundColor: member.avatar_color || '#14b8a6' }}
               >
                 {member.name.charAt(0).toUpperCase()}
@@ -88,7 +88,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
                   <span className="text-sm font-medium truncate text-primary">
                     {member.name}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-raised border border-border text-tertiary">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-raised border border-border text-tertiary">
                     {member.relationship}
                   </span>
                 </div>
@@ -103,8 +103,8 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
       </div>
 
       <div className="px-3 py-1.5 bg-surface-recessed border-t border-border flex items-center justify-between text-[10px] text-tertiary">
-        <span>Use <kbd className="px-1 py-0.5 bg-surface rounded border border-border">↑</kbd> <kbd className="px-1 py-0.5 bg-surface rounded border border-border">↓</kbd> to navigate</span>
-        <span><kbd className="px-1 py-0.5 bg-surface rounded border border-border">↵</kbd> select</span>
+        <span>Use <kbd className="px-1 py-0.5 bg-surface rounded-xs border border-border font-mono">↑</kbd> <kbd className="px-1 py-0.5 bg-surface rounded-xs border border-border font-mono">↓</kbd> to navigate</span>
+        <span><kbd className="px-1 py-0.5 bg-surface rounded-xs border border-border font-mono">↵</kbd> select</span>
       </div>
     </div>
   );

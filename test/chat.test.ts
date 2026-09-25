@@ -179,6 +179,39 @@ Impression: Familial hyperlipidemia. Recommended Atorvastatin 10mg daily and low
   assert(dadTamsulosin[0].pageNumber === 2, 'Cites Page 2 correctly');
   console.log('✅ FTS5 keyword matching and page attribution verified');
 
+  // 6b. Test Specific Document Selection Scoping
+  // Create a second document for Dad
+  const dadBloodDoc = insertDocument({
+    folder_id: dadFolderId,
+    filename: 'Dad_CompleteBloodCount_2024.pdf',
+    file_type: 'application/pdf',
+    file_size: 2900,
+    storage_path: 'dad_cbc.pdf',
+    content_hash: 'hash_dad_002',
+    extracted_text: `--- Page 1 ---
+COMPLETE BLOOD COUNT (CBC)
+Patient: Robert Vance | Date: 2024-10-01
+Hemoglobin: 14.8 g/dL (Reference: 13.5 - 17.5 g/dL) [NORMAL]
+WBC: 6.2 x10^3/uL (Reference: 4.5 - 11.0 x10^3/uL) [NORMAL]
+Platelets: 220 x10^3/uL (Reference: 150 - 450 x10^3/uL) [NORMAL]`,
+    ocr_status: 'done',
+  });
+  await documentChunker.chunkDocument(dadBloodDoc.id);
+
+  // When scoped strictly to dadBloodDoc.id, querying Dad should ONLY return dadBloodDoc chunks
+  const scopedBloodOnly = searchChunksFts(dad.id, 'Patient Vance', 10, [dadBloodDoc.id]);
+  assert(scopedBloodOnly.length > 0, 'Should find chunks in scoped document');
+  for (const item of scopedBloodOnly) {
+    assert.strictEqual(item.documentId, dadBloodDoc.id, 'Must ONLY return chunks from the selected document ID');
+  }
+
+  // When scoped strictly to dadDoc.id, querying for Hemoglobin should NOT return dadBloodDoc
+  const scopedPsaOnly = searchChunksFts(dad.id, 'Hemoglobin WBC', 10, [dadDoc.id]);
+  for (const item of scopedPsaOnly) {
+    assert.strictEqual(item.documentId, dadDoc.id, 'Must strictly restrict to dadDoc when dadDoc is selected');
+  }
+  console.log('✅ Specific document selection scoping verified');
+
   // 7. Test Chat Sessions Lifecycle
   const session1 = createChatSession({
     memberId: dad.id,

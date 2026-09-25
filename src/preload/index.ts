@@ -15,6 +15,7 @@ const api: MedBuddyAPI = {
 
   // Documents
   listDocuments: (folderId) => ipcRenderer.invoke('documents:list', folderId),
+  listDocumentsForMember: (memberId) => ipcRenderer.invoke('documents:listForMember', memberId),
   importDocuments: (folderId, filePaths) => ipcRenderer.invoke('documents:import', folderId, filePaths),
   readDocumentData: (documentId) => ipcRenderer.invoke('documents:read', documentId),
   deleteDocument: (documentId) => ipcRenderer.invoke('documents:delete', documentId),

@@ -173,7 +173,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             </button>
 
             {isReasoningOpen && (
-              <div className="p-3.5 pt-2 border-t border-border/50 text-xs text-secondary font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto bg-surface-recessed/20 border-l-2 border-l-teal-500/60">
+              <div className="p-3.5 pt-2 border-t border-border/50 text-xs text-secondary font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto bg-surface-recessed/30">
                 {message.reasoningContent}
               </div>
             )}

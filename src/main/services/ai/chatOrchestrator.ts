@@ -51,7 +51,8 @@ export class ChatOrchestrator {
   public async searchProfileDocuments(
     memberId: string,
     query: string,
-    limit: number = 16
+    limit: number = 16,
+    documentIds?: string[]
   ): Promise<CitedChunk[]> {
     if (!memberId) return [];
 
@@ -59,26 +60,36 @@ export class ChatOrchestrator {
     await documentChunker.ensureMemberDocumentsChunked(memberId);
 
     // Perform query with strict profile isolation enforced in SQL
-    return searchChunksFts(memberId, query, limit);
+    return searchChunksFts(memberId, query, limit, documentIds);
   }
 
   /**
    * Build the clinical grounding system prompt for the scoped profile.
    */
-  private buildSystemPrompt(member: FamilyMember, chunks: CitedChunk[], allMemberDocs: DocumentItem[] = []): string {
+  private buildSystemPrompt(
+    member: FamilyMember,
+    chunks: CitedChunk[],
+    allMemberDocs: DocumentItem[] = [],
+    selectedDocIds?: string[]
+  ): string {
     const dobInfo = member.dob ? `, DOB: ${member.dob}` : '';
     const relationshipInfo = member.relationship ? `, Relationship: ${member.relationship}` : '';
 
+    const isSpecificScope = selectedDocIds && selectedDocIds.length > 0;
+    const scopedDocs = isSpecificScope
+      ? allMemberDocs.filter((d) => selectedDocIds.includes(d.id))
+      : allMemberDocs;
+
     let archiveCatalog = '';
-    if (allMemberDocs.length > 0) {
-      archiveCatalog = allMemberDocs
+    if (scopedDocs.length > 0) {
+      archiveCatalog = scopedDocs
         .map((d, idx) => {
           const dateStr = d.created_at ? ` (Uploaded: ${d.created_at.split('T')[0]})` : '';
           return `  ${idx + 1}. "${d.filename}"${dateStr}`;
         })
         .join('\n');
     } else {
-      archiveCatalog = '  [No documents currently in profile repository]';
+      archiveCatalog = '  [No documents currently in active scope]';
     }
 
     let chunksSection = '';
@@ -93,18 +104,26 @@ export class ChatOrchestrator {
       chunksSection = `[No specific document excerpts matched the query for ${member.name}.]`;
     }
 
+    const scopeTitle = isSpecificScope
+      ? `ACTIVE USER-SELECTED DOCUMENTS (${scopedDocs.length} of ${allMemberDocs.length} total files for ${member.name.toUpperCase()})`
+      : `PATIENT PROFILE REPOSITORY (${allMemberDocs.length} total document(s) on file)`;
+
+    const scopeDirective = isSpecificScope
+      ? `1. STRICT SPECIFIC DOCUMENT SCOPE: The user has explicitly selected only the ${scopedDocs.length} document(s) listed above for this query. Strictly ground your answer in these chosen documents only. Do not invent or assume information from other unselected records.`
+      : `1. STRICT PROFILE SCOPE & REPOSITORY AWARENESS: You have access to ${member.name}'s complete record archive containing all ${allMemberDocs.length} document(s) listed above. The retrieved excerpts provide detailed passages for the current query.`;
+
     return `You are MedBuddy Assistant, a highly capable, compassionate personal medical records assistant.
 You are reviewing personal medical records strictly for family member: "${member.name}"${relationshipInfo}${dobInfo}.
 
-PATIENT PROFILE REPOSITORY (${allMemberDocs.length} total document(s) on file):
+${scopeTitle}:
 ${archiveCatalog}
 
 RELEVANT CLINICAL EXCERPTS FOR CURRENT QUERY:
 ${chunksSection}
 
 MANDATORY CLINICAL DIRECTIVES:
-1. STRICT PROFILE SCOPE & REPOSITORY AWARENESS: You have access to ${member.name}'s complete record archive containing all ${allMemberDocs.length} document(s) listed above. The retrieved excerpts provide detailed passages for the current query.
-2. ACCURATE REPOSITORY REPORTING: If asked about the patient's records, test history, or specific parameters, reference the documents available in the repository. If a specific biomarker, test result, or detail (such as blood group) is not present in the provided excerpts or documents, state clearly that it is not documented across ${member.name}'s uploaded records (mentioning which records were reviewed). NEVER claim you only have access to 1 or 2 files when ${allMemberDocs.length} files exist in the repository.
+${scopeDirective}
+2. ACCURATE REPOSITORY REPORTING: If asked about the patient's records, test history, or specific parameters, reference the documents available in the active scope. If a specific biomarker, test result, or detail is not present in the provided excerpts or documents, state clearly that it is not documented across ${member.name}'s reviewed records.
 3. GROUNDED CLINICAL CITATIONS: Every claim regarding lab results, vitals, diagnoses, clinical notes, medications, or doctor visits MUST cite the exact source document and date (e.g. "[Source: CBC_Report.pdf • 2024-06-02 • Page 1]").
 4. CHRONOLOGY & TRENDS: Always mention the date of tests and note whether biomarker values or symptoms are improving, stable, or worsening over time. Include the numeric value, unit, and reference range when provided in the records.
 5. UNKNOWN INFORMATION: If the requested information is not documented in the provided records, clearly and politely inform the user that it does not appear in ${member.name}'s uploaded records.
@@ -119,8 +138,9 @@ MANDATORY CLINICAL DIRECTIVES:
     memberId: string;
     prompt: string;
     providerProfileId?: string;
+    documentIds?: string[];
   }): Promise<{ messageId: string; sessionId: string }> {
-    const { memberId, prompt } = params;
+    const { memberId, prompt, documentIds } = params;
     if (!prompt || prompt.trim().length === 0) {
       throw new Error('Prompt cannot be empty');
     }
@@ -168,8 +188,9 @@ MANDATORY CLINICAL DIRECTIVES:
     // 4. Retrieve Profile-Scoped Document Chunks (Strict Isolation & Diverse Coverage)
     logger.info('ai', `Searching profile documents for ${member.name} (${member.id})`, {
       query: prompt.slice(0, 60),
+      documentIdsCount: documentIds?.length,
     });
-    const retrievedChunks = await this.searchProfileDocuments(member.id, prompt, 16);
+    const retrievedChunks = await this.searchProfileDocuments(member.id, prompt, 16, documentIds);
 
     // 5. Persist User Message
     createChatMessage({
@@ -181,7 +202,7 @@ MANDATORY CLINICAL DIRECTIVES:
 
     // 6. Build Conversation Context & System Prompt with Full Profile Document Catalog
     const allMemberDocs = listDocumentsForMember(member.id);
-    const systemPrompt = this.buildSystemPrompt(member, retrievedChunks, allMemberDocs);
+    const systemPrompt = this.buildSystemPrompt(member, retrievedChunks, allMemberDocs, documentIds);
 
     // Retrieve prior turns in this session (bounded to last 8 turns)
     const priorMessages = getChatMessages(sessionId);

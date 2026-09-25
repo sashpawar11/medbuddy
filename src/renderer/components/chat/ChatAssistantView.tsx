@@ -198,8 +198,8 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     }
   };
 
-  // Send a message with profile scope
-  const handleSendMessage = async (text: string, memberId: string) => {
+  // Send a message with profile & optional document scope
+  const handleSendMessage = async (text: string, memberId: string, documentIds?: string[]) => {
     if (!text.trim() || isStreaming) return;
 
     const activeProfile = providers.find((p) => p.is_default === 1) || providers[0];
@@ -223,6 +223,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
         memberId,
         prompt: text,
         providerProfileId: activeProfile?.id,
+        documentIds: documentIds && documentIds.length > 0 ? documentIds : undefined,
       });
 
       if (!activeSessionId) {
