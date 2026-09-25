@@ -88,6 +88,10 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
   }, [loadDocCounts]);
 
   const hasAutoSelectedRef = useRef(false);
+  const selectedMemberRef = useRef(selectedMember);
+  useEffect(() => {
+    selectedMemberRef.current = selectedMember;
+  }, [selectedMember]);
 
   // Load chat sessions
   const loadSessions = useCallback(async () => {
@@ -97,13 +101,15 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
       // Auto-select latest session on initial mount only
       if (!hasAutoSelectedRef.current && list.length > 0) {
         hasAutoSelectedRef.current = true;
-        const memberSession = selectedMember ? list.find((s) => s.memberId === selectedMember.id) : null;
+        const memberSession = selectedMemberRef.current
+          ? list.find((s) => s.memberId === selectedMemberRef.current?.id)
+          : null;
         setActiveSessionId(memberSession ? memberSession.id : list[0].id);
       }
     } catch {
       // Ignore
     }
-  }, [selectedMember]);
+  }, []);
 
   useEffect(() => {
     loadSessions();
@@ -139,21 +145,21 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     };
   }, [activeSessionId, members, onSelectMember]);
 
-  // Switch profile in chat context: switches selected profile and loads that member's consultation
+  // Switch profile in chat context: switches selected profile without hijacking into past sessions
   const handleSwitchMember = useCallback(
     (member: FamilyMember) => {
       prevMemberIdRef.current = member.id;
       onSelectMember(member);
-      // Find latest session for this newly selected member, if any
-      const memberSession = sessions.find((s) => s.memberId === member.id);
-      if (memberSession) {
-        setActiveSessionId(memberSession.id);
-      } else {
-        setActiveSessionId(null);
-        setMessages([]);
+      // If currently inside an existing session belonging to another member, reset to fresh consultation
+      if (activeSessionId) {
+        const currentSession = sessions.find((s) => s.id === activeSessionId);
+        if (currentSession && currentSession.memberId !== member.id) {
+          setActiveSessionId(null);
+          setMessages([]);
+        }
       }
     },
-    [onSelectMember, sessions]
+    [onSelectMember, activeSessionId, sessions]
   );
 
   useEffect(() => {
@@ -161,13 +167,8 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
       prevMemberIdRef.current = selectedMember.id;
       const currentSession = sessions.find((s) => s.id === activeSessionId);
       if (currentSession && currentSession.memberId !== selectedMember.id) {
-        const memberSession = sessions.find((s) => s.memberId === selectedMember.id);
-        if (memberSession) {
-          setActiveSessionId(memberSession.id);
-        } else {
-          setActiveSessionId(null);
-          setMessages([]);
-        }
+        setActiveSessionId(null);
+        setMessages([]);
       }
     }
   }, [selectedMember, activeSessionId, sessions]);
