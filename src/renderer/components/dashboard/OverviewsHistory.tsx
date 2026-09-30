@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Clock, ChevronRight, Trash2 } from 'lucide-react';
+import { Activity, Clock, ChevronRight, Trash2, AlertTriangle } from 'lucide-react';
 import type { AnalysisRecord, FamilyMember } from '../../../shared/types';
 import { ProvenancePill } from '../common/ProvenancePill';
 import { DisclaimerBar } from '../common/DisclaimerBar';
@@ -78,11 +78,11 @@ export const OverviewsHistory: React.FC<Props> = ({
                   <div
                     key={rec.id}
                     onClick={() => onSelectAnalysis(rec)}
-                    className="p-5 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-sm transition-[background-color,border-color,box-shadow] duration-100 ease-out cursor-pointer group flex items-start justify-between gap-4"
+                    className="p-5 rounded-md bg-surface hover:bg-surface-hover border border-border hover:border-border-strong hover:shadow-2xs transition-all duration-150 cursor-pointer group flex items-start justify-between gap-4"
                   >
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="text-body font-semibold text-primary group-hover:text-vault-600 transition-colors">
+                        <span className="text-body font-semibold text-primary group-hover:text-vault-600 dark:group-hover:text-vault-400 transition-colors">
                           {rec.scope_name || 'Medical Analysis'}
                         </span>
 
@@ -104,7 +104,7 @@ export const OverviewsHistory: React.FC<Props> = ({
                           </span>
                         )}
 
-                        {/* Provenance Pill per §11.5 */}
+                        {/* Provenance Pill */}
                         <ProvenancePill
                           kind={isLocal ? 'local' : 'cloud'}
                           providerName={rec.provider_name}
@@ -114,7 +114,7 @@ export const OverviewsHistory: React.FC<Props> = ({
                         {/* Scope name & date range */}
                         {res.documentDateRange && (res.documentDateRange.earliest || res.documentDateRange.latest) && (
                           <span className="text-caption text-tertiary font-mono tabular-nums">
-                            ({res.documentDateRange.earliest} – {res.documentDateRange.latest})
+                            ({res.documentDateRange.earliest} - {res.documentDateRange.latest})
                           </span>
                         )}
                       </div>
@@ -131,11 +131,16 @@ export const OverviewsHistory: React.FC<Props> = ({
 
                         <span>•</span>
 
-                        {/* Mini status summary per §11.5: ● 8 ▲ 2 ✕ 1 */}
-                        <div className="flex items-center gap-2.5 font-mono tabular-nums">
+                        {/* Status summary */}
+                        <div className="flex items-center gap-2 font-mono tabular-nums text-caption">
                           <span className="text-sage-600 font-medium">● {normalCount}</span>
-                          <span className="text-amber-600 font-medium">▲ {borderlineCount}</span>
-                          <span className="text-clay-600 font-medium">✕ {flaggedCount}</span>
+                          {borderlineCount > 0 && <span className="text-amber-600 font-medium">▲ {borderlineCount}</span>}
+                          {flaggedCount > 0 && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-clay-50 dark:bg-clay-950/50 text-clay-700 dark:text-clay-300 border border-clay-200 dark:border-clay-800">
+                              <AlertTriangle className="w-3 h-3 text-clay-600" />
+                              {flaggedCount}
+                            </span>
+                          )}
                         </div>
 
                         <span>•</span>

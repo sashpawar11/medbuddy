@@ -9,7 +9,7 @@ import type {
 
 // ──────────────────────────────────────────────────────────────
 // Timeline Data Assembler
-// Pure client-side function — no new IPC or DB calls needed.
+// Pure client-side function: no new IPC or DB calls needed.
 // Transforms existing AnalysisRecord[] into TimelineData.
 // ──────────────────────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ function extractAnomalyEvents(
  * Build a complete TimelineData object from an array of AnalysisRecords.
  *
  * @param analyses  All available analysis records
- * @param memberId  Optional — filter to a specific family member
+ * @param memberId  Optional: filter to a specific family member
  * @param memberName  Display name for the member
  */
 export function buildTimeline(

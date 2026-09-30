@@ -22,31 +22,31 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  // Height & typography per §9.1
+  // Height & typography per design taste guidelines
   const sizeClasses: Record<ButtonSize, string> = {
     sm: 'h-7 px-2.5 text-small gap-1.5',
-    md: 'h-[34px] px-3 text-body gap-2',
+    md: 'h-[34px] px-3.5 text-body gap-2',
     lg: 'h-10 px-4 text-body-medium gap-2',
   };
 
-  // Color & border treatments per §9.1
+  // Color & border treatments with dark mode adaptation & tactile feedback
   const variantClasses: Record<ButtonVariant, string> = {
     primary:
-      'bg-vault-600 text-white hover:bg-vault-700 active:bg-vault-700 shadow-xs border border-transparent font-medium',
+      'bg-vault-600 dark:bg-vault-500 text-white hover:bg-vault-700 dark:hover:bg-vault-400 active:bg-vault-800 shadow-xs border border-transparent font-medium active:scale-[0.98]',
     secondary:
-      'bg-surface text-primary border border-border hover:bg-surface-hover active:bg-surface-hover font-medium',
+      'bg-surface text-primary border border-border hover:bg-surface-hover hover:border-border-strong active:bg-surface-recessed font-medium shadow-2xs active:scale-[0.98]',
     ghost:
-      'bg-transparent text-primary hover:bg-surface-hover active:bg-surface-hover border border-transparent',
+      'bg-transparent text-secondary hover:text-primary hover:bg-surface-hover active:bg-surface-recessed border border-transparent active:scale-[0.98]',
     destructive:
-      'bg-surface text-clay-600 border border-clay-300 hover:bg-clay-100 active:bg-clay-100 font-medium',
+      'bg-surface text-clay-600 dark:text-clay-400 border border-clay-300 dark:border-clay-700 hover:bg-clay-50 dark:hover:bg-clay-950/50 font-medium active:scale-[0.98]',
     'destructive-solid':
-      'bg-clay-600 text-white hover:bg-clay-600/90 active:bg-clay-600/95 font-medium border border-transparent',
+      'bg-clay-600 text-white hover:bg-clay-700 active:bg-clay-800 font-medium border border-transparent active:scale-[0.98]',
   };
 
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center rounded-sm select-none transition-colors outline-none focus-visible:ring-2 focus-visible:ring-vault-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-app disabled:opacity-50 disabled:cursor-not-allowed ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-md select-none transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-vault-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-app disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {loading ? (

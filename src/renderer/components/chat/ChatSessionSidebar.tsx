@@ -100,7 +100,7 @@ export const ChatSessionSidebar: React.FC<ChatSessionSidebarProps> = ({
           type="button"
           onClick={onNewChat}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white shadow-2xs transition-all cursor-pointer"
-          title="Start new chat (⌘N)"
+          title="Start new chat"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>

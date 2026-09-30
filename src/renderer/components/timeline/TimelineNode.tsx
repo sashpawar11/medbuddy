@@ -34,12 +34,12 @@ const formatDate = (dateStr: string) => {
 };
 
 const TrendIcon: React.FC<{ direction?: 'up' | 'down' | 'stable'; status?: string }> = ({ direction, status }) => {
-  if (!direction || direction === 'stable') return <Minus className="w-3 h-3 text-tertiary dark:text-ink-400" />;
-  // Trend direction coloring depends on context — up is not always bad
+  if (!direction || direction === 'stable') return <Minus className="w-3 h-3 text-tertiary" />;
+  // Trend direction coloring depends on context: up is not always bad
   // We color by the metric status instead
   const colorClass = status === 'flagged' ? 'text-clay-600 dark:text-clay-400' :
     status === 'borderline' ? 'text-amber-600 dark:text-amber-400' :
-    'text-tertiary dark:text-ink-400';
+    'text-tertiary';
   if (direction === 'up') return <TrendingUp className={`w-3 h-3 ${colorClass}`} />;
   return <TrendingDown className={`w-3 h-3 ${colorClass}`} />;
 };
@@ -79,17 +79,17 @@ export const TimelineNode: React.FC<TimelineNodeProps> = ({
   };
 
   const renderReportContent = () => (
-    <div className="bg-surface dark:bg-ink-900 rounded-xl border border-border dark:border-ink-800 shadow-xs hover:border-border-strong dark:hover:border-ink-700 transition-[border-color] duration-100 ease-out overflow-hidden">
+    <div className="bg-surface rounded-lg border border-border shadow-2xs hover:border-border-strong transition-all duration-150 overflow-hidden">
       {/* Report Header */}
       <div className="p-5 pb-3">
         <div className="flex justify-between items-start gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-body font-bold text-primary dark:text-ink-100 flex items-center gap-2">
+            <div className="text-body font-bold text-primary flex items-center gap-2">
               <FileText className="w-4 h-4 text-vault-600 dark:text-vault-400 shrink-0" strokeWidth={2} />
               <span className="truncate">{event.title}</span>
             </div>
             {event.subtitle && (
-              <div className="text-caption text-tertiary dark:text-ink-400 mt-1 pl-6">{event.subtitle}</div>
+              <div className="text-caption text-tertiary mt-1 pl-6">{event.subtitle}</div>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -98,10 +98,15 @@ export const TimelineNode: React.FC<TimelineNodeProps> = ({
               <div className="flex items-center gap-1.5 text-[11px] font-mono tabular-nums">
                 {childNormalCount > 0 && <span className="text-sage-600">●{childNormalCount}</span>}
                 {childBorderlineCount > 0 && <span className="text-amber-600">▲{childBorderlineCount}</span>}
-                {childFlaggedCount > 0 && <span className="text-clay-600">✕{childFlaggedCount}</span>}
+                {childFlaggedCount > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-clay-600 font-semibold">
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                    {childFlaggedCount}
+                  </span>
+                )}
               </div>
             )}
-            <span className="text-caption text-tertiary dark:text-ink-400 font-mono tabular-nums">
+            <span className="text-caption text-tertiary font-mono tabular-nums">
               {formattedDate}
             </span>
           </div>
@@ -390,15 +395,15 @@ export const TimelineNode: React.FC<TimelineNodeProps> = ({
 
   return (
     <div className="flex select-none relative group">
-      {/* Left column — dot indicator positioned over the parent border-l */}
+      {/* Left column: dot indicator positioned over the parent border-l */}
       <div className="w-6 flex flex-col items-center shrink-0 relative">
         <div className="h-6 flex items-center justify-center mt-4">
           <div className={getDotStyle()} />
         </div>
-        {!isLast && <div className="flex-1 w-px bg-border dark:bg-ink-800 my-1" />}
+        {!isLast && <div className="flex-1 w-px bg-border my-1" />}
       </div>
 
-      {/* Right column — event card */}
+      {/* Right column: event card */}
       <div className="flex-1 pb-6 pr-4 pt-1 min-w-0">
         {renderContent()}
       </div>

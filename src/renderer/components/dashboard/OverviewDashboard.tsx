@@ -216,7 +216,7 @@ export const OverviewDashboard: React.FC<Props> = ({
   };
 
   const handleCopyDoctorQuestions = () => {
-    let text = `MedBuddy — Physician Discussion Points (${analysis.scope_name || 'Medical Overview'})\n`;
+    let text = `MedBuddy: Physician Discussion Points (${analysis.scope_name || 'Medical Overview'})\n`;
     text += `Generated: ${formatDate(analysis.created_at)}\n\n`;
 
     if (result.discussionPoints && result.discussionPoints.length > 0) {

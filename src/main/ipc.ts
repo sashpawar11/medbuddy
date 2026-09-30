@@ -34,7 +34,7 @@ import { orchestrator } from './services/ai/orchestrator';
 import { documentOrganizer } from './services/ai/organizer';
 import { chatOrchestrator } from './services/ai/chatOrchestrator';
 import { logger } from './services/logger';
-import { googleDriveSync } from './services/sync/googleDrive';
+import { localVaultSync } from './services/sync/localVaultSync';
 import { ocrQueue } from './services/ocrQueue';
 
 export function registerIpcHandlers() {
@@ -221,7 +221,7 @@ export function registerIpcHandlers() {
     return true;
   });
 
-  // --- Google Drive Sync ---
+  // --- Vault Backup & Sync (Local / Synced Cloud Folder) ---
   ipcMain.handle('sync:getSettings', async () => {
     return getSyncSettings();
   });
@@ -230,39 +230,45 @@ export function registerIpcHandlers() {
     return saveSyncSettings(settings);
   });
 
-  ipcMain.handle('sync:startOAuth', async (_, params) => {
-    return googleDriveSync.startOAuth(params);
-  });
-
-  ipcMain.handle('sync:disconnect', async () => {
-    await googleDriveSync.disconnect();
-    return true;
-  });
-
-  ipcMain.handle('sync:testMount', async (_, config) => {
-    return googleDriveSync.testDriveMount(config);
+  ipcMain.handle('sync:selectBackupFolder', async () => {
+    return localVaultSync.selectBackupFolder();
   });
 
   ipcMain.handle('sync:selectLocalMount', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory', 'createDirectory'],
-      title: 'Select Google Drive Sync Directory',
-      buttonLabel: 'Mount Folder',
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0];
+    return localVaultSync.selectBackupFolder();
+  });
+
+  ipcMain.handle('sync:openFolder', async (_, folderPath?: string) => {
+    return localVaultSync.openBackupFolder(folderPath);
+  });
+
+  ipcMain.handle('sync:testFolder', async (_, folderPath?: string) => {
+    return localVaultSync.testFolder(folderPath);
+  });
+
+  ipcMain.handle('sync:testMount', async (_, config) => {
+    return localVaultSync.testFolder(config?.localMountPath || config?.backupPath);
+  });
+
+  ipcMain.handle('sync:startOAuth', async () => {
+    return localVaultSync.startOAuth();
+  });
+
+  ipcMain.handle('sync:disconnect', async () => {
+    await localVaultSync.disconnect();
+    return true;
   });
 
   ipcMain.handle('sync:start', async (_, options) => {
-    return googleDriveSync.startSync(options);
+    return localVaultSync.startSync(options);
   });
 
   ipcMain.handle('sync:startRestore', async (_, config) => {
-    return googleDriveSync.startRestore(config);
+    return localVaultSync.startRestore(config);
   });
 
   // Forward sync progress events to all browser windows
-  googleDriveSync.setProgressCallback((event) => {
+  localVaultSync.setProgressCallback((event) => {
     const windows = BrowserWindow.getAllWindows();
     for (const win of windows) {
       if (!win.isDestroyed()) {

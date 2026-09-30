@@ -23,7 +23,6 @@ import {
   MessageSquareText,
 } from 'lucide-react';
 import type { FamilyMember, Folder, AnalysisRecord } from '../../../shared/types';
-import { Keycap } from '../common/Keycap';
 import { ThemeToggle } from '../common/ThemeToggle';
 import type { ThemeMode } from '../../hooks/useTheme';
 import { MEMBER_AVATAR_COLORS } from './MemberModal';
@@ -158,12 +157,12 @@ export const Sidebar: React.FC<Props> = ({
     return false;
   });
 
-  // Nav item helper per §9.5: active has vault-50 bg and vault-600 text
+  // Nav item helper with dark mode contrast and consistent radii
   const navItemClass = (active: boolean) =>
-    `w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-body transition-colors select-none ${
+    `w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-body transition-all duration-150 select-none ${
       active
-        ? 'bg-vault-50 text-vault-600 font-medium'
-        : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
+        ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-700 dark:text-vault-300 font-semibold shadow-2xs border border-vault-200/60 dark:border-vault-800/60'
+        : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium border border-transparent'
     }`;
 
   // --------------------------------------------------------------------------
@@ -176,7 +175,7 @@ export const Sidebar: React.FC<Props> = ({
           <button
             onClick={onToggleCollapse}
             className="p-1.5 rounded-sm hover:bg-surface-hover text-tertiary hover:text-primary transition-colors"
-            title="Expand Sidebar (⌘B)"
+            title="Expand Sidebar"
             aria-label="Expand sidebar"
           >
             <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
@@ -188,7 +187,7 @@ export const Sidebar: React.FC<Props> = ({
             onClick={() => onNavigate('home')}
             className={`p-2 rounded-sm transition-colors ${
               activeView === 'home'
-                ? 'bg-vault-50 text-vault-600'
+                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
                 : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
             title="Home Dashboard"
@@ -219,7 +218,7 @@ export const Sidebar: React.FC<Props> = ({
             onClick={() => onNavigate('files')}
             className={`p-2 rounded-sm transition-colors ${
               activeView === 'files'
-                ? 'bg-vault-50 text-vault-600'
+                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
                 : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
             title="Medical Documents"
@@ -249,7 +248,7 @@ export const Sidebar: React.FC<Props> = ({
             onClick={() => onNavigate('settings')}
             className={`p-2 rounded-sm relative transition-colors ${
               activeView === 'settings'
-                ? 'bg-vault-50 text-vault-600'
+                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
                 : 'text-tertiary hover:bg-surface-hover hover:text-primary'
             }`}
             title="AI Providers"
@@ -298,7 +297,7 @@ export const Sidebar: React.FC<Props> = ({
             <button
               onClick={onToggleCollapse}
               className="p-1.5 rounded-md text-tertiary hover:text-primary hover:bg-surface-hover transition-colors"
-              title="Collapse Sidebar (⌘B)"
+              title="Collapse Sidebar"
               aria-label="Collapse sidebar"
             >
               <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
@@ -492,7 +491,7 @@ export const Sidebar: React.FC<Props> = ({
                         <div className="flex items-center gap-2 min-w-0">
                           <FileText
                             className={`w-3.5 h-3.5 shrink-0 ${
-                              isSelected ? 'text-vault-600' : 'text-tertiary'
+                              isSelected ? 'text-vault-600 dark:text-vault-400' : 'text-tertiary'
                             }`}
                             strokeWidth={1.75}
                           />
@@ -534,15 +533,15 @@ export const Sidebar: React.FC<Props> = ({
                   onSelectFolder(f.id);
                   onNavigate('files');
                 }}
-                className={`group flex items-center justify-between px-3 py-1.5 rounded-sm text-body cursor-pointer transition-colors ${
+                className={`group flex items-center justify-between px-3 py-1.5 rounded-md text-body cursor-pointer transition-all duration-150 ${
                   isSelected
-                    ? 'bg-vault-50 text-vault-600 font-medium'
-                    : 'text-secondary hover:bg-surface-hover hover:text-primary'
+                    ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-700 dark:text-vault-300 font-semibold shadow-2xs border border-vault-200/60 dark:border-vault-800/60'
+                    : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium border border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <FolderIcon
-                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-vault-600' : 'text-tertiary'}`}
+                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-vault-600 dark:text-vault-400' : 'text-tertiary'}`}
                     strokeWidth={1.75}
                   />
                   <span className="truncate">{f.name}</span>
@@ -570,15 +569,15 @@ export const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Pinned Footer Items (§9.5) */}
+      {/* Pinned Footer Items */}
       <div className="px-3 py-2.5 border-t border-border space-y-1.5 shrink-0 bg-surface-recessed">
-        {/* 1. Emphasized Generated Reports (First in List) */}
+        {/* 1. Emphasized Generated Reports */}
         <button
           onClick={() => onNavigate('overviews_history')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border transition-all shadow-2xs ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md border transition-all shadow-2xs ${
             activeView === 'overviews_history' || activeView === 'overview'
-              ? 'bg-vault-50/80 border-vault-300 text-vault-700 dark:bg-vault-950/60 dark:border-vault-700 dark:text-vault-300 font-semibold shadow-xs'
-              : 'bg-surface border-border hover:border-vault-300/60 hover:bg-vault-50/30 text-primary font-medium hover:shadow-xs'
+              ? 'bg-vault-50 dark:bg-vault-950/70 border-vault-300 dark:border-vault-700 text-vault-700 dark:text-vault-300 font-semibold shadow-xs'
+              : 'bg-surface border-border hover:border-border-strong hover:bg-surface-hover text-primary font-medium'
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
@@ -586,7 +585,7 @@ export const Sidebar: React.FC<Props> = ({
               className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
                 activeView === 'overviews_history' || activeView === 'overview'
                   ? 'bg-vault-600 text-white'
-                  : 'bg-vault-50 dark:bg-vault-900/60 text-vault-600 dark:text-vault-400 border border-vault-200/50'
+                  : 'bg-vault-50 dark:bg-vault-950/60 text-vault-600 dark:text-vault-400 border border-vault-200/50 dark:border-vault-800/60'
               }`}
             >
               <Activity className="w-3.5 h-3.5" strokeWidth={2} />
@@ -607,16 +606,14 @@ export const Sidebar: React.FC<Props> = ({
           <span className="truncate">AI Providers</span>
         </button>
 
-
-        {/* 4. Diagnostics & Theme Utility Bar */}
+        {/* 3. Diagnostics & Theme Utility Bar */}
         <div className="flex items-center justify-between pt-1 border-t border-border">
           <button
             onClick={() => onNavigate('logs')}
-            className="flex items-center gap-2 px-2 py-1 rounded-sm text-caption text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
+            className="flex items-center gap-2 px-2 py-1 rounded-md text-caption text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
           >
             <Terminal className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
             <span>Diagnostics</span>
-            <Keycap>⌘L</Keycap>
           </button>
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>

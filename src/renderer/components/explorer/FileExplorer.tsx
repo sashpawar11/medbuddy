@@ -10,6 +10,7 @@ import {
   FileCode,
   Image as ImageIcon,
   Cloud,
+  FolderSync,
   RotateCcw,
   Tags,
   X,
@@ -231,10 +232,10 @@ export const FileExplorer: React.FC<Props> = ({
               variant="secondary"
               size="sm"
               onClick={() => onOpenSyncFolder(folder.id)}
-              icon={<Cloud className="w-3.5 h-3.5" strokeWidth={1.75} />}
-              title={`Sync "${folder.name}" to Google Drive`}
+              icon={<FolderSync className="w-3.5 h-3.5" strokeWidth={1.75} />}
+              title={`Back up "${folder.name}" to Vault`}
             >
-              Sync
+              Backup
             </Button>
           )}
 

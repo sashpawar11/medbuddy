@@ -52,15 +52,20 @@ const api: MedBuddyAPI = {
     };
   },
 
-  // Google Drive Sync
+  // Vault Backup & Sync (Local / Synced Cloud Folder)
   getSyncSettings: () => ipcRenderer.invoke('sync:getSettings'),
   saveSyncSettings: (settings) => ipcRenderer.invoke('sync:saveSettings', settings),
+  selectBackupFolder: () => ipcRenderer.invoke('sync:selectBackupFolder'),
+  openBackupFolder: (folderPath?: string) => ipcRenderer.invoke('sync:openFolder', folderPath),
+  testBackupFolder: (folderPath?: string) => ipcRenderer.invoke('sync:testFolder', folderPath),
+  startSync: (options) => ipcRenderer.invoke('sync:start', options),
+  startRestore: (config) => ipcRenderer.invoke('sync:startRestore', config),
+
+  // Backward compatibility aliases
   startGoogleOAuth: (params) => ipcRenderer.invoke('sync:startOAuth', params),
   disconnectGoogleDrive: () => ipcRenderer.invoke('sync:disconnect'),
   testDriveMount: (config) => ipcRenderer.invoke('sync:testMount', config),
   selectLocalMountFolder: () => ipcRenderer.invoke('sync:selectLocalMount'),
-  startSync: (options) => ipcRenderer.invoke('sync:start', options),
-  startRestore: (config) => ipcRenderer.invoke('sync:startRestore', config),
   onSyncProgress: (callback: (event: SyncProgressEvent) => void) => {
     const handler = (_: any, event: SyncProgressEvent) => callback(event);
     ipcRenderer.on('sync:progress', handler);

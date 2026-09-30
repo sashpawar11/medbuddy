@@ -29,22 +29,22 @@ export const StatusChip: React.FC<StatusChipProps> = ({
     normal: {
       glyph: '●',
       defaultLabel: 'Normal',
-      classes: 'bg-sage-100 border-sage-300 text-sage-600',
+      classes: 'bg-sage-100 border-sage-300 dark:border-sage-700 text-sage-600',
     },
     borderline: {
       glyph: '▲',
       defaultLabel: 'Borderline',
-      classes: 'bg-amber-100 border-amber-300 text-amber-600',
+      classes: 'bg-amber-100 border-amber-300 dark:border-amber-700 text-amber-600',
     },
     flagged: {
       glyph: '✕',
       defaultLabel: 'Flagged',
-      classes: 'bg-clay-100 border-clay-300 text-clay-600',
+      classes: 'bg-clay-100 border-clay-300 dark:border-clay-700 text-clay-600',
     },
   }[status] || {
     glyph: '●',
     defaultLabel: 'Normal',
-    classes: 'bg-sage-100 border-sage-300 text-sage-600',
+    classes: 'bg-sage-100 border-sage-300 dark:border-sage-700 text-sage-600',
   };
 
   const displayText = label || config.defaultLabel;
@@ -54,7 +54,7 @@ export const StatusChip: React.FC<StatusChipProps> = ({
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium border ${config.classes} ${
         isLowConfidence ? 'border-dashed' : 'border-solid'
       } ${className}`}
-      title={isLowConfidence ? 'Low confidence extraction — verify with original document' : undefined}
+      title={isLowConfidence ? 'Low confidence extraction - verify with original document' : undefined}
     >
       <span className="text-[10px] leading-none select-none font-sans">{config.glyph}</span>
       <span>{displayText}</span>
@@ -81,7 +81,7 @@ export const SyncStatusChip: React.FC<SyncChipProps> = ({ status, className = ''
     case 'synced':
       return (
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium bg-sage-100 border border-sage-300 text-sage-600 ${className}`}
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium bg-sage-100 border border-sage-300 dark:border-sage-700 text-sage-600 ${className}`}
           title="Synced to Google Drive"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-sage-600" />
@@ -91,7 +91,7 @@ export const SyncStatusChip: React.FC<SyncChipProps> = ({ status, className = ''
     case 'pending':
       return (
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium bg-amber-100 border border-amber-300 text-amber-600 ${className}`}
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-caption font-medium bg-amber-100 border border-amber-300 dark:border-amber-700 text-amber-600 ${className}`}
           title="Pending synchronization"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
@@ -101,7 +101,7 @@ export const SyncStatusChip: React.FC<SyncChipProps> = ({ status, className = ''
     case 'conflict':
       return (
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-clay-100 border border-clay-300 text-clay-600 ${className}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-clay-100 border border-clay-300 dark:border-clay-700 text-clay-600 ${className}`}
           title="Drive sync conflict needs resolution"
         >
           <GitMerge className="w-3 h-3 text-clay-600" strokeWidth={1.75} />
@@ -112,7 +112,7 @@ export const SyncStatusChip: React.FC<SyncChipProps> = ({ status, className = ''
     default:
       return (
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-clay-100 border border-clay-300 text-clay-600 ${className}`}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-clay-100 border border-clay-300 dark:border-clay-700 text-clay-600 ${className}`}
           title="Sync error occurred"
         >
           <AlertTriangle className="w-3 h-3 text-clay-600" strokeWidth={1.75} />

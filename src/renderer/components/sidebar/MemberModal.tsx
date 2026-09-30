@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * 6-color rotation within Ink/Vault families per §9.5:
- * Deterministic, composed, and muted — never bright neon/random colors.
+ * Deterministic, composed, and muted: never bright neon or random colors.
  */
 export const MEMBER_AVATAR_COLORS = [
   '#2C5CA8', // vault-600

@@ -253,7 +253,7 @@ export class AIProviderService {
       if (errorMsg.includes('ETIMEDOUT')) {
         errorMsg = `Connection timed out after 8s. Verify that ${baseUrl} is reachable and responding.`;
       } else if (errorMsg.includes('ECONNREFUSED')) {
-        errorMsg = `Connection refused at ${baseUrl}. Ensure your local AI server (LM Studio or Ollama) is running.`;
+        errorMsg = `Connection refused at ${baseUrl}. Ensure your local AI server (LM Studio, Ollama, vLLM, etc.) is running.`;
       }
 
       logger.warn('ai', `Connection test failed for ${baseUrl}: ${errorMsg}`);
@@ -457,7 +457,7 @@ export class AIProviderService {
       if (msg.includes('ETIMEDOUT') || err.code === 'ETIMEDOUT') {
         msg = `AI request timed out after ${(effectiveTimeoutMs / 1000).toFixed(0)}s. Increase timeout in AI Provider Setup for larger local models.`;
       } else if (msg.includes('ECONNREFUSED') || err.code === 'ECONNREFUSED') {
-        msg = `Connection refused at ${completionsUrl}. Please ensure LM Studio or Ollama is running and has the model loaded.`;
+        msg = `Connection refused at ${completionsUrl}. Please ensure LM Studio, Ollama, vLLM, or your local AI server is running and has the model loaded.`;
       } else if (msg.includes('ECONNRESET') || err.code === 'ECONNRESET') {
         msg = `Connection was reset by AI server at ${baseUrl}. This often happens if the local model exceeded memory (OOM) or the server crashed.`;
       }

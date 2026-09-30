@@ -4,7 +4,7 @@ module.exports = {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: ['class', '[data-theme="dark"]'],
+  darkMode: ['variant', ['&:where(.dark, .dark *)', '&:where([data-theme="dark"], [data-theme="dark"] *)']],
   theme: {
     extend: {
       colors: {
@@ -21,6 +21,7 @@ module.exports = {
           700: 'var(--ink-700)',
           800: 'var(--ink-800)',
           900: 'var(--ink-900)',
+          950: 'var(--ink-950)',
         },
         vault: {
           50: 'var(--vault-50)',
@@ -33,31 +34,52 @@ module.exports = {
           700: 'var(--vault-700)',
           800: 'var(--vault-800)',
           900: 'var(--vault-900)',
+          950: 'var(--vault-950)',
         },
         sage: {
+          50: 'var(--sage-50)',
           100: 'var(--sage-100)',
           300: 'var(--sage-300)',
           600: 'var(--sage-600)',
+          700: 'var(--sage-700)',
+          800: 'var(--sage-800)',
+          950: 'var(--sage-950)',
         },
         amber: {
+          50: 'var(--amber-50)',
           100: 'var(--amber-100)',
           300: 'var(--amber-300)',
           600: 'var(--amber-600)',
+          700: 'var(--amber-700)',
+          800: 'var(--amber-800)',
+          950: 'var(--amber-950)',
         },
         clay: {
+          50: 'var(--clay-50)',
           100: 'var(--clay-100)',
           300: 'var(--clay-300)',
           600: 'var(--clay-600)',
+          700: 'var(--clay-700)',
+          800: 'var(--clay-800)',
+          950: 'var(--clay-950)',
         },
         teal: {
+          50: 'var(--teal-50)',
           100: 'var(--teal-100)',
           300: 'var(--teal-300)',
           600: 'var(--teal-600)',
+          700: 'var(--teal-700)',
+          800: 'var(--teal-800)',
+          950: 'var(--teal-950)',
         },
         violet: {
+          50: 'var(--violet-50)',
           100: 'var(--violet-100)',
           300: 'var(--violet-300)',
           600: 'var(--violet-600)',
+          700: 'var(--violet-700)',
+          800: 'var(--violet-800)',
+          950: 'var(--violet-950)',
         },
 
         // Semantic Backgrounds & Surfaces

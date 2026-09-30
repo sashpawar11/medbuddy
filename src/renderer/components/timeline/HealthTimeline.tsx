@@ -399,7 +399,7 @@ export const HealthTimeline: React.FC<HealthTimelineProps> = ({
             return (
               <div key={year} className="mb-10 relative">
                 {/* Year divider */}
-                <div className="sticky top-28 z-10 py-2 bg-app/95 dark:bg-[#07080a]/95 backdrop-blur-sm mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+                <div className="sticky top-28 z-10 py-2 bg-app/95 backdrop-blur-sm mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
                   <div className="flex items-center gap-4">
                     <h2 className="text-h2 font-bold text-primary dark:text-ink-100 tabular-nums">
                       {year}

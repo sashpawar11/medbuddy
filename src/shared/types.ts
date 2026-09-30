@@ -41,11 +41,20 @@ export interface DocumentItem {
   updated_at: string;
 }
 
+export type ProviderType =
+  | 'lm-studio'
+  | 'ollama'
+  | 'vllm'
+  | 'openai-compatible'
+  | 'openai'
+  | 'openrouter'
+  | 'groq';
+
 export interface ProviderProfile {
   id: string;
   name: string;
   kind: 'local' | 'cloud';
-  provider_type: 'lm-studio' | 'ollama' | 'openai-compatible' | 'openai';
+  provider_type: ProviderType | string;
   base_url: string;
   model: string;
   api_key?: string;
@@ -177,21 +186,12 @@ export interface ConnectionTestResult {
   availableModels?: string[];
 }
 
-// Google Drive Sync Domain Models
 export type SyncScope = 'all' | 'profile' | 'folders';
-export type SyncMountType = 'cloud' | 'local_mount';
+export type SyncMountType = 'cloud' | 'local_mount' | 'local_folder';
 
-export interface GoogleSyncSettings {
-  provider: 'google_drive';
-  isSignedIn: boolean;
-  userEmail: string | null;
-  userName: string | null;
-  userAvatar: string | null;
-  clientId?: string | null;
-  clientSecret?: string | null;
-  mountType: SyncMountType;
-  driveFolderId: string | null;
-  driveFolderName: string;
+export interface VaultSyncSettings {
+  provider: 'local_folder' | 'google_drive';
+  backupPath?: string | null;
   localMountPath: string | null;
   syncScope: SyncScope;
   selectedMemberId: string | null;
@@ -200,7 +200,19 @@ export interface GoogleSyncSettings {
   lastSyncTime: string | null;
   lastSyncStatus: 'idle' | 'in_progress' | 'success' | 'error';
   lastSyncError: string | null;
+  // Legacy / optional fields for compatibility
+  isSignedIn?: boolean;
+  userEmail?: string | null;
+  userName?: string | null;
+  userAvatar?: string | null;
+  clientId?: string | null;
+  clientSecret?: string | null;
+  mountType?: SyncMountType;
+  driveFolderId?: string | null;
+  driveFolderName?: string;
 }
+
+export type GoogleSyncSettings = VaultSyncSettings;
 
 export type SyncStage =
   | 'idle'
@@ -365,7 +377,7 @@ export interface TimelineEvent {
   sourceDocumentFilename?: string;
   sourceAnalysisId?: string;
 
-  // Grouping — multiple biomarkers from one report cluster together
+  // Grouping: multiple biomarkers from one report cluster together
   groupId?: string;
   childEvents?: TimelineEvent[];
 }
@@ -496,16 +508,21 @@ export interface MedBuddyAPI {
   onChatStream: (callback: (event: ChatStreamEvent) => void) => () => void;
   searchProfileDocuments: (memberId: string, query: string, limit?: number) => Promise<CitedChunk[]>;
 
-  // Google Drive Sync
-  getSyncSettings: () => Promise<GoogleSyncSettings>;
-  saveSyncSettings: (settings: Partial<GoogleSyncSettings>) => Promise<GoogleSyncSettings>;
-  startGoogleOAuth: (params?: { clientId?: string; clientSecret?: string; useDemo?: boolean }) => Promise<{ success: boolean; user?: { name: string; email: string; avatar?: string }; error?: string }>;
-  disconnectGoogleDrive: () => Promise<void>;
-  testDriveMount: (config: { mountType: SyncMountType; driveFolderName?: string; localMountPath?: string }) => Promise<SyncMountTestResult>;
-  selectLocalMountFolder: () => Promise<string | null>;
+  // Vault Backup & Sync (Local / Synced Cloud Folder)
+  getSyncSettings: () => Promise<VaultSyncSettings>;
+  saveSyncSettings: (settings: Partial<VaultSyncSettings>) => Promise<VaultSyncSettings>;
+  selectBackupFolder: () => Promise<string | null>;
+  openBackupFolder: (folderPath?: string) => Promise<{ success: boolean; error?: string }>;
+  testBackupFolder: (folderPath?: string) => Promise<SyncMountTestResult>;
   startSync: (options?: { scope?: SyncScope; memberId?: string; folderIds?: string[] }) => Promise<SyncResult>;
-  startRestore: (config?: { mountType?: SyncMountType; driveFolderName?: string; localMountPath?: string }) => Promise<RestoreResult>;
+  startRestore: (config?: { mountType?: SyncMountType; driveFolderName?: string; localMountPath?: string; backupPath?: string }) => Promise<RestoreResult>;
   onSyncProgress: (callback: (event: SyncProgressEvent) => void) => () => void;
+
+  // Backward compatibility aliases
+  startGoogleOAuth?: (params?: { clientId?: string; clientSecret?: string; useDemo?: boolean }) => Promise<{ success: boolean; user?: { name: string; email: string; avatar?: string }; error?: string }>;
+  disconnectGoogleDrive?: () => Promise<void>;
+  testDriveMount?: (config: { mountType: SyncMountType; driveFolderName?: string; localMountPath?: string }) => Promise<SyncMountTestResult>;
+  selectLocalMountFolder?: () => Promise<string | null>;
 
   // Logs
   getLogs: (limit?: number, category?: string) => Promise<AppLogEntry[]>;

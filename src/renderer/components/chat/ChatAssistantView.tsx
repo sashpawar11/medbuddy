@@ -275,7 +275,7 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
         id: 'tmp_err_' + Date.now(),
         sessionId: activeSessionId || 'new',
         role: 'assistant',
-        content: `⚠️ Failed to send message: ${err.message}`,
+        content: `Failed to send message: ${err.message}`,
         scopedMemberId: memberId,
         citedChunks: [],
         createdAt: new Date().toISOString(),
