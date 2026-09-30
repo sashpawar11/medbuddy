@@ -178,7 +178,7 @@ class OcrQueue {
         status: 'processing',
         stage: 'llm_vision',
         progressPercent: 65,
-        detail: 'Low OCR confidence — trying LLM Vision…',
+        detail: 'Low OCR confidence: trying LLM Vision...',
       });
 
       try {

@@ -7,7 +7,7 @@
    ========================================================================== */
 
 :root {
-  /* Neutral — "Ink" */
+  /* Neutral - "Ink" */
   --ink-25: #FBFBFD;
   --ink-50: #F6F7FA;
   --ink-100: #EEF0F5;
@@ -19,8 +19,9 @@
   --ink-700: #3A4257;
   --ink-800: #242B3D;
   --ink-900: #141926;
+  --ink-950: #0C101A;
 
-  /* Brand — "Vault" (blue) */
+  /* Brand - "Vault" (Clinical Slate-Blue) */
   --vault-50: #EEF3FC;
   --vault-100: #DCE8F9;
   --vault-200: #B7D0F2;
@@ -31,28 +32,49 @@
   --vault-700: #234780;
   --vault-800: #1B3760;
   --vault-900: #142942;
+  --vault-950: #0C1A2E;
 
   /* Status Hues (Muted clinical) */
+  --sage-50: #F2F9F5;
   --sage-100: #E6F4EC;
   --sage-300: #A8D9BC;
   --sage-600: #1E8A57;
+  --sage-700: #166E45;
+  --sage-800: #105334;
+  --sage-950: #08291A;
 
+  --amber-50: #FEFBF3;
   --amber-100: #FBF1DC;
   --amber-300: #EBC876;
   --amber-600: #A6720F;
+  --amber-700: #855B0C;
+  --amber-800: #644409;
+  --amber-950: #322204;
 
+  --clay-50: #FDF5F3;
   --clay-100: #F9EAE7;
   --clay-300: #E4A99E;
   --clay-600: #B54A3A;
+  --clay-700: #913B2E;
+  --clay-800: #6D2C23;
+  --clay-950: #371611;
 
   /* Provenance Hues (Data locality) */
+  --teal-50: #F0F8F8;
   --teal-100: #E1F1F1;
   --teal-300: #9FD3D3;
   --teal-600: #146B72;
+  --teal-700: #10565C;
+  --teal-800: #0C4145;
+  --teal-950: #062023;
 
+  --violet-50: #F8F5FC;
   --violet-100: #F1ECFA;
   --violet-300: #CBAFEA;
   --violet-600: #6B46A8;
+  --violet-700: #553786;
+  --violet-800: #402965;
+  --violet-950: #201533;
 
   /* Semantic Layer (Light Mode Primary) */
   --color-bg-app: var(--ink-25);
@@ -138,50 +160,122 @@
 
 [data-theme="dark"],
 html.dark {
-  --color-bg-app: #10141F;
-  --color-bg-surface: #171C29;
-  --color-bg-recessed: #0C0F17;
-  --color-bg-hover: #202638;
-  --color-border-default: #262D40;
-  --color-border-strong: #333C54;
-  --color-text-primary: #EDEFF5;
-  --color-text-secondary: #AEB5C7;
-  --color-text-tertiary: #7C859C;
-  --color-text-disabled: #525B72;
+  /* Semantic Layer (Dark Mode) */
+  --color-bg-app: #0C1017;
+  --color-bg-surface: #141923;
+  --color-bg-recessed: #0E121A;
+  --color-bg-hover: #1C2333;
+  --color-border-default: #222A3B;
+  --color-border-strong: #333D52;
+  --color-text-primary: #F0F4FA;
+  --color-text-secondary: #A2ADC2;
+  --color-text-tertiary: #768299;
+  --color-text-disabled: #4A5468;
+  --color-text-on-brand: #FFFFFF;
   --color-brand: #6FA0E6;
   --color-brand-hover: #8AB2E8;
-  --color-focus-ring: rgba(111, 160, 230, 0.35);
+  --color-focus-ring: rgba(111, 160, 230, 0.4);
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 16px 44px rgba(0, 0, 0, 0.6);
 
-  --sage-100: #12291F;
-  --sage-300: #255A41;
+  /* Status Semantic (Dark Mode) */
+  --color-status-good-bg: #0E291C;
+  --color-status-good-border: #1D5E3A;
+  --color-status-good-text: #86EFAC;
+
+  --color-status-warn-bg: #2E200A;
+  --color-status-warn-border: #78520D;
+  --color-status-warn-text: #FDE047;
+
+  --color-status-critical-bg: #351712;
+  --color-status-critical-border: #822F22;
+  --color-status-critical-text: #FCA5A5;
+
+  /* Provenance Semantic (Dark Mode) */
+  --color-provenance-local-bg: #0E2829;
+  --color-provenance-local-border: #175454;
+  --color-provenance-local-text: #5EEAD4;
+
+  --color-provenance-cloud-bg: #221536;
+  --color-provenance-cloud-border: #51307D;
+  --color-provenance-cloud-text: #D8B4FE;
+
+  /* Dark mode brand scale (Vault): 950/900 = dark blue fills, 300/400 = radiant readable text */
+  --vault-50: #0E1E36;
+  --vault-100: #142B4D;
+  --vault-200: #1D3D6E;
+  --vault-300: #93C5FD;
+  --vault-400: #6FA0E6;
+  --vault-500: #4B84D8;
+  --vault-600: #3873C9;
+  --vault-700: #254A80;
+  --vault-800: #1B3760;
+  --vault-900: #142942;
+  --vault-950: #0A1424;
+
+  /* Dark mode neutral scale (Ink): 950/900 = dark card/canvas, 50/100 = crisp light text */
+  --ink-25: #FFFFFF;
+  --ink-50: #F8FAFC;
+  --ink-100: #F0F4FA;
+  --ink-200: #CBD4E2;
+  --ink-300: #A2ADC2;
+  --ink-400: #8491AB;
+  --ink-500: #626F8A;
+  --ink-600: #4A5468;
+  --ink-700: #333D52;
+  --ink-800: #222A3B;
+  --ink-900: #141923;
+  --ink-950: #0C1017;
+
+  /* Status Hues (Dark Mode) - WCAG AAA compliant */
+  --sage-50: #081B12;
+  --sage-100: #0E291C;
+  --sage-300: #86EFAC;
   --sage-600: #4FCB92;
+  --sage-700: #1D5E3A;
+  --sage-800: #144229;
+  --sage-950: #07170F;
 
-  --amber-100: #2E2412;
-  --amber-300: #5C4A22;
-  --amber-600: #E8B95B;
+  --amber-50: #1F1505;
+  --amber-100: #2E200A;
+  --amber-300: #FDE047;
+  --amber-600: #F0B843;
+  --amber-700: #78520D;
+  --amber-800: #573B08;
+  --amber-950: #1A1203;
 
-  --clay-100: #301D18;
-  --clay-300: #5C3A30;
-  --clay-600: #E28A78;
+  --clay-50: #240F0B;
+  --clay-100: #351712;
+  --clay-300: #FCA5A5;
+  --clay-600: #F07B65;
+  --clay-700: #822F22;
+  --clay-800: #5C2017;
+  --clay-950: #1C0A07;
 
-  --teal-100: #0F2626;
-  --teal-300: #245252;
+  --teal-50: #081C1D;
+  --teal-100: #0E2829;
+  --teal-300: #5EEAD4;
   --teal-600: #4FC4C4;
+  --teal-700: #175454;
+  --teal-800: #103B3B;
+  --teal-950: #061617;
 
-  --violet-100: #241A34;
-  --violet-300: #4B3768;
+  --violet-50: #170E24;
+  --violet-100: #221536;
+  --violet-300: #D8B4FE;
   --violet-600: #B896E8;
+  --violet-700: #51307D;
+  --violet-800: #392157;
+  --violet-950: #120A1D;
 
-  --scrollbar-track: #10141F;
-  --scrollbar-thumb: #262D40;
-  --scrollbar-thumb-hover: #333C54;
+  --scrollbar-track: #0C1017;
+  --scrollbar-thumb: #222A3B;
+  --scrollbar-thumb-hover: #333D52;
 
-  --chart-band-bg: #1C2333;
-  --chart-grid-line: #262D40;
+  --chart-band-bg: #141923;
+  --chart-grid-line: #222A3B;
 }
 
 @layer base {
@@ -210,7 +304,7 @@ html.dark {
   }
 }
 
-/* Custom Scrollbars — Subtle and integrated */
+/* Custom Scrollbars: Subtle and integrated */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -226,7 +320,7 @@ html.dark {
   background: var(--scrollbar-thumb-hover);
 }
 
-/* Button transitions & press (§9.1, §12) — No scale/bounce! */
+/* Button transitions & press (§9.1, §12): No scale/bounce */
 button {
   transition-property: background-color, border-color, color, box-shadow, opacity;
   transition-duration: 100ms;
@@ -245,6 +339,27 @@ button:active:not(:disabled) {
   font-size: 12px;
   line-height: 16px;
   box-shadow: var(--shadow-md);
+}
+
+/* Cloudflare Kumo Sidebar Smooth Motion & Micro-Scrollbars */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+[data-state="peeking"],
+[data-state="expanded"],
+[data-state="collapsed"] {
+  will-change: width;
 }
 
 /* ==========================================================================
@@ -380,6 +495,31 @@ button:active:not(:disabled) {
   word-break: break-word;
 }
 
+/* Streaming Message Subtle Fade-Out Reveal */
+.streaming-fade-trail {
+  display: inline;
+  background-image: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 20%,
+    rgba(111, 120, 145, 0.6) 55%,
+    rgba(111, 120, 145, 0.15) 85%,
+    transparent 100%
+  );
+  background-image: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 20%,
+    color-mix(in srgb, currentColor 65%, transparent) 55%,
+    color-mix(in srgb, currentColor 18%, transparent) 85%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .chat-prose p {
   margin-top: 0.6rem;
   margin-bottom: 0.85rem;
@@ -505,8 +645,8 @@ button:active:not(:disabled) {
   margin: 1rem 0;
   padding: 0.85rem 1.1rem;
   border-radius: 0 4px 4px 0;
-  background-color: rgba(20, 184, 166, 0.05);
-  border-left: 3px solid #0d9488;
+  background-color: var(--color-bg-recessed);
+  border-left: 3px solid var(--color-brand);
   font-size: 0.875rem;
   color: var(--color-text-primary);
 }
@@ -524,7 +664,7 @@ button:active:not(:disabled) {
   border-radius: 2px;
   background-color: var(--color-bg-recessed);
   border: 1px solid var(--color-border);
-  color: #0d9488;
+  color: var(--color-brand);
 }
 
 .chat-prose pre {

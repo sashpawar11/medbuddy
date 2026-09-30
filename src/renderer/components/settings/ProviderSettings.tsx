@@ -7,8 +7,17 @@ import {
   Edit2,
   Check,
   Clock,
+  Server,
+  Cloud,
+  Key,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  RotateCcw,
 } from 'lucide-react';
-import type { ProviderProfile, ConnectionTestResult, FamilyMember } from '../../../shared/types';
+import type { ProviderProfile, ConnectionTestResult, FamilyMember, ProviderType } from '../../../shared/types';
 import { ProvenancePill } from '../common/ProvenancePill';
 import { Button } from '../common/Button';
 
@@ -21,9 +30,58 @@ interface Props {
   onOpenChronicle?: () => void;
 }
 
+interface LocalEnginePreset {
+  id: ProviderType;
+  name: string;
+  label: string;
+  defaultUrl: string;
+  defaultModel: string;
+  description: string;
+  recommendedModels: string[];
+}
+
+const LOCAL_ENGINES: LocalEnginePreset[] = [
+  {
+    id: 'lm-studio',
+    name: 'LM Studio (Local)',
+    label: 'LM Studio',
+    defaultUrl: 'http://localhost:1234/v1',
+    defaultModel: 'local-model',
+    description: 'LM Studio local server (default port 1234)',
+    recommendedModels: ['local-model', 'llama-3.2-3b-instruct', 'qwen2.5-7b-instruct', 'mistral-7b-instruct'],
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    label: 'Ollama',
+    defaultUrl: 'http://localhost:11434/v1',
+    defaultModel: 'llama3.2',
+    description: 'Ollama local engine (default port 11434)',
+    recommendedModels: ['llama3.2', 'llama3.1', 'mistral', 'qwen2.5', 'phi3.5'],
+  },
+  {
+    id: 'vllm',
+    name: 'vLLM (Local)',
+    label: 'vLLM',
+    defaultUrl: 'http://localhost:8000/v1',
+    defaultModel: 'meta-llama/Llama-3.2-3B-Instruct',
+    description: 'vLLM high-throughput inference server (default port 8000)',
+    recommendedModels: ['meta-llama/Llama-3.2-3B-Instruct', 'mistralai/Mistral-7B-Instruct-v0.3', 'Qwen/Qwen2.5-7B-Instruct'],
+  },
+  {
+    id: 'openai-compatible',
+    name: 'Custom Local Engine',
+    label: 'Custom / Other',
+    defaultUrl: 'http://localhost:8080/v1',
+    defaultModel: 'local-model',
+    description: 'LocalAI, llama.cpp, text-generation-webui, or other local API',
+    recommendedModels: ['local-model'],
+  },
+];
+
 /** Mask secret per §9.2: sk-••••••••1a2b */
 const maskApiKey = (key?: string) => {
-  if (!key) return 'None';
+  if (!key || key.trim().length === 0) return 'None';
   if (key.length <= 8) return '••••••••';
   const prefix = key.slice(0, 3);
   const suffix = key.slice(-4);
@@ -43,14 +101,50 @@ export const ProviderSettings: React.FC<Props> = ({
   const [kind, setKind] = useState<'local' | 'cloud'>('local');
   const [providerType, setProviderType] = useState<ProviderProfile['provider_type']>('lm-studio');
   const [baseUrl, setBaseUrl] = useState('http://localhost:1234/v1');
-  const [model, setModel] = useState('llama-3.2-3b-instruct');
+  const [model, setModel] = useState('local-model');
   const [apiKey, setApiKey] = useState('');
+  const [useApiKeyForLocal, setUseApiKeyForLocal] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [timeoutSeconds, setTimeoutSeconds] = useState(900);
   const [isDefault, setIsDefault] = useState(false);
 
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, ConnectionTestResult>>({});
   const [saving, setSaving] = useState(false);
+
+  const currentLocalPreset = LOCAL_ENGINES.find((e) => e.id === providerType) || LOCAL_ENGINES[0];
+
+  const getCloudDefaults = (key: string) => {
+    const trimmed = key.trim();
+    if (trimmed.startsWith('sk-or-')) {
+      return {
+        providerType: 'openrouter' as const,
+        name: 'OpenRouter (Cloud)',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        defaultModel: 'meta-llama/llama-3.3-70b-instruct',
+        label: 'OpenRouter',
+      };
+    }
+    if (trimmed.startsWith('gsk_')) {
+      return {
+        providerType: 'groq' as const,
+        name: 'Groq Cloud',
+        baseUrl: 'https://api.groq.com/openai/v1',
+        defaultModel: 'llama-3.3-70b-versatile',
+        label: 'Groq',
+      };
+    }
+    return {
+      providerType: 'openai' as const,
+      name: 'OpenAI (Cloud)',
+      baseUrl: 'https://api.openai.com/v1',
+      defaultModel: 'gpt-4o-mini',
+      label: 'OpenAI',
+    };
+  };
+
+  const detectedCloud = getCloudDefaults(apiKey);
 
   const handleEdit = (p: ProviderProfile) => {
     setEditingId(p.id);
@@ -60,20 +154,79 @@ export const ProviderSettings: React.FC<Props> = ({
     setBaseUrl(p.base_url);
     setModel(p.model);
     setApiKey(p.api_key || '');
-    setTimeoutSeconds(p.timeout_seconds || 900);
+    setUseApiKeyForLocal(p.kind === 'local' && Boolean(p.api_key && p.api_key.trim().length > 0));
+    setShowApiKey(false);
+    setShowAdvanced(false);
+    setTimeoutSeconds(p.timeout_seconds || (p.kind === 'local' ? 900 : 120));
     setIsDefault(p.is_default === 1);
   };
 
   const handleNew = () => {
     setEditingId('new');
-    setName('Custom Local Model');
     setKind('local');
     setProviderType('lm-studio');
+    setName('LM Studio (Local)');
     setBaseUrl('http://localhost:1234/v1');
     setModel('local-model');
     setApiKey('');
+    setUseApiKeyForLocal(false);
+    setShowApiKey(false);
+    setShowAdvanced(false);
     setTimeoutSeconds(900);
     setIsDefault(false);
+  };
+
+  const handleKindSwitch = (newKind: 'local' | 'cloud') => {
+    setKind(newKind);
+    if (newKind === 'cloud') {
+      const defaults = getCloudDefaults(apiKey);
+      setProviderType(defaults.providerType);
+      setName(defaults.name);
+      setBaseUrl(defaults.baseUrl);
+      setModel(defaults.defaultModel);
+      setTimeoutSeconds(120);
+      setShowAdvanced(false);
+    } else {
+      const defaultLocal = LOCAL_ENGINES[0];
+      setProviderType(defaultLocal.id);
+      setName(defaultLocal.name);
+      setBaseUrl(defaultLocal.defaultUrl);
+      setModel(defaultLocal.defaultModel);
+      setUseApiKeyForLocal(false);
+      setTimeoutSeconds(900);
+      setShowAdvanced(false);
+    }
+  };
+
+  const handleCloudApiKeyChange = (val: string) => {
+    setApiKey(val);
+    const defaults = getCloudDefaults(val);
+    setProviderType(defaults.providerType);
+    if (!showAdvanced) {
+      setName(defaults.name);
+      setBaseUrl(defaults.baseUrl);
+      setModel(defaults.defaultModel);
+    }
+  };
+
+  const handleLocalEngineChange = (type: ProviderProfile['provider_type']) => {
+    setProviderType(type);
+    const preset = LOCAL_ENGINES.find((e) => e.id === type);
+    if (preset) {
+      setBaseUrl(preset.defaultUrl);
+      setModel(preset.defaultModel);
+      if (editingId === 'new' || LOCAL_ENGINES.some((e) => e.name === name)) {
+        setName(preset.name);
+      }
+    }
+  };
+
+  const handleResetUrl = () => {
+    if (kind === 'local') {
+      setBaseUrl(currentLocalPreset.defaultUrl);
+    } else {
+      setBaseUrl(detectedCloud.baseUrl);
+    }
   };
 
   const handleCancel = () => {
@@ -94,15 +247,22 @@ export const ProviderSettings: React.FC<Props> = ({
     e.preventDefault();
     try {
       setSaving(true);
+      const finalApiKey =
+        kind === 'cloud'
+          ? apiKey.trim() || undefined
+          : useApiKeyForLocal && apiKey.trim().length > 0
+          ? apiKey.trim()
+          : undefined;
+
       await onSaveProvider({
         id: editingId === 'new' ? undefined : editingId || undefined,
-        name: name.trim(),
+        name: name.trim() || (kind === 'cloud' ? detectedCloud.name : currentLocalPreset.name),
         kind,
         provider_type: providerType,
         base_url: baseUrl.trim(),
-        model: model.trim(),
-        api_key: apiKey.trim() || undefined,
-        timeout_seconds: Number(timeoutSeconds) || 900,
+        model: model.trim() || (kind === 'cloud' ? detectedCloud.defaultModel : currentLocalPreset.defaultModel),
+        api_key: finalApiKey,
+        timeout_seconds: Number(timeoutSeconds) || (kind === 'local' ? 900 : 120),
         is_default: isDefault ? 1 : 0,
       });
       setEditingId(null);
@@ -111,13 +271,20 @@ export const ProviderSettings: React.FC<Props> = ({
     }
   };
 
+  const handleSetDefault = async (p: ProviderProfile) => {
+    await onSaveProvider({
+      ...p,
+      is_default: 1,
+    });
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-app overflow-y-auto select-none font-sans">
       <header className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-surface sticky top-0 z-10">
         <div>
           <h2 className="text-body-medium font-semibold text-primary">AI Provider Profiles</h2>
           <p className="text-caption text-tertiary">
-            Local on-device engines (LM Studio, Ollama) and BYOK cloud endpoints
+            Local on-device models (LM Studio, Ollama, vLLM) and Cloud API providers
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -148,141 +315,378 @@ export const ProviderSettings: React.FC<Props> = ({
         <div className="p-4 rounded-md bg-surface border border-border flex items-start gap-3">
           <Shield className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" strokeWidth={1.75} />
           <div className="text-small text-secondary leading-relaxed">
-            <h4 className="font-semibold text-primary mb-0.5">Dual-Mode Execution Architecture</h4>
+            <h4 className="font-semibold text-primary mb-0.5">Dual-Mode AI Architecture</h4>
             <p>
-              MedBuddy treats on-device models and BYOK cloud endpoints as equally first-class choices.
+              MedBuddy supports both 100% private on-device local engines (LM Studio, Ollama, vLLM) and cloud API endpoints.
               The provenance badge on each profile explicitly signals whether medical text stays on this computer or is routed to a third-party model.
             </p>
           </div>
         </div>
 
-        {/* Edit or Create Profile Form (§9.2) */}
+        {/* Edit or Create Profile Form */}
         {editingId && (
           <form
             onSubmit={handleSave}
-            className="p-5 rounded-md bg-surface border border-border space-y-4 animate-fade-in"
+            className="p-5 rounded-md bg-surface border border-border-strong shadow-xs space-y-5 animate-fade-in"
           >
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-h3 font-semibold text-primary">
-                {editingId === 'new' ? 'New AI Provider Profile' : 'Edit Profile'}
-              </h3>
+              <div>
+                <h3 className="text-h3 font-semibold text-primary">
+                  {editingId === 'new' ? 'New AI Provider Profile' : `Edit Profile: ${name}`}
+                </h3>
+                <p className="text-caption text-tertiary mt-0.5">
+                  {kind === 'cloud'
+                    ? 'Cloud provider setup: Simply enter your API key to connect.'
+                    : 'Local model setup: Connect to LM Studio, Ollama, vLLM, or any local AI engine.'}
+                </p>
+              </div>
               <Button type="button" variant="ghost" size="sm" onClick={handleCancel}>
                 Cancel
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Profile Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Execution Mode
-                </label>
-                <select
-                  value={kind}
-                  onChange={(e) => {
-                    const k = e.target.value as 'local' | 'cloud';
-                    setKind(k);
-                    if (k === 'local') setBaseUrl('http://localhost:1234/v1');
-                    else setBaseUrl('https://api.openai.com/v1');
-                  }}
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+            {/* Mode Selector Tabs: Local vs Cloud */}
+            <div>
+              <label className="block text-small font-medium text-secondary mb-1.5">
+                Execution Mode
+              </label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-surface-recessed rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => handleKindSwitch('local')}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded text-small font-medium transition-all ${
+                    kind === 'local'
+                      ? 'bg-surface text-primary shadow-xs border border-border-strong'
+                      : 'text-tertiary hover:text-secondary'
+                  }`}
                 >
-                  <option value="local">Local (Stays on this device)</option>
-                  <option value="cloud">Cloud (Leaves this device via API)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Provider Engine
-                </label>
-                <select
-                  value={providerType}
-                  onChange={(e) => setProviderType(e.target.value as any)}
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                  <Server className="w-4 h-4 text-sage-600 dark:text-sage-400" />
+                  <span>Local LLM (Private & On-Device)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleKindSwitch('cloud')}
+                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded text-small font-medium transition-all ${
+                    kind === 'cloud'
+                      ? 'bg-surface text-primary shadow-xs border border-border-strong'
+                      : 'text-tertiary hover:text-secondary'
+                  }`}
                 >
-                  <option value="lm-studio">LM Studio (Local)</option>
-                  <option value="ollama">Ollama (Local)</option>
-                  <option value="openai-compatible">OpenAI-Compatible Endpoint</option>
-                  <option value="openai">OpenAI Official</option>
-                </select>
+                  <Cloud className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Cloud Provider (API Key)</span>
+                </button>
               </div>
-
-              <div>
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Model Identifier
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="e.g. llama-3.2-3b-instruct"
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Base URL
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="http://localhost:1234/v1"
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-small font-medium text-secondary mb-1">
-                  Request Timeout (seconds)
-                </label>
-                <input
-                  type="number"
-                  min={60}
-                  max={3600}
-                  step={60}
-                  value={timeoutSeconds}
-                  onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 900)}
-                  className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
-                />
-                <span className="text-caption text-tertiary mt-1 block">
-                  Default: 900s (15 min). Local models processing multi-document records need extended inference windows.
-                </span>
-              </div>
-
-              {kind === 'cloud' && (
-                <div className="col-span-2">
-                  <label className="block text-small font-medium text-secondary mb-1">
-                    API Key (Encrypted in local vault)
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
-                  />
-                </div>
-              )}
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            {/* CLOUD PROVIDER CONFIGURATION */}
+            {kind === 'cloud' && (
+              <div className="space-y-4">
+                {/* API Key Input (Just the Key!) */}
+                <div className="space-y-2.5 p-4 rounded-md bg-surface-recessed border border-border">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-small font-semibold text-primary">
+                      API Key <span className="text-clay-500">*</span>
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      required
+                      value={apiKey}
+                      onChange={(e) => handleCloudApiKeyChange(e.target.value)}
+                      placeholder="Paste your API key (e.g. sk-...)"
+                      className="w-full h-10 pl-3 pr-10 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                      autoFocus={editingId === 'new'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
+                      title={showApiKey ? 'Hide secret' : 'Show secret'}
+                    >
+                      {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-caption text-tertiary">
+                    Paste your API key (OpenAI, OpenRouter, Groq, or any compatible provider).
+                  </p>
+                </div>
+
+                {/* Advanced Settings Accordion for Cloud */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-1.5 text-caption font-medium text-secondary hover:text-primary transition-colors py-1"
+                  >
+                    {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    <span>{showAdvanced ? 'Hide Advanced Settings' : 'Advanced Options (Custom Model, Base URL, Timeout)'}</span>
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="grid grid-cols-2 gap-4 mt-3 p-3.5 bg-surface-recessed rounded-md border border-border animate-fade-in">
+                      <div>
+                        <label className="block text-caption font-medium text-secondary mb-1">
+                          Profile Name
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-caption font-medium text-secondary mb-1">
+                          Model Identifier
+                        </label>
+                        <input
+                          type="text"
+                          value={model}
+                          onChange={(e) => setModel(e.target.value)}
+                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-caption font-medium text-secondary">
+                            Base URL
+                          </label>
+                          {baseUrl !== detectedCloud.baseUrl && (
+                            <button
+                              type="button"
+                              onClick={handleResetUrl}
+                              className="text-[11px] text-vault-600 dark:text-vault-400 hover:underline flex items-center gap-1"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" /> Reset to default ({detectedCloud.baseUrl})
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={baseUrl}
+                          onChange={(e) => setBaseUrl(e.target.value)}
+                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-caption font-medium text-secondary mb-1">
+                          Request Timeout (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={600}
+                          step={10}
+                          value={timeoutSeconds}
+                          onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 120)}
+                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* LOCAL LLM CONFIGURATION */}
+            {kind === 'local' && (
+              <div className="space-y-4">
+                {/* Local Engine Presets (LM Studio, Ollama, vLLM, Custom) */}
+                <div>
+                  <label className="block text-small font-medium text-secondary mb-1.5">
+                    Local Engine / Server
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {LOCAL_ENGINES.map((eng) => (
+                      <button
+                        key={eng.id}
+                        type="button"
+                        onClick={() => handleLocalEngineChange(eng.id)}
+                        className={`p-2.5 rounded border text-left transition-all ${
+                          providerType === eng.id
+                            ? 'bg-sage-50/50 dark:bg-sage-950/20 border-sage-500 text-primary ring-1 ring-sage-500/30'
+                            : 'bg-surface border-border hover:border-border-strong text-secondary'
+                        }`}
+                      >
+                        <div className="font-semibold text-small">{eng.label}</div>
+                        <div className="text-[11px] text-tertiary truncate mt-0.5">{eng.defaultUrl}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-caption text-tertiary mt-1.5">
+                    {currentLocalPreset.description}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Base URL (Default auto-populated with reset button) */}
+                  <div className="col-span-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-small font-medium text-secondary">
+                        Base URL
+                      </label>
+                      {baseUrl !== currentLocalPreset.defaultUrl && (
+                        <button
+                          type="button"
+                          onClick={handleResetUrl}
+                          className="text-caption text-vault-600 dark:text-vault-400 hover:underline flex items-center gap-1 font-medium"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Reset to default ({currentLocalPreset.defaultUrl})
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder={currentLocalPreset.defaultUrl}
+                      className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                    />
+                  </div>
+
+                  {/* Model Identifier */}
+                  <div>
+                    <label className="block text-small font-medium text-secondary mb-1">
+                      Model Identifier
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder={currentLocalPreset.defaultModel}
+                      className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                    />
+                  </div>
+
+                  {/* Profile Name */}
+                  <div>
+                    <label className="block text-small font-medium text-secondary mb-1">
+                      Profile Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Recommended Local Models */}
+                <div>
+                  <label className="block text-caption font-medium text-secondary mb-1">
+                    Common Model Identifiers
+                  </label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {currentLocalPreset.recommendedModels.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setModel(m)}
+                        className={`px-2 py-0.5 text-caption font-mono rounded-sm border transition-all ${
+                          model === m
+                            ? 'bg-sage-100 dark:bg-sage-950/60 text-sage-800 dark:text-sage-200 border-sage-400 dark:border-sage-600 font-semibold shadow-2xs'
+                            : 'bg-surface hover:bg-surface-hover text-secondary border-border'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* API Key Option for Local LLM (Switchable) */}
+                <div className="p-3.5 rounded-md bg-surface-recessed border border-border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={useApiKeyForLocal}
+                        onChange={(e) => {
+                          setUseApiKeyForLocal(e.target.checked);
+                          if (!e.target.checked) {
+                            setApiKey('');
+                          }
+                        }}
+                        className="rounded-sm border-border-strong text-vault-600 focus:ring-vault-500/35"
+                      />
+                      <span className="text-small font-medium text-primary">
+                        Use API Key / Authentication for Local Engine
+                      </span>
+                    </label>
+                    <span className="text-caption text-tertiary">
+                      Optional: for vLLM (<code className="font-mono">--api-key</code>), LiteLLM, or reverse proxies
+                    </span>
+                  </div>
+
+                  {useApiKeyForLocal && (
+                    <div className="pt-1 space-y-1 animate-fade-in">
+                      <div className="relative">
+                        <input
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="e.g. your-bearer-token or api-key"
+                          className="w-full h-[34px] pl-3 pr-10 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
+                        >
+                          {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <span className="text-caption text-tertiary">
+                        This token will be sent in the <code className="font-mono">Authorization: Bearer</code> header.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Advanced Settings Accordion for Local */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-1.5 text-caption font-medium text-secondary hover:text-primary transition-colors py-1"
+                  >
+                    {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    <span>{showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options (Timeout window)'}</span>
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="mt-2.5 p-3.5 bg-surface-recessed rounded-md border border-border animate-fade-in space-y-1.5">
+                      <label className="block text-caption font-medium text-secondary">
+                        Request Timeout (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        min={60}
+                        max={3600}
+                        step={60}
+                        value={timeoutSeconds}
+                        onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 900)}
+                        className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
+                      />
+                      <span className="text-caption text-tertiary block">
+                        Default: 900s (15 min). Local models evaluating multi-document records need extended inference windows.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Set as Default Checkbox */}
+            <div className="flex items-center gap-2 pt-1 border-t border-border">
               <input
                 type="checkbox"
                 id="isDefault"
@@ -291,18 +695,23 @@ export const ProviderSettings: React.FC<Props> = ({
                 className="rounded-sm border-border-strong text-vault-600 focus:ring-vault-500/35"
               />
               <label htmlFor="isDefault" className="text-small text-secondary cursor-pointer select-none">
-                Set as default provider for new syntheses
+                Set as default provider for new document syntheses and chat
               </label>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() =>
                   handleTest(
-                    { base_url: baseUrl, provider_type: providerType, api_key: apiKey },
+                    {
+                      base_url: baseUrl,
+                      provider_type: providerType,
+                      api_key: kind === 'cloud' ? apiKey : useApiKeyForLocal ? apiKey : undefined,
+                    },
                     'editing'
                   )
                 }
@@ -322,26 +731,74 @@ export const ProviderSettings: React.FC<Props> = ({
               </div>
             </div>
 
+            {/* Test Connection Results & Detected Models */}
             {testResults['editing'] && (
               <div
-                className={`p-3 rounded-sm text-caption border mt-2 ${
+                className={`p-3 rounded-md text-caption border mt-2 space-y-2 ${
                   testResults['editing'].success
-                    ? 'bg-sage-100 text-sage-600 border-sage-300'
-                    : 'bg-clay-100 text-clay-600 border-clay-300'
+                    ? 'bg-sage-50 dark:bg-sage-950/30 text-sage-700 dark:text-sage-300 border-sage-300 dark:border-sage-800'
+                    : 'bg-clay-50 dark:bg-clay-950/30 text-clay-700 dark:text-clay-300 border-clay-300 dark:border-clay-800'
                 }`}
               >
-                {testResults['editing'].message}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{testResults['editing'].message}</span>
+                  {testResults['editing'].latencyMs && (
+                    <span className="font-mono tabular-nums">{testResults['editing'].latencyMs}ms</span>
+                  )}
+                </div>
+
+                {/* If loaded models were returned, show clickable chips to select */}
+                {testResults['editing'].availableModels && testResults['editing'].availableModels.length > 0 && (
+                  <div className="pt-2 border-t border-sage-200 dark:border-sage-800/60">
+                    <span className="block text-secondary mb-1 font-medium">
+                      Loaded model(s) detected on server (click to select):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                      {testResults['editing'].availableModels.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setModel(m)}
+                          className={`px-2 py-0.5 text-caption font-mono rounded-sm border transition-all ${
+                            model === m
+                              ? 'bg-sage-600 text-white border-sage-700 font-semibold shadow-2xs'
+                              : 'bg-surface hover:bg-surface-hover text-primary border-sage-300 dark:border-sage-700'
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </form>
         )}
 
-        {/* Existing Provider Cards (§11.4: Card per profile, radius-md, identical shell) */}
+        {/* Existing Provider Profiles List */}
         <div className="space-y-3">
           {providers.map((p) => {
             const isLocal = p.kind === 'local';
             const testRes = testResults[p.id];
             const isTesting = testingId === p.id;
+            const hasApiKey = Boolean(p.api_key && p.api_key.trim().length > 0);
+
+            // Determine badge label for engine
+            const engineLabel =
+              p.provider_type === 'lm-studio'
+                ? 'LM Studio'
+                : p.provider_type === 'ollama'
+                ? 'Ollama'
+                : p.provider_type === 'vllm'
+                ? 'vLLM'
+                : p.provider_type === 'openai'
+                ? 'OpenAI'
+                : p.provider_type === 'openrouter'
+                ? 'OpenRouter'
+                : p.provider_type === 'groq'
+                ? 'Groq'
+                : 'OpenAI-Compatible';
 
             return (
               <div
@@ -353,24 +810,49 @@ export const ProviderSettings: React.FC<Props> = ({
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h4 className="text-body font-semibold text-primary">{p.name}</h4>
                       <ProvenancePill kind={p.kind} />
+                      <span className="text-caption font-medium px-2 py-0.5 rounded-full bg-surface-recessed text-secondary border border-border">
+                        {engineLabel}
+                      </span>
                       {p.is_default === 1 && (
-                        <span className="text-caption font-medium px-2 py-0.5 rounded-full bg-vault-50 text-vault-600 border border-vault-200">
+                        <span className="text-caption font-medium px-2 py-0.5 rounded-full bg-vault-50 dark:bg-vault-950/50 text-vault-600 dark:text-vault-400 border border-vault-200 dark:border-vault-800">
                           Default
                         </span>
                       )}
                     </div>
 
                     <div className="text-small text-tertiary font-mono space-y-0.5">
-                      <p>Model: <strong className="text-primary font-medium">{p.model}</strong></p>
-                      {isLocal ? (
-                        <p>Endpoint: <span className="text-secondary">{p.base_url}</span></p>
-                      ) : (
-                        <p>Key: <span className="text-secondary">{maskApiKey(p.api_key)}</span></p>
-                      )}
+                      <p>
+                        Model: <strong className="text-primary font-medium">{p.model}</strong>
+                      </p>
+                      <p>
+                        Endpoint: <span className="text-secondary">{p.base_url}</span>
+                      </p>
+                      <p>
+                        Auth:{' '}
+                        {hasApiKey ? (
+                          <span className="text-secondary">
+                            Key ({maskApiKey(p.api_key)})
+                          </span>
+                        ) : isLocal ? (
+                          <span className="text-tertiary">None (Direct local)</span>
+                        ) : (
+                          <span className="text-clay-500">Missing Key</span>
+                        )}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {p.is_default !== 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSetDefault(p)}
+                        title="Set as default provider"
+                      >
+                        Set Default
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -409,8 +891,8 @@ export const ProviderSettings: React.FC<Props> = ({
                   <div
                     className={`p-2.5 rounded-sm text-caption border flex items-center justify-between ${
                       testRes.success
-                        ? 'bg-sage-100 text-sage-600 border-sage-300'
-                        : 'bg-clay-100 text-clay-600 border-clay-300'
+                        ? 'bg-sage-100 text-sage-600 border-sage-300 dark:bg-sage-950/40 dark:text-sage-400 dark:border-sage-800'
+                        : 'bg-clay-100 text-clay-600 border-clay-300 dark:bg-clay-950/40 dark:text-clay-400 dark:border-clay-800'
                     }`}
                   >
                     <span>{testRes.message}</span>

@@ -847,18 +847,21 @@ export function getSyncSettings(): GoogleSyncSettings {
     folderIds = [];
   }
 
+  const localMountPath = row.local_mount_path || null;
+
   return {
-    provider: 'google_drive',
-    isSignedIn: Boolean(row.is_signed_in),
+    provider: 'local_folder',
+    backupPath: localMountPath,
+    localMountPath: localMountPath,
+    isSignedIn: Boolean(localMountPath),
     userEmail: row.user_email || null,
     userName: row.user_name || null,
     userAvatar: row.user_avatar || null,
     clientId: row.client_id || null,
     clientSecret: row.client_secret || null,
-    mountType: (row.mount_type as SyncMountType) || 'cloud',
+    mountType: 'local_folder',
     driveFolderId: row.drive_folder_id || null,
     driveFolderName: row.drive_folder_name || 'MedBuddy Vault',
-    localMountPath: row.local_mount_path || null,
     syncScope: (row.sync_scope as SyncScope) || 'all',
     selectedMemberId: row.selected_member_id || null,
     selectedFolderIds: folderIds,
@@ -874,9 +877,15 @@ export function saveSyncSettings(updates: Partial<GoogleSyncSettings>): GoogleSy
   const current = getSyncSettings();
   const now = new Date().toISOString();
 
+  const chosenPath = updates.backupPath !== undefined 
+    ? updates.backupPath 
+    : (updates.localMountPath !== undefined ? updates.localMountPath : current.localMountPath);
+
   const merged = {
     ...current,
     ...updates,
+    backupPath: chosenPath,
+    localMountPath: chosenPath,
   };
 
   db.prepare(`
@@ -902,13 +911,13 @@ export function saveSyncSettings(updates: Partial<GoogleSyncSettings>): GoogleSy
       updated_at = ?
     WHERE id = 'google_drive'
   `).run(
-    merged.isSignedIn ? 1 : 0,
+    merged.localMountPath ? 1 : 0,
     merged.userEmail,
     merged.userName,
     merged.userAvatar,
     merged.clientId || null,
     merged.clientSecret || null,
-    merged.mountType,
+    'local_folder',
     merged.driveFolderId || null,
     merged.driveFolderName || 'MedBuddy Vault',
     merged.localMountPath || null,

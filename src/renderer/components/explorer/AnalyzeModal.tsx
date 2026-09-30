@@ -20,7 +20,7 @@ interface Props {
 /**
  * Pre-analysis confirmation dialog (§9.9 & §11.1 in docs/Designv2.md)
  * Contents in strict order:
- * 1. Provenance pill — first thing seen.
+ * 1. Provenance pill: first thing seen.
  * 2. Scope in plain language ("This will analyze X files in [Folder]").
  * 3. Estimated cost/tokens (cloud only).
  * 4. Collapsed-by-default file list ("View X files").
@@ -177,7 +177,7 @@ export const AnalyzeModal: React.FC<Props> = ({
         ) : (
           /* Confirmation Content per §11.1 in strict order */
           <div className="space-y-4">
-            {/* 1. Provenance pill — first thing seen */}
+            {/* 1. Provenance pill: first thing seen */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption uppercase tracking-wider text-tertiary font-medium">

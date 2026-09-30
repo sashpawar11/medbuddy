@@ -113,7 +113,7 @@ export class ChatOrchestrator {
       : `1. STRICT PROFILE SCOPE & REPOSITORY AWARENESS: You have access to ${member.name}'s complete record archive containing all ${allMemberDocs.length} document(s) listed above. The retrieved excerpts provide detailed passages for the current query.`;
 
     return `You are MedBuddy Assistant, a highly capable, compassionate personal medical records assistant.
-You are reviewing personal medical records strictly for family member: "${member.name}"${relationshipInfo}${dobInfo}.
+You are reviewing personal medical records strictly for: "${member.name}"${relationshipInfo}${dobInfo}.
 
 ${scopeTitle}:
 ${archiveCatalog}

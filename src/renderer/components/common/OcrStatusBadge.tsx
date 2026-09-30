@@ -5,7 +5,7 @@ import type { DocumentItem, OcrProgressEvent, OcrStatus } from '../../../shared/
 interface OcrStatusBadgeProps {
   /** The persisted document (provides the DB ocr_status as baseline) */
   doc: DocumentItem;
-  /** Live progress event from useOcrProgress() — overrides DB status when present */
+  /** Live progress event from useOcrProgress() - overrides DB status when present */
   liveEvent?: OcrProgressEvent;
   /** Show compact icon-only badge (for table rows). Default: false */
   compact?: boolean;
@@ -66,7 +66,7 @@ export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, 
         </span>
       );
     }
-    // Paddle/pdf success — subtle sage check
+    // Paddle/pdf success: subtle sage check
     return (
       <span
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-sage-100 text-sage-600 border border-sage-300"
@@ -82,7 +82,7 @@ export const OcrStatusBadge: React.FC<OcrStatusBadgeProps> = ({ doc, liveEvent, 
     return (
       <span
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-medium bg-amber-100 text-amber-600 border border-amber-300 cursor-help"
-        title={errorMsg ? `Extraction failed: ${errorMsg}` : 'Extraction incomplete — will use metadata only'}
+        title={errorMsg ? `Extraction failed: ${errorMsg}` : 'Extraction incomplete: will use metadata only'}
       >
         <AlertTriangle className="w-3 h-3 text-amber-600" strokeWidth={1.75} />
         {!compact && <span>Extraction Failed</span>}

@@ -13,7 +13,7 @@ interface Props {
 
 /**
  * 6-color rotation within Ink/Vault families per §9.5:
- * Deterministic, composed, and muted — never bright neon/random colors.
+ * Deterministic, composed, and muted: never bright neon or random colors.
  */
 export const MEMBER_AVATAR_COLORS = [
   '#2C5CA8', // vault-600
@@ -58,7 +58,7 @@ export const MemberModal: React.FC<Props> = ({
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to save family member');
+      setError(err.message || 'Failed to save member profile');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export const MemberModal: React.FC<Props> = ({
             </div>
             <div>
               <h3 className="text-h2 font-semibold text-primary">
-                {editingMember ? 'Edit Profile' : 'Add Family Member'}
+                {editingMember ? 'Edit Profile' : 'Add Member Profile'}
               </h3>
               <p className="text-small text-secondary">
                 Private medical profile stored locally in your vault

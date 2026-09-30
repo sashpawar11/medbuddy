@@ -53,6 +53,14 @@ export const OrganizeModal: React.FC<Props> = ({
   const [aiItems, setAiItems] = useState<EditableItem[]>([]);
   const [hasRunAi, setHasRunAi] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (providers.length > 0 && !selectedProviderId) {
@@ -138,6 +146,7 @@ export const OrganizeModal: React.FC<Props> = ({
         docIds,
         selectedProviderId || undefined
       );
+      if (!isMountedRef.current) return;
       const mapped = results.map((r) => ({
         ...r,
         selected: true,
@@ -148,9 +157,12 @@ export const OrganizeModal: React.FC<Props> = ({
       setItems(mapped);
       setHasRunAi(true);
     } catch (err: any) {
+      if (!isMountedRef.current) return;
       setError(err.message || 'Failed to generate AI organization suggestions');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -234,16 +246,16 @@ export const OrganizeModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[840px] max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-modal-enter">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[880px] max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-modal-enter">
         {/* Modal Header */}
-        <header className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0 bg-surface">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-vault-50 border border-vault-200 flex items-center justify-center text-vault-600">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between gap-4 shrink-0 bg-surface">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-md bg-vault-50 border border-vault-200 flex items-center justify-center text-vault-600 shrink-0">
               <Tags className="w-4 h-4" strokeWidth={1.75} />
             </div>
-            <div>
-              <h3 className="text-h2 font-semibold text-primary">Organize Medical Records</h3>
-              <p className="text-caption text-secondary">
+            <div className="min-w-0">
+              <h3 className="text-h2 font-semibold text-primary truncate">Organize Medical Records</h3>
+              <p className="text-caption text-secondary truncate" title="Auto-generates clinical tags and standardizes file names as <Prefix-Nameforreport>-<Date>">
                 Auto-generates clinical tags and standardizes file names as{' '}
                 <code className="bg-surface-recessed px-1 py-0.5 rounded text-[11px] font-mono text-tertiary">
                   &lt;Prefix-Nameforreport&gt;-&lt;Date&gt;
@@ -252,9 +264,9 @@ export const OrganizeModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 shrink-0">
             {/* Mode Switcher */}
-            <div className="inline-flex items-center p-0.5 rounded-md bg-surface-recessed border border-border text-caption">
+            <div className="inline-flex items-center p-0.5 rounded-md bg-surface-recessed border border-border text-caption shrink-0">
               <button
                 type="button"
                 onClick={() => handleModeChange('fast')}
@@ -297,7 +309,7 @@ export const OrganizeModal: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-tertiary hover:text-primary p-1 rounded-sm hover:bg-surface-hover transition-colors"
+                className="text-tertiary hover:text-primary p-1 rounded-sm hover:bg-surface-hover transition-colors shrink-0"
                 title="Close"
               >
                 <X className="w-4 h-4" strokeWidth={1.75} />
@@ -331,8 +343,17 @@ export const OrganizeModal: React.FC<Props> = ({
               <p className="text-small text-secondary max-w-md">
                 {organizeMode === 'fast'
                   ? 'Performing rapid heuristic extraction using clinical vocabulary and date patterns (<10ms).'
-                  : 'Performing semantic classification using medical LLM to identify report types and clinical tags.'}
+                  : `Performing semantic classification using ${currentProvider?.name || 'medical LLM'} to identify report types and clinical tags.`}
               </p>
+              {organizeMode === 'ai' && (
+                <div className="pt-1">
+                  <ProvenancePill
+                    kind={isLocal ? 'local' : 'cloud'}
+                    providerName={currentProvider?.name}
+                    modelName={currentProvider?.model}
+                  />
+                </div>
+              )}
             </div>
           ) : organizeMode === 'ai' && !hasRunAi ? (
             /* Smart AI Pane: Model Selection & Trigger ONLY (§Request 1) */
@@ -582,11 +603,20 @@ export const OrganizeModal: React.FC<Props> = ({
         {/* Modal Footer */}
         <footer className="px-6 py-3.5 border-t border-border flex items-center justify-between shrink-0 bg-surface-recessed">
           <div className="text-small text-secondary">
-            {organizeMode === 'ai' && !hasRunAi ? (
-              <span className="text-caption text-tertiary">
-                Select your model above and click Run Smart AI to preview standardized names.
+            {isLoading ? (
+              <span className="inline-flex items-center gap-2 text-caption text-secondary">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-vault-600" />
+                <span>
+                  {organizeMode === 'fast'
+                    ? 'Extracting heuristic suggestions...'
+                    : `Analyzing ${documents.length} document${documents.length === 1 ? '' : 's'} with Smart AI...`}
+                </span>
               </span>
-            ) : !isLoading && (
+            ) : organizeMode === 'ai' && !hasRunAi ? (
+              <span className="text-caption text-tertiary">
+                Select your model profile and click Run Smart AI to preview standardized names.
+              </span>
+            ) : (
               <span>
                 <strong className="font-semibold text-primary">{selectedCount}</strong> of{' '}
                 {items.length} document{items.length === 1 ? '' : 's'} selected
@@ -598,7 +628,7 @@ export const OrganizeModal: React.FC<Props> = ({
             <Button variant="secondary" size="md" onClick={onClose} disabled={isApplying}>
               Cancel
             </Button>
-            {(! (organizeMode === 'ai' && !hasRunAi)) && (
+            {!isLoading && (! (organizeMode === 'ai' && !hasRunAi)) && (
               <Button
                 variant="primary"
                 size="md"

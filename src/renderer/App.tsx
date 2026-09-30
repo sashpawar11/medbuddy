@@ -20,12 +20,13 @@ import { OverviewDashboard } from './components/dashboard/OverviewDashboard';
 import { OverviewsHistory } from './components/dashboard/OverviewsHistory';
 import { ProviderSettings } from './components/settings/ProviderSettings';
 import { DiagnosticsModal } from './components/diagnostics/DiagnosticsModal';
-import { GoogleSyncModal } from './components/sync/GoogleSyncModal';
+import { BackupVaultModal } from './components/sync/BackupVaultModal';
 import { HealthTimeline } from './components/timeline/HealthTimeline';
 import { ChatAssistantView } from './components/chat/ChatAssistantView';
 import { ToastContainer } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { MessageSquareText } from 'lucide-react';
+import { MessageSquareText, Folder as FolderIcon } from 'lucide-react';
+import { Button } from './components/common/Button';
 import { useToast } from './hooks/useToast';
 import { useTheme } from './hooks/useTheme';
 import { buildTimeline } from './utils/buildTimeline';
@@ -449,7 +450,7 @@ export const App: React.FC = () => {
         onOpenAddFolder={() => setIsFolderModalOpen(true)}
         onDeleteFolder={handleDeleteFolder}
         onOpenSync={() => handleOpenSync('all')}
-        isSyncConnected={Boolean(syncSettings?.isSignedIn)}
+        isSyncConnected={Boolean(syncSettings?.backupPath || syncSettings?.localMountPath)}
         theme={theme}
         onToggleTheme={toggleTheme}
         analyses={analyses}
@@ -463,7 +464,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main View Area (§5.2 flexible min 640px) */}
-      <main className="flex-1 flex overflow-hidden relative min-w-[640px] bg-app print:overflow-visible print:h-auto print:w-full print:block print:min-w-0 print:bg-white">
+      <main className="flex-1 flex overflow-hidden relative min-w-0 bg-app transition-[width,margin] duration-280 ease-[cubic-bezier(0.16,1,0.3,1)] print:overflow-visible print:h-auto print:w-full print:block print:min-w-0 print:bg-white">
         <ErrorBoundary fallbackTitle="Error Loading View">
           {activeView === 'home' && (
             <HomeDashboard
@@ -513,31 +514,31 @@ export const App: React.FC = () => {
             />
           )}
 
-          {/* Empty state per §9.13 */}
+          {/* Empty state */}
           {activeView === 'files' && (!selectedMember || !currentFolder) && (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-9 bg-app">
-              <div className="w-10 h-10 rounded-sm bg-surface-recessed border border-border flex items-center justify-center text-tertiary mb-3">
-                <span className="text-body font-mono">📁</span>
+              <div className="w-12 h-12 rounded-lg bg-surface-recessed border border-border flex items-center justify-center text-tertiary mb-3">
+                <FolderIcon className="w-6 h-6 text-tertiary" strokeWidth={1.75} />
               </div>
-              <h2 className="text-h2 font-semibold text-primary mb-1">Select a Family Folder</h2>
+              <h2 className="text-h2 font-semibold text-primary mb-1">Select a Folder</h2>
               <p className="text-body text-secondary max-w-sm mb-5">
-                Choose a family member and folder in the sidebar to review documents, or return to the dashboard.
+                Choose a profile and folder in the sidebar to review documents, or return to the dashboard.
               </p>
               <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="md"
                   onClick={() => setActiveView('home')}
-                  className="h-[34px] px-3 rounded-sm text-body font-medium bg-surface text-primary border border-border hover:bg-surface-hover transition-colors"
                 >
                   Return to Dashboard
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => setIsMemberModalOpen(true)}
-                  className="h-[34px] px-3 rounded-sm text-body font-medium bg-vault-600 text-white hover:bg-vault-700 transition-colors"
                 >
-                  Add Family Member
-                </button>
+                  Add Member Profile
+                </Button>
               </div>
             </div>
           )}
@@ -641,22 +642,13 @@ export const App: React.FC = () => {
           onClick={() => setActiveView('chat')}
           className={`fixed bottom-6 ${
             previewDoc ? 'right-[404px]' : 'right-6'
-          } z-40 group flex items-center gap-2.5 px-4 py-3 rounded-full bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-teal-400/30 dark:border-teal-500/40`}
-          title="Chat with MedBuddy (⌘4)"
+          } z-40 group flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-vault-600 hover:bg-vault-700 active:bg-vault-800 dark:bg-vault-500 dark:hover:bg-vault-400 text-white shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-150 cursor-pointer border border-white/20`}
+          title="Chat with MedBuddy"
           aria-label="Chat with MedBuddy"
         >
-          <div className="relative flex items-center justify-center">
-            <MessageSquareText className="w-5 h-5 text-white" strokeWidth={2} />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-200 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-          </div>
-          <span className="text-xs font-semibold tracking-wide pr-0.5">
+          <MessageSquareText className="w-4 h-4 text-white" strokeWidth={2} />
+          <span className="text-xs font-semibold tracking-tight pr-0.5">
             Chat with MedBuddy
-          </span>
-          <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-700/60 text-teal-100 border border-teal-500/40">
-            ⌘4
           </span>
         </button>
       )}
@@ -710,8 +702,8 @@ export const App: React.FC = () => {
         onClose={() => setIsDiagnosticsOpen(false)}
       />
 
-      {/* Google Drive Sync Modal */}
-      <GoogleSyncModal
+      {/* Vault Backup & Sync Modal */}
+      <BackupVaultModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
         members={members}
