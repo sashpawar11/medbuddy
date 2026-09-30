@@ -51,3 +51,35 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx --yes electron-builder --${{ matrix.target }} --publish always
+
+  finalize:
+    name: Checksums & Publish Release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Checksums & Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_type == 'tag' && github.ref_name || '' }}"
+          if [ -z "$TAG" ]; then
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+          echo "Processing release assets for tag: $TAG"
+          mkdir -p /tmp/release_assets
+          cd /tmp/release_assets
+
+          # Download all uploaded assets for this release tag
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir . || true
+
+          # Generate SHA256SUMS.txt for all non-checksum files
+          rm -f SHA256SUMS.txt
+          if [ -n "$(ls -A . 2>/dev/null)" ]; then
+            sha256sum * > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+            gh release upload "$TAG" SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
+          fi

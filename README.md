@@ -28,13 +28,35 @@ Built with a **privacy-first architecture**, all sensitive documents, profiles, 
 
 > **Yes! Because MedBuddy is built on Electron, it is officially supported across Windows, macOS, and Linux.**
 
-Prebuilt, ready-to-run installation packages and standalone bundles are published with every release. Download the appropriate binary for your system from the **[GitHub Releases](https://github.com/medbuddy/medbuddy/releases)** page:
+Prebuilt, ready-to-run installation packages and standalone bundles are published with every release. Download the appropriate binary for your system from the **[GitHub Releases](https://github.com/sashpawar11/medbuddy/releases)** page:
 
 | Operating System | Supported Architectures | Available Package Formats | Notes |
 | :--- | :--- | :--- | :--- |
 | **Windows** | `x64`, `arm64` | `.exe` (NSIS Installer), `.exe` (Portable) | Windows 10 & 11 supported |
 | **macOS** | Apple Silicon (`arm64`), Intel (`x64`) | `.dmg`, `.zip` (Universal & Native) | macOS 11+ (Big Sur through Sequoia) |
-| **Linux** | `x64`, `arm64` | `.AppImage`, `.deb`, `.rpm` | Ubuntu, Debian, Fedora, Arch, and derivatives |
+| **Linux** | `x64`, `arm64` | `.AppImage`, `.deb` | Ubuntu, Debian, Fedora, Arch, and derivatives |
+
+### ⚡ Quick Install (Linux & macOS)
+
+Run the automated one-line installer in your terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.sh | bash
+```
+
+The script will automatically:
+- Detect your OS (Linux / macOS) and CPU architecture (`x86_64` vs `arm64`)
+- Fetch the latest GitHub release and verify SHA checksums
+- **Linux**: Install the AppImage to `~/.local/share/medbuddy`, integrate into application menus with `.desktop` and high-res icons, and register the `medbuddy` CLI command (with automatic FUSE fallback)
+- **macOS**: Download and install `MedBuddy.app` into `/Applications` and configure the CLI command
+- **Windows**: Downloads the installer executable
+
+To uninstall at any time:
+```bash
+medbuddy --uninstall
+# or via installer script:
+curl -fsSL https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.sh | bash -s -- --uninstall
+```
 
 ---
 
