@@ -552,9 +552,8 @@ export class LocalVaultSyncService {
         });
 
         const safeBase = doc.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const localDestPath = doc.storage_path
-          ? (path.isAbsolute(doc.storage_path) ? doc.storage_path : path.join(vaultDir, doc.storage_path))
-          : path.join(vaultDir, `${doc.content_hash.slice(0, 16)}_${safeBase}`);
+        const storageFilename = `${doc.content_hash.slice(0, 16)}_${safeBase}`;
+        const localDestPath = path.join(vaultDir, storageFilename);
 
         // Check if destination file already exists with identical hash
         if (fs.existsSync(localDestPath)) {
