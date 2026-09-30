@@ -21,6 +21,69 @@ marked.setOptions({
   breaks: true,
 });
 
+function applyStreamingFade(html: string): string {
+  if (typeof window === 'undefined' || !html) return html;
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Find the last non-empty text node in doc.body
+    const walker = document.createTreeWalker(
+      doc.body,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let lastTextNode: Text | null = null;
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if (node.nodeType === Node.TEXT_NODE && (node.textContent || '').trim().length > 0) {
+        lastTextNode = node as Text;
+      }
+    }
+
+    if (!lastTextNode || !lastTextNode.textContent) {
+      return html;
+    }
+
+    const fullText = lastTextNode.textContent;
+    const targetTailLen = 28;
+
+    if (fullText.trim().length <= 8) {
+      const span = doc.createElement('span');
+      span.className = 'streaming-fade-trail';
+      span.textContent = fullText;
+      lastTextNode.parentNode?.replaceChild(span, lastTextNode);
+    } else {
+      const splitPoint = Math.max(0, fullText.length - targetTailLen);
+      let breakIdx = fullText.indexOf(' ', splitPoint);
+      if (breakIdx === -1 || breakIdx > fullText.length - 6) {
+        breakIdx = splitPoint;
+      }
+
+      const head = fullText.slice(0, breakIdx);
+      const tail = fullText.slice(breakIdx);
+
+      const span = doc.createElement('span');
+      span.className = 'streaming-fade-trail';
+      span.textContent = tail;
+
+      const parent = lastTextNode.parentNode;
+      if (parent) {
+        if (head) {
+          parent.insertBefore(doc.createTextNode(head), lastTextNode);
+        }
+        parent.insertBefore(span, lastTextNode);
+        parent.removeChild(lastTextNode);
+      }
+    }
+
+    return doc.body.innerHTML;
+  } catch {
+    return html;
+  }
+}
+
 interface ChatMessageItemProps {
   message: ChatMessageType;
   members: FamilyMember[];
@@ -42,7 +105,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     ? members.find((m) => m.id === message.scopedMemberId)
     : null;
 
-  // Convert markdown to sanitized, styled HTML
+  // Convert markdown to sanitized, styled HTML with streaming fade reveal
   const parsedHtml = useMemo(() => {
     if (!message.content) return '';
     try {
@@ -50,11 +113,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       // Wrap all <table> elements in <div class="table-container"> for responsive horizontal scroll & modern borders
       rawHtml = rawHtml.replace(/<table>/g, '<div class="table-container"><table>');
       rawHtml = rawHtml.replace(/<\/table>/g, '</table></div>');
+      if (isStreamingActive) {
+        return applyStreamingFade(rawHtml);
+      }
       return rawHtml;
     } catch {
       return message.content;
     }
-  }, [message.content]);
+  }, [message.content, isStreamingActive]);
 
   const handleCopy = async () => {
     if (!message.content) return;

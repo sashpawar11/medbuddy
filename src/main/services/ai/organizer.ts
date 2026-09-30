@@ -128,7 +128,7 @@ RULES FOR NAMING:
 6. Tags: Generate 2 to 4 concise clinical tags representing the content (e.g. ["Bloodwork", "Lipid Panel", "Tests"], ["CT Scans", "Radiology"], ["Prescriptions", "Cardiology"]).
 
 OUTPUT CONTRACT:
-Respond ONLY with a valid, raw JSON object matching this schema:
+Respond ONLY with a valid, raw JSON object matching this schema. Do NOT include markdown code fences, backticks, preamble, commentary, or thinking blocks. Keep "reasoning" strictly under 15 words.
 {
   "results": [
     {
@@ -168,7 +168,7 @@ Respond ONLY with a valid, raw JSON object matching this schema:
       profile,
       messages,
       temperature: 0.1,
-      timeoutMs: 60000,
+      timeoutMs: 120000,
     });
 
     const sanitized = sanitizeJsonResponse(response.content);

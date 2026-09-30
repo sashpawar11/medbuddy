@@ -58,7 +58,7 @@ export const MemberModal: React.FC<Props> = ({
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to save family member');
+      setError(err.message || 'Failed to save member profile');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export const MemberModal: React.FC<Props> = ({
             </div>
             <div>
               <h3 className="text-h2 font-semibold text-primary">
-                {editingMember ? 'Edit Profile' : 'Add Family Member'}
+                {editingMember ? 'Edit Profile' : 'Add Member Profile'}
               </h3>
               <p className="text-small text-secondary">
                 Private medical profile stored locally in your vault

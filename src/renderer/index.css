@@ -341,6 +341,27 @@ button:active:not(:disabled) {
   box-shadow: var(--shadow-md);
 }
 
+/* Cloudflare Kumo Sidebar Smooth Motion & Micro-Scrollbars */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+[data-state="peeking"],
+[data-state="expanded"],
+[data-state="collapsed"] {
+  will-change: width;
+}
+
 /* ==========================================================================
    Motion System (§12 in docs/Designv2.md)
    ========================================================================== */
@@ -472,6 +493,31 @@ button:active:not(:disabled) {
   line-height: 1.7;
   color: var(--color-text-primary);
   word-break: break-word;
+}
+
+/* Streaming Message Subtle Fade-Out Reveal */
+.streaming-fade-trail {
+  display: inline;
+  background-image: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 20%,
+    rgba(111, 120, 145, 0.6) 55%,
+    rgba(111, 120, 145, 0.15) 85%,
+    transparent 100%
+  );
+  background-image: linear-gradient(
+    to right,
+    currentColor 0%,
+    currentColor 20%,
+    color-mix(in srgb, currentColor 65%, transparent) 55%,
+    color-mix(in srgb, currentColor 18%, transparent) 85%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .chat-prose p {

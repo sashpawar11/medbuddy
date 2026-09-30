@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   FileCheck2,
   Download,
-  Printer,
   Sparkles,
   ArrowUpRight,
   ChevronLeft,
@@ -197,10 +196,6 @@ export const OverviewDashboard: React.FC<Props> = ({
     } finally {
       setIsExportingPdf(false);
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const handleExportJson = () => {
@@ -408,15 +403,6 @@ export const OverviewDashboard: React.FC<Props> = ({
           >
             {isExportingPdf ? 'Exporting...' : 'Export PDF'}
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handlePrint}
-            icon={<Printer className="w-3.5 h-3.5 text-tertiary" strokeWidth={1.75} />}
-            title="Print overview via system dialog"
-          >
-            Print
-          </Button>
         </div>
       </header>
 
@@ -435,7 +421,7 @@ export const OverviewDashboard: React.FC<Props> = ({
                     MedBuddy Clinical Synthesis Report
                   </h1>
                   <p className="text-xs text-slate-600 font-medium">
-                    Personal Family Health Vault • Confirmed Local &amp; Confidential
+                    Medbuddy : Personal Medical Vault • Confirmed Local &amp; Confidential
                   </p>
                 </div>
               </div>
@@ -455,7 +441,7 @@ export const OverviewDashboard: React.FC<Props> = ({
                   Patient Profile
                 </span>
                 <span className="font-bold text-slate-900 text-sm">
-                  {analysis.member_name || 'Family Member'}
+                  {analysis.member_name || 'Patient Profile'}
                 </span>
               </div>
               <div>

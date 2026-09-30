@@ -523,7 +523,7 @@ export class LocalVaultSyncService {
       // 1. Restore Database Records (Members, Folders, Document metadata, Analyses)
       this.emitProgress({
         stage: 'restoring',
-        message: 'Restoring family profiles, folder tree, and clinical analyses...',
+        message: 'Restoring member profiles, folder tree, and clinical analyses...',
         progressPercent: 40,
         totalFiles: snapshot.documents.length,
         syncedFiles: 0,

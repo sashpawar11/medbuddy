@@ -423,13 +423,13 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
             />
           ) : (
             <div className="max-w-4xl mx-auto py-4">
-              {messages.map((msg) => (
+              {messages.map((msg, idx) => (
                 <ChatMessageItem
                   key={msg.id}
                   message={msg}
                   members={members}
                   onOpenDocumentPreview={handleOpenCitation}
-                  isStreamingActive={isStreaming && msg.role === 'assistant'}
+                  isStreamingActive={isStreaming && msg.role === 'assistant' && idx === messages.length - 1}
                 />
               ))}
               <div ref={messagesEndRef} />

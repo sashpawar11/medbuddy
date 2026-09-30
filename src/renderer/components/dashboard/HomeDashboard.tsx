@@ -3,14 +3,12 @@ import {
   Activity,
   Cpu,
   UserPlus,
-  ShieldCheck,
   Folder,
   ArrowRight,
   Plus,
   ChevronRight,
   Cloud,
   FolderSync,
-  Lock,
   Database,
   CheckCircle2,
   Sparkles,
@@ -84,7 +82,7 @@ export const HomeDashboard: React.FC<Props> = ({
         <div className="flex items-center gap-2.5">
           <div className="w-2.5 h-2.5 rounded-full bg-sage-600 dark:bg-sage-600" />
           <div>
-            <h2 className="text-body-medium font-semibold text-primary">Family Medical Vault</h2>
+            <h2 className="text-body-medium font-semibold text-primary">Medbuddy : Personal Medical Vault</h2>
             <p className="text-caption text-tertiary">
               Private, local-first health records and clinical intelligence
             </p>
@@ -133,7 +131,7 @@ export const HomeDashboard: React.FC<Props> = ({
 
                 {/* Hero Title - Confident, Clean Typography without Gradient Clutter */}
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary leading-tight">
-                  Private Family Health Vault &amp; Clinical Synthesis
+                  Medbuddy : Personal Medical Vault
                 </h1>
 
                 {/* Subtitle */}
@@ -170,22 +168,6 @@ export const HomeDashboard: React.FC<Props> = ({
                   >
                     <span>Configure AI Engine</span>
                   </Button>
-                </div>
-
-                {/* Guarantees Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-caption text-secondary py-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-sage-600 shrink-0" strokeWidth={2} />
-                    <span className="font-medium truncate">Encrypted SQLite Vault</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-caption text-secondary py-1">
-                    <Activity className="w-3.5 h-3.5 text-vault-600 dark:text-vault-400 shrink-0" strokeWidth={2} />
-                    <span className="font-medium truncate">Local OCR &amp; Vision</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-caption text-secondary py-1">
-                    <Lock className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" strokeWidth={2} />
-                    <span className="font-medium truncate">Zero Cloud Telemetry</span>
-                  </div>
                 </div>
               </div>
 
@@ -238,8 +220,7 @@ export const HomeDashboard: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-tertiary">
-                    <span className="font-mono text-[10px]">AES-256 Storage</span>
+                  <div className="pt-2 border-t border-border flex items-center justify-end text-[11px] text-tertiary">
                     <button
                       onClick={() => onNavigate('settings')}
                       className="text-vault-600 dark:text-vault-400 hover:underline font-medium text-[11px]"
@@ -347,11 +328,11 @@ export const HomeDashboard: React.FC<Props> = ({
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-body-medium font-semibold text-primary group-hover:text-vault-600 dark:group-hover:text-vault-400 transition-colors flex items-center gap-1.5">
-                      Add Family Member
+                      Add Member Profile
                       <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.75} />
                     </h4>
                     <p className="text-small text-secondary leading-relaxed">
-                      Create an isolated medical record profile for a family member, parent, or child.
+                      Create an isolated medical record profile for a patient or individual.
                     </p>
                   </div>
                 </div>

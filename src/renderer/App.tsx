@@ -464,7 +464,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main View Area (§5.2 flexible min 640px) */}
-      <main className="flex-1 flex overflow-hidden relative min-w-[640px] bg-app print:overflow-visible print:h-auto print:w-full print:block print:min-w-0 print:bg-white">
+      <main className="flex-1 flex overflow-hidden relative min-w-0 bg-app transition-[width,margin] duration-280 ease-[cubic-bezier(0.16,1,0.3,1)] print:overflow-visible print:h-auto print:w-full print:block print:min-w-0 print:bg-white">
         <ErrorBoundary fallbackTitle="Error Loading View">
           {activeView === 'home' && (
             <HomeDashboard
@@ -520,9 +520,9 @@ export const App: React.FC = () => {
               <div className="w-12 h-12 rounded-lg bg-surface-recessed border border-border flex items-center justify-center text-tertiary mb-3">
                 <FolderIcon className="w-6 h-6 text-tertiary" strokeWidth={1.75} />
               </div>
-              <h2 className="text-h2 font-semibold text-primary mb-1">Select a Family Folder</h2>
+              <h2 className="text-h2 font-semibold text-primary mb-1">Select a Folder</h2>
               <p className="text-body text-secondary max-w-sm mb-5">
-                Choose a family member and folder in the sidebar to review documents, or return to the dashboard.
+                Choose a profile and folder in the sidebar to review documents, or return to the dashboard.
               </p>
               <div className="flex items-center gap-2.5">
                 <Button
@@ -537,7 +537,7 @@ export const App: React.FC = () => {
                   size="md"
                   onClick={() => setIsMemberModalOpen(true)}
                 >
-                  Add Family Member
+                  Add Member Profile
                 </Button>
               </div>
             </div>

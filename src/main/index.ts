@@ -22,6 +22,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hiddenInset',
+    icon: path.join(__dirname, '../../assets/icon.svg'),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,

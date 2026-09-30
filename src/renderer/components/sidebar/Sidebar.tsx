@@ -9,18 +9,11 @@ import {
   Terminal,
   Settings,
   ChevronDown,
-  ChevronRight,
-  ShieldCheck,
+  Trash2,
   Home,
-  PanelLeftClose,
-  PanelLeftOpen,
   FileText,
   Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
   Clock,
-  MessageSquareText,
 } from 'lucide-react';
 import type { FamilyMember, Folder, AnalysisRecord } from '../../../shared/types';
 import { ThemeToggle } from '../common/ThemeToggle';
@@ -28,7 +21,25 @@ import type { ThemeMode } from '../../hooks/useTheme';
 import { MEMBER_AVATAR_COLORS } from './MemberModal';
 import { MedBuddyLogo } from '../common/MedBuddyLogo';
 
-interface Props {
+import {
+  SidebarProvider,
+  useSidebar,
+  type SidebarState,
+} from './SidebarContext';
+import {
+  SidebarRoot,
+  SidebarHeader,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarItem,
+  SidebarFooter,
+  SidebarToggle,
+} from './SidebarComponents';
+import { SidebarTooltip } from './SidebarTooltip';
+
+export interface SidebarProps {
   members: FamilyMember[];
   selectedMember: FamilyMember | null;
   folders: Folder[];
@@ -59,7 +70,7 @@ interface Props {
   onCheckAiHealth?: () => void;
 }
 
-export const Sidebar: React.FC<Props> = ({
+const SidebarInner: React.FC<SidebarProps> = ({
   members,
   selectedMember,
   folders,
@@ -72,70 +83,15 @@ export const Sidebar: React.FC<Props> = ({
   onOpenEditMember,
   onOpenAddFolder,
   onDeleteFolder,
-  onOpenSync,
-  isSyncConnected = false,
-  isCollapsed = false,
-  onToggleCollapse,
   theme,
   onToggleTheme,
   analyses = [],
   currentAnalysisId,
   onSelectAnalysis,
-  aiHealth = { status: 'idle' },
-  onCheckAiHealth,
 }) => {
+  const { isPinned, isExpandedOrPeeking, togglePin } = useSidebar();
   const [memberMenuOpen, setMemberMenuOpen] = useState(false);
   const [reportsFolderExpanded, setReportsFolderExpanded] = useState(true);
-
-  // Resizable sidebar width with local persistence (§5.2)
-  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('medbuddy-sidebar-width');
-      if (saved) {
-        const val = parseInt(saved, 10);
-        if (!isNaN(val) && val >= 180 && val <= 500) {
-          return val;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return 240;
-  });
-
-  const isResizingRef = React.useRef(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isResizingRef.current) return;
-      const newWidth = Math.min(Math.max(moveEvent.clientX, 180), 500);
-      setSidebarWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      isResizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      try {
-        setSidebarWidth((w) => {
-          localStorage.setItem('medbuddy-sidebar-width', String(w));
-          return w;
-        });
-      } catch {
-        // ignore
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
 
   // Helper for member avatar color deterministic lookup
   const getMemberColor = (m: FamilyMember, idx: number) => {
@@ -157,467 +113,417 @@ export const Sidebar: React.FC<Props> = ({
     return false;
   });
 
-  // Nav item helper with dark mode contrast and consistent radii
-  const navItemClass = (active: boolean) =>
-    `w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-body transition-all duration-150 select-none ${
-      active
-        ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-700 dark:text-vault-300 font-semibold shadow-2xs border border-vault-200/60 dark:border-vault-800/60'
-        : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium border border-transparent'
-    }`;
-
-  // --------------------------------------------------------------------------
-  // Collapsed Mode (Icon strip)
-  // --------------------------------------------------------------------------
-  if (isCollapsed) {
-    return (
-      <aside className="w-14 bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 print:hidden">
-        <div className="p-2.5 border-b border-border flex flex-col items-center gap-2 shrink-0">
-          <button
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded-sm hover:bg-surface-hover text-tertiary hover:text-primary transition-colors"
-            title="Expand Sidebar"
-            aria-label="Expand sidebar"
-          >
-            <PanelLeftOpen className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1.5">
-          <button
-            onClick={() => onNavigate('home')}
-            className={`p-2 rounded-sm transition-colors ${
-              activeView === 'home'
-                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
-                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
-            }`}
-            title="Home Dashboard"
-          >
-            <Home className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-
-          {selectedMember ? (
-            <button
-              onClick={() => onNavigate('files')}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shrink-0 my-0.5"
-              style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
-              title={`Active: ${selectedMember.name}`}
-            >
-              {selectedMember.name.slice(0, 1).toUpperCase()}
-            </button>
-          ) : (
-            <button
-              onClick={onOpenAddMember}
-              className="p-2 rounded-sm hover:bg-surface-hover text-tertiary hover:text-primary"
-              title="Add Family Member"
-            >
-              <UserPlus className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          )}
-
-          <button
-            onClick={() => onNavigate('files')}
-            className={`p-2 rounded-sm transition-colors ${
-              activeView === 'files'
-                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
-                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
-            }`}
-            title="Medical Documents"
-          >
-            <FolderIcon className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-        </div>
-
-        <div className="p-2 border-t border-border flex flex-col items-center gap-1.5 shrink-0">
-          {/* Generated Reports (first in footer list) */}
-          <button
-            onClick={() => onNavigate('overviews_history')}
-            className={`p-2 rounded-md transition-all relative ${
-              activeView === 'overviews_history' || activeView === 'overview'
-                ? 'bg-vault-600 text-white shadow-xs'
-                : 'text-vault-600 dark:text-vault-400 bg-vault-50 dark:bg-vault-950/60 hover:bg-vault-100 hover:text-vault-700'
-            }`}
-            title="All Generated Reports"
-          >
-            <Activity className="w-4 h-4" strokeWidth={2} />
-            {analyses.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-teal-500" />
-            )}
-          </button>
-
-          <button
-            onClick={() => onNavigate('settings')}
-            className={`p-2 rounded-sm relative transition-colors ${
-              activeView === 'settings'
-                ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-600 dark:text-vault-300'
-                : 'text-tertiary hover:bg-surface-hover hover:text-primary'
-            }`}
-            title="AI Providers"
-          >
-            <Cpu className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        </div>
-      </aside>
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // Standard Sidebar (Resizable with hold and drag)
-  // --------------------------------------------------------------------------
   return (
-    <aside
-      style={{ width: `${sidebarWidth}px` }}
-      className="bg-surface-recessed border-r border-border flex flex-col h-full select-none shrink-0 font-sans relative group/sidebar print:hidden"
-    >
-      {/* Resizing Hold and Drag Handle */}
-      <div
-        onMouseDown={handleMouseDown}
-        onDoubleClick={() => {
-          setSidebarWidth(240);
-          try {
-            localStorage.setItem('medbuddy-sidebar-width', '240');
-          } catch {}
-        }}
-        className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-vault-500/40 active:bg-vault-500 transition-colors z-20"
-        title="Hold and drag to resize sidebar (double click to reset)"
-      />
-      {/* Brand Header - Spacious and Breathable */}
-      <div className="px-4 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-surface">
+    <SidebarRoot>
+      {/* 1. Header: Brand Logo & Wordmark + Collapse Button */}
+      <SidebarHeader>
         <button
+          type="button"
           onClick={() => onNavigate('home')}
-          className="flex items-center min-w-0 text-left transition-opacity hover:opacity-90"
-          title="Return to Home Dashboard"
+          className="flex items-center gap-2.5 min-w-0 text-left outline-none rounded-md focus-visible:ring-2 focus-visible:ring-vault-500/50"
+          title="Return to Home"
         >
-          <MedBuddyLogo size={32} showText={true} />
-        </button>
-
-        <div className="flex items-center gap-1 shrink-0">
-          {onToggleCollapse && (
-            <button
-              onClick={onToggleCollapse}
-              className="p-1.5 rounded-md text-tertiary hover:text-primary hover:bg-surface-hover transition-colors"
-              title="Collapse Sidebar"
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <div className="px-3 pt-3 pb-1.5 space-y-1 shrink-0">
-        <button
-          onClick={() => onNavigate('home')}
-          className={navItemClass(activeView === 'home')}
-        >
-          <Home className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-          <span className="truncate">Home Dashboard</span>
-        </button>
-      </div>
-
-      {/* Member Switcher per §9.5 */}
-      <div className="px-3 py-2 border-b border-border relative shrink-0">
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="text-caption font-medium uppercase tracking-wider text-tertiary">
-            Family Profile
-          </span>
-          <button
-            onClick={onOpenAddMember}
-            className="text-caption text-tertiary hover:text-primary flex items-center gap-0.5 font-medium transition-colors"
-            title="Add Family Member"
+          <MedBuddyLogo size={28} showText={false} />
+          <div
+            className={`transition-all duration-280 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden whitespace-nowrap ${
+              isExpandedOrPeeking
+                ? 'opacity-100 translate-x-0 max-w-[150px]'
+                : 'opacity-0 -translate-x-2 max-w-0 pointer-events-none'
+            }`}
           >
-            <Plus className="w-3 h-3" strokeWidth={1.75} /> Add
-          </button>
-        </div>
+            <span className="text-[16px] font-bold tracking-tight text-primary leading-none">
+              Med<span className="text-[#18AFA3] dark:text-[#20B9A5]">Buddy</span>
+            </span>
+          </div>
+        </button>
+      </SidebarHeader>
 
-        {selectedMember ? (
-          <div className="relative">
-            <button
-              onClick={() => setMemberMenuOpen(!memberMenuOpen)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm bg-surface hover:bg-surface-hover border border-border text-left transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shrink-0 shadow-xs"
-                  style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
-                >
-                  {selectedMember.name.slice(0, 1).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-body font-medium text-primary truncate leading-tight">
-                    {selectedMember.name}
-                  </div>
-                  <div className="text-caption text-tertiary truncate leading-tight">
-                    {selectedMember.relationship}
-                  </div>
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-tertiary shrink-0 ml-1" strokeWidth={1.75} />
-            </button>
+      {/* 2. Middle Scrollable Content */}
+      <SidebarContent>
+        {/* Navigation Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarItem
+              icon={<Home className="w-4 h-4" strokeWidth={1.75} />}
+              label="Home"
+              active={activeView === 'home'}
+              tooltip="Home"
+              onClick={() => onNavigate('home')}
+            />
+            <SidebarItem
+              icon={<FolderIcon className="w-4 h-4" strokeWidth={1.75} />}
+              label="Vault Documents"
+              active={activeView === 'files' && !selectedFolderId}
+              tooltip="Vault Documents"
+              onClick={() => onNavigate('files')}
+            />
+            <SidebarItem
+              icon={<Clock className="w-4 h-4" strokeWidth={1.75} />}
+              label="Health Chronicle"
+              active={activeView === 'timeline'}
+              tooltip="Health Chronicle"
+              onClick={() => onNavigate('timeline')}
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-            {memberMenuOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-sm z-30 py-1 max-h-48 overflow-y-auto">
-                {members.map((m, idx) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between px-3 py-2 hover:bg-surface-hover cursor-pointer group transition-colors"
-                    onClick={() => {
-                      onSelectMember(m);
-                      setMemberMenuOpen(false);
-                    }}
+        {/* Member Profiles Section */}
+        <SidebarGroup className="pt-2">
+          <SidebarGroupLabel
+            action={
+              <button
+                type="button"
+                onClick={onOpenAddMember}
+                className="text-caption text-tertiary hover:text-primary flex items-center gap-0.5 font-medium transition-colors p-0.5 rounded hover:bg-surface-hover"
+                title="Add Profile"
+              >
+                <Plus className="w-3 h-3" strokeWidth={2} /> Add
+              </button>
+            }
+          >
+            Profiles
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            {selectedMember ? (
+              <div className="relative">
+                {/* Collapsed Mode Avatar Button */}
+                {!isExpandedOrPeeking ? (
+                  <SidebarTooltip
+                    content={`Profile: ${selectedMember.name} (${selectedMember.relationship})`}
+                    enabled={!isExpandedOrPeeking}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate('files')}
+                      className="w-full flex items-center justify-center py-1 outline-none"
+                    >
                       <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                        style={{ backgroundColor: getMemberColor(m, idx) }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shadow-2xs hover:scale-105 transition-transform"
+                        style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
                       >
-                        {m.name.slice(0, 1).toUpperCase()}
+                        {selectedMember.name.slice(0, 1).toUpperCase()}
                       </div>
-                      <span className="text-body text-primary truncate font-medium">{m.name}</span>
-                    </div>
+                    </button>
+                  </SidebarTooltip>
+                ) : (
+                  /* Expanded Mode Profile Switcher Card */
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMemberMenuOpen(!memberMenuOpen)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md bg-surface/70 hover:bg-surface-hover border border-border text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-vault-500/50"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold text-white shrink-0 shadow-2xs"
+                          style={{ backgroundColor: getMemberColor(selectedMember, 0) }}
+                        >
+                          {selectedMember.name.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-body font-medium text-primary truncate leading-tight">
+                            {selectedMember.name}
+                          </div>
+                          <div className="text-caption text-tertiary truncate leading-tight">
+                            {selectedMember.relationship}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-tertiary shrink-0 ml-1 transition-transform duration-200 ${
+                          memberMenuOpen ? 'rotate-180' : ''
+                        }`}
+                        strokeWidth={1.75}
+                      />
+                    </button>
+
+                    {/* Member Dropdown Menu */}
+                    {memberMenuOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-md shadow-md z-50 py-1 max-h-48 overflow-y-auto animate-fade-in">
+                        {members.map((m, idx) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between px-2.5 py-1.5 hover:bg-surface-hover cursor-pointer group transition-colors"
+                            onClick={() => {
+                              onSelectMember(m);
+                              setMemberMenuOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                                style={{ backgroundColor: getMemberColor(m, idx) }}
+                              >
+                                {m.name.slice(0, 1).toUpperCase()}
+                              </div>
+                              <span className="text-body text-primary truncate font-medium">
+                                {m.name}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMemberMenuOpen(false);
+                                onOpenEditMember(m);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-tertiary hover:text-primary transition-opacity rounded hover:bg-surface"
+                              title="Edit Member"
+                            >
+                              <Settings className="w-3.5 h-3.5" strokeWidth={1.75} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <SidebarItem
+                icon={<UserPlus className="w-4 h-4" strokeWidth={1.75} />}
+                label="Add First Profile"
+                tooltip="Add Profile"
+                onClick={onOpenAddMember}
+              />
+            )}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Folders & Intelligence Section */}
+        <SidebarGroup className="pt-2">
+          <SidebarGroupLabel
+            action={
+              selectedMember && (
+                <button
+                  type="button"
+                  onClick={onOpenAddFolder}
+                  className="text-caption text-tertiary hover:text-primary flex items-center gap-0.5 font-medium transition-colors p-0.5 rounded hover:bg-surface-hover"
+                  title="Create New Folder"
+                >
+                  <FolderPlus className="w-3 h-3" strokeWidth={1.75} /> New
+                </button>
+              )
+            }
+          >
+            Vault Folders
+          </SidebarGroupLabel>
+
+          <SidebarGroupContent>
+            {/* 1. Default 'AI Summaries' Folder for Active Profile */}
+            {selectedMember && (
+              <div className="space-y-0.5">
+                <SidebarItem
+                  icon={<Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" strokeWidth={2} />}
+                  label={selectedMember ? `${selectedMember.name}'s AI Summaries` : 'AI Summaries'}
+                  active={activeView === 'overviews_history' || (activeView === 'overview' && !selectedFolderId)}
+                  tooltip={`${selectedMember.name}'s AI Summaries`}
+                  badge={
+                    <span className="text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/80">
+                      {memberAnalyses.length}
+                    </span>
+                  }
+                  action={
+                    isExpandedOrPeeking && memberAnalyses.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReportsFolderExpanded(!reportsFolderExpanded);
+                        }}
+                        className="p-1 text-tertiary hover:text-primary transition-transform rounded"
+                        title={reportsFolderExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            reportsFolderExpanded ? '' : '-rotate-90'
+                          }`}
+                          strokeWidth={2}
+                        />
+                      </button>
+                    ) : undefined
+                  }
+                  onClick={() => {
+                    if (isExpandedOrPeeking) {
+                      setReportsFolderExpanded(!reportsFolderExpanded);
+                    }
+                    onNavigate('overviews_history');
+                  }}
+                />
+
+                {/* Expanded items list: reports for this profile */}
+                {isExpandedOrPeeking && reportsFolderExpanded && memberAnalyses.length > 0 && (
+                  <div className="pl-4 pr-1 space-y-0.5 mt-0.5 mb-1.5 border-l-2 border-teal-500/20 dark:border-teal-500/30 ml-4 animate-fade-in">
+                    {memberAnalyses.map((rec) => {
+                      const isSelected = activeView === 'overview' && currentAnalysisId === rec.id;
+                      const dateStr = new Date(rec.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      });
+                      return (
+                        <button
+                          key={rec.id}
+                          type="button"
+                          onClick={() => onSelectAnalysis?.(rec)}
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-small text-left transition-colors group outline-none focus-visible:ring-2 focus-visible:ring-vault-500/40 ${
+                            isSelected
+                              ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold shadow-2xs'
+                              : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
+                          }`}
+                          title={`${rec.scope_name || 'Generated Summary'} (${dateStr})`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText
+                              className={`w-3.5 h-3.5 shrink-0 ${
+                                isSelected ? 'text-vault-600 dark:text-vault-400' : 'text-tertiary'
+                              }`}
+                              strokeWidth={1.75}
+                            />
+                            <span className="truncate text-[12px]">{rec.scope_name || 'Generated Summary'}</span>
+                          </div>
+                          <span className="text-[10px] text-tertiary tabular-nums shrink-0 ml-1.5">
+                            {dateStr}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. Custom Folders */}
+            {folders.map((f) => {
+              const isSelected = selectedFolderId === f.id && activeView === 'files';
+              return (
+                <SidebarItem
+                  key={f.id}
+                  icon={<FolderIcon className="w-4 h-4" strokeWidth={1.75} />}
+                  label={f.name}
+                  active={isSelected}
+                  tooltip={`Folder: ${f.name} (${f.document_count || 0})`}
+                  badge={
+                    <span className="text-caption tabular-nums text-tertiary font-medium px-1">
+                      {f.document_count || 0}
+                    </span>
+                  }
+                  action={
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMemberMenuOpen(false);
-                        onOpenEditMember(m);
+                        if (confirm(`Delete folder "${f.name}" and all records inside?`)) {
+                          onDeleteFolder(f.id);
+                        }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-tertiary hover:text-primary transition-opacity"
-                      title="Edit Member"
+                      className="opacity-0 group-hover/item:opacity-100 p-1 text-tertiary hover:text-clay-600 transition-colors rounded hover:bg-surface"
+                      title="Delete Folder"
                     >
-                      <Settings className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenAddMember}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm border border-dashed border-border-strong text-small text-tertiary hover:text-primary hover:border-vault-500 transition-colors"
-          >
-            <UserPlus className="w-4 h-4" strokeWidth={1.75} />
-            Add First Profile
-          </button>
-        )}
-      </div>
-
-      {/* Folder Tree per §9.5 */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-        <div className="flex items-center justify-between px-1 mb-1">
-          <span className="text-caption font-medium uppercase tracking-wider text-tertiary">
-            Folders
-          </span>
-          {selectedMember && (
-            <button
-              onClick={onOpenAddFolder}
-              className="text-caption text-tertiary hover:text-primary flex items-center gap-1 font-medium transition-colors"
-              title="Create New Folder"
-            >
-              <FolderPlus className="w-3 h-3" strokeWidth={1.75} /> New
-            </button>
-          )}
-        </div>
-
-        {/* 1. Default 'AI Summaries' Folder for the Profile */}
-        {selectedMember && (
-          <div className="mb-1.5">
-            <div
-              onClick={() => setReportsFolderExpanded(!reportsFolderExpanded)}
-              className={`group flex items-center justify-between px-2.5 py-1.5 rounded-md text-body cursor-pointer transition-colors ${
-                activeView === 'overviews_history' || (activeView === 'overview' && !selectedFolderId)
-                  ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold'
-                  : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium'
-              }`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setReportsFolderExpanded(!reportsFolderExpanded);
+                  }
+                  onClick={() => {
+                    onSelectFolder(f.id);
+                    onNavigate('files');
                   }}
-                  className="p-0.5 text-tertiary hover:text-primary transition-transform"
-                  title={reportsFolderExpanded ? 'Collapse' : 'Expand'}
-                >
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-150 ${
-                      reportsFolderExpanded ? '' : '-rotate-90'
-                    }`}
-                    strokeWidth={2}
-                  />
-                </button>
-                <div className="w-4 h-4 rounded flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
-                  <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
-                </div>
-                <span className="truncate text-small font-medium">
-                  {selectedMember ? `${selectedMember.name}'s AI Summaries` : 'AI Summaries'}
+                />
+              );
+            })}
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      {/* 3. Pinned Footer Section */}
+      <SidebarFooter>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            {/* All Generated Reports */}
+            <SidebarItem
+              icon={<Activity className="w-4 h-4" strokeWidth={2} />}
+              label="All Generated Reports"
+              active={activeView === 'overviews_history'}
+              tooltip="All Generated Reports"
+              badge={
+                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-recessed border border-border text-tertiary tabular-nums">
+                  {analyses.length}
                 </span>
-              </div>
-              <span className="text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/80 shrink-0">
-                {memberAnalyses.length}
-              </span>
-            </div>
+              }
+              onClick={() => onNavigate('overviews_history')}
+            />
 
-            {/* Expanded items list: reports for this profile */}
-            {reportsFolderExpanded && (
-              <div className="pl-4 pr-1 space-y-0.5 mt-0.5 mb-1.5 border-l-2 border-teal-500/20 dark:border-teal-500/30 ml-4">
-                {memberAnalyses.length === 0 ? (
-                  <div className="px-2 py-1.5 text-caption text-tertiary italic">
-                    No generated summaries yet
-                  </div>
-                ) : (
-                  memberAnalyses.map((rec) => {
-                    const isSelected = activeView === 'overview' && currentAnalysisId === rec.id;
-                    const dateStr = new Date(rec.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    });
-                    return (
-                      <button
-                        key={rec.id}
-                        type="button"
-                        onClick={() => onSelectAnalysis?.(rec)}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm text-small text-left transition-colors group ${
-                          isSelected
-                            ? 'bg-vault-50 text-vault-700 dark:bg-vault-950/60 dark:text-vault-300 font-semibold shadow-2xs'
-                            : 'text-secondary hover:bg-surface-hover hover:text-primary font-normal'
-                        }`}
-                        title={`${rec.scope_name || 'Generated Summary'} (${dateStr})`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText
-                            className={`w-3.5 h-3.5 shrink-0 ${
-                              isSelected ? 'text-vault-600 dark:text-vault-400' : 'text-tertiary'
-                            }`}
-                            strokeWidth={1.75}
-                          />
-                          <span className="truncate text-[12px]">{rec.scope_name || 'Generated Summary'}</span>
-                        </div>
-                        <span className="text-[10px] text-tertiary tabular-nums shrink-0 ml-1.5">
-                          {dateStr}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-        )}
+            {/* AI Providers */}
+            <SidebarItem
+              icon={<Cpu className="w-4 h-4" strokeWidth={1.75} />}
+              label="AI Providers"
+              active={activeView === 'settings'}
+              tooltip="AI Providers & Models"
+              onClick={() => onNavigate('settings')}
+            />
 
-        {/* 2. Custom Folders */}
-        {folders.length === 0 && (!selectedMember || memberAnalyses.length === 0) ? (
-          <div className="text-center py-6 px-2">
-            <FolderIcon className="w-6 h-6 text-tertiary mx-auto mb-2 opacity-40" strokeWidth={1.75} />
-            <p className="text-small text-secondary">No custom folders</p>
-            {selectedMember && (
-              <button
-                onClick={onOpenAddFolder}
-                className="mt-1.5 text-caption text-brand hover:underline font-medium"
-              >
-                Create your first folder
-              </button>
-            )}
-          </div>
-        ) : (
-          folders.map((f) => {
-            const isSelected = selectedFolderId === f.id && activeView === 'files';
-            return (
-              <div
-                key={f.id}
-                onClick={() => {
-                  onSelectFolder(f.id);
-                  onNavigate('files');
-                }}
-                className={`group flex items-center justify-between px-3 py-1.5 rounded-md text-body cursor-pointer transition-all duration-150 ${
-                  isSelected
-                    ? 'bg-vault-50 dark:bg-vault-950/70 text-vault-700 dark:text-vault-300 font-semibold shadow-2xs border border-vault-200/60 dark:border-vault-800/60'
-                    : 'text-secondary hover:bg-surface-hover hover:text-primary font-medium border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <FolderIcon
-                    className={`w-4 h-4 shrink-0 ${isSelected ? 'text-vault-600 dark:text-vault-400' : 'text-tertiary'}`}
-                    strokeWidth={1.75}
-                  />
-                  <span className="truncate">{f.name}</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-caption tabular-nums text-tertiary font-medium">
-                    {f.document_count || 0}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`Delete folder "${f.name}" and all records inside?`)) {
-                        onDeleteFolder(f.id);
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-tertiary hover:text-clay-600 transition-colors"
-                    title="Delete Folder"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 rotate-90" strokeWidth={1.75} />
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+            {/* Diagnostics */}
+            <SidebarItem
+              icon={<Terminal className="w-4 h-4" strokeWidth={1.75} />}
+              label="Diagnostics"
+              active={activeView === 'logs'}
+              tooltip="Diagnostics & System Logs (Cmd+L)"
+              onClick={() => onNavigate('logs')}
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      {/* Pinned Footer Items */}
-      <div className="px-3 py-2.5 border-t border-border space-y-1.5 shrink-0 bg-surface-recessed">
-        {/* 1. Emphasized Generated Reports */}
-        <button
-          onClick={() => onNavigate('overviews_history')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-md border transition-all shadow-2xs ${
-            activeView === 'overviews_history' || activeView === 'overview'
-              ? 'bg-vault-50 dark:bg-vault-950/70 border-vault-300 dark:border-vault-700 text-vault-700 dark:text-vault-300 font-semibold shadow-xs'
-              : 'bg-surface border-border hover:border-border-strong hover:bg-surface-hover text-primary font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
-                activeView === 'overviews_history' || activeView === 'overview'
-                  ? 'bg-vault-600 text-white'
-                  : 'bg-vault-50 dark:bg-vault-950/60 text-vault-600 dark:text-vault-400 border border-vault-200/50 dark:border-vault-800/60'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" strokeWidth={2} />
-            </div>
-            <span className="truncate font-semibold text-small">All Generated Reports</span>
-          </div>
-          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-recessed border border-border text-tertiary tabular-nums">
-            {analyses.length}
-          </span>
-        </button>
-
-        {/* 2. AI Providers */}
-        <button
-          onClick={() => onNavigate('settings')}
-          className={navItemClass(activeView === 'settings')}
-        >
-          <Cpu className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-          <span className="truncate">AI Providers</span>
-        </button>
-
-        {/* 3. Diagnostics & Theme Utility Bar */}
-        <div className="flex items-center justify-between pt-1 border-t border-border">
-          <button
-            onClick={() => onNavigate('logs')}
-            className="flex items-center gap-2 px-2 py-1 rounded-md text-caption text-secondary hover:text-primary hover:bg-surface-hover transition-colors"
+        {/* Utility Row: Sidebar Toggle pinned to exact same position; Theme Toggle appears on right only when expanded/peeking */}
+        <div className="pt-1.5 border-t border-border flex items-center justify-between px-1 h-10">
+          <SidebarToggle />
+          <div
+            className={`transition-all duration-280 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden flex items-center justify-end ${
+              isExpandedOrPeeking
+                ? 'opacity-100 scale-100 max-w-[40px] pointer-events-auto'
+                : 'opacity-0 scale-75 max-w-0 pointer-events-none'
+            }`}
           >
-            <Terminal className="w-3.5 h-3.5 shrink-0" strokeWidth={1.75} />
-            <span>Diagnostics</span>
-          </button>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          </div>
         </div>
-      </div>
-    </aside>
+      </SidebarFooter>
+    </SidebarRoot>
   );
 };
+
+// Main Export wrapping with SidebarProvider for complete plug-and-play compatibility
+export const Sidebar: React.FC<SidebarProps> & {
+  Provider: typeof SidebarProvider;
+  Root: typeof SidebarRoot;
+  Header: typeof SidebarHeader;
+  Content: typeof SidebarContent;
+  Group: typeof SidebarGroup;
+  GroupLabel: typeof SidebarGroupLabel;
+  GroupContent: typeof SidebarGroupContent;
+  Item: typeof SidebarItem;
+  Footer: typeof SidebarFooter;
+  Toggle: typeof SidebarToggle;
+  Tooltip: typeof SidebarTooltip;
+} = (props) => {
+  return (
+    <SidebarProvider
+      isCollapsedControlled={props.isCollapsed}
+      onToggleCollapseControlled={props.onToggleCollapse}
+    >
+      <SidebarInner {...props} />
+    </SidebarProvider>
+  );
+};
+
+// Attach compound subcomponents for clean modular usage
+Sidebar.Provider = SidebarProvider;
+Sidebar.Root = SidebarRoot;
+Sidebar.Header = SidebarHeader;
+Sidebar.Content = SidebarContent;
+Sidebar.Group = SidebarGroup;
+Sidebar.GroupLabel = SidebarGroupLabel;
+Sidebar.GroupContent = SidebarGroupContent;
+Sidebar.Item = SidebarItem;
+Sidebar.Footer = SidebarFooter;
+Sidebar.Toggle = SidebarToggle;
+Sidebar.Tooltip = SidebarTooltip;

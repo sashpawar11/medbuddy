@@ -49,7 +49,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
       ref={containerRef}
       className="absolute bottom-full mb-2 left-0 w-80 bg-surface rounded border border-border shadow-lg overflow-hidden z-50 animate-fade-in-scale"
       role="listbox"
-      aria-label="Family Member Profiles"
+      aria-label="Member Profiles"
     >
       <div className="px-3 py-2 bg-surface-recessed border-b border-border flex items-center justify-between text-[11px] text-tertiary uppercase tracking-wider font-semibold">
         <span>Scope query to profile</span>

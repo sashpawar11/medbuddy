@@ -36,7 +36,7 @@ export const OverviewsHistory: React.FC<Props> = ({
         <div>
           <h2 className="text-body-medium font-semibold text-primary">All Generated Reports</h2>
           <p className="text-caption text-tertiary">
-            Master vault archive of synthesized clinical intelligence reports across all family profiles
+            Master vault archive of synthesized clinical intelligence reports across all member profiles
           </p>
         </div>
         <div className="flex items-center gap-2">
