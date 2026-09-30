@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="MedBuddy is a local-first desktop vault that turns scattered family medical records into organized, searchable, source-cited health history." />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>MedBuddy — Your family medical vault</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #eef3f8;
+      --surface-blue: #eaf1fa;
+      --ink: #172131;
+      --muted: #546176;
+      --faint: #778296;
+      --line: #dce3ec;
+      --line-strong: #c8d2df;
+      --blue: #285d9f;
+      --blue-strong: #1d487e;
+      --blue-soft: #dbe9f8;
+      --teal: #167078;
+      --teal-soft: #dff1f0;
+      --sage: #277451;
+      --sage-soft: #e5f3eb;
+      --amber: #8a6112;
+      --amber-soft: #f9efd9;
+      --clay: #a34739;
+      --clay-soft: #f8e9e6;
+      --shadow: 0 20px 60px rgba(25, 47, 76, .13);
+      --shadow-small: 0 8px 24px rgba(25, 47, 76, .08);
+      --radius: 14px;
+      --font: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1219;
+        --surface: #151c26;
+        --surface-2: #111821;
+        --surface-blue: #132238;
+        --ink: #eef3f9;
+        --muted: #a7b3c3;
+        --faint: #7e8a9c;
+        --line: #273140;
+        --line-strong: #38475a;
+        --blue: #7eace7;
+        --blue-strong: #9dc2f0;
+        --blue-soft: #1a3453;
+        --teal: #6ed0cb;
+        --teal-soft: #123638;
+        --sage: #82d5a9;
+        --sage-soft: #153525;
+        --amber: #efc96d;
+        --amber-soft: #3b2b0e;
+        --clay: #f09a8d;
+        --clay-soft: #3b1f1a;
+        --shadow: 0 24px 70px rgba(0, 0, 0, .42);
+        --shadow-small: 0 10px 30px rgba(0, 0, 0, .28);
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #eef3f8;
+      --surface-blue: #eaf1fa;
+      --ink: #172131;
+      --muted: #546176;
+      --faint: #778296;
+      --line: #dce3ec;
+      --line-strong: #c8d2df;
+      --blue: #285d9f;
+      --blue-strong: #1d487e;
+      --blue-soft: #dbe9f8;
+      --teal: #167078;
+      --teal-soft: #dff1f0;
+      --sage: #277451;
+      --sage-soft: #e5f3eb;
+      --amber: #8a6112;
+      --amber-soft: #f9efd9;
+      --clay: #a34739;
+      --clay-soft: #f8e9e6;
+      --shadow: 0 20px 60px rgba(25, 47, 76, .13);
+      --shadow-small: 0 8px 24px rgba(25, 47, 76, .08);
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0d1219;
+      --surface: #151c26;
+      --surface-2: #111821;
+      --surface-blue: #132238;
+      --ink: #eef3f9;
+      --muted: #a7b3c3;
+      --faint: #7e8a9c;
+      --line: #273140;
+      --line-strong: #38475a;
+      --blue: #7eace7;
+      --blue-strong: #9dc2f0;
+      --blue-soft: #1a3453;
+      --teal: #6ed0cb;
+      --teal-soft: #123638;
+      --sage: #82d5a9;
+      --sage-soft: #153525;
+      --amber: #efc96d;
+      --amber-soft: #3b2b0e;
+      --clay: #f09a8d;
+      --clay-soft: #3b1f1a;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .42);
+      --shadow-small: 0 10px 30px rgba(0, 0, 0, .28);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    button, a { font: inherit; }
+    a { color: inherit; }
+    a:focus-visible, button:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue), transparent 55%); outline-offset: 3px; }
+    .page { min-height: 100vh; }
+    .theme-toggle {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top));
+      right: max(16px, env(safe-area-inset-right));
+      z-index: 20;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--line-strong), transparent 10%);
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--surface), transparent 6%);
+      color: var(--blue-strong);
+      box-shadow: var(--shadow-small);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color .24s ease, border-color .24s ease, color .24s ease, transform .24s ease;
+    }
+    .theme-toggle:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-1px); }
+    .theme-toggle:active { transform: translateY(0) scale(.96); }
+    .theme-toggle svg { position: absolute; width: 18px; height: 18px; transition: opacity .34s ease, transform .48s cubic-bezier(.4, 0, .2, 1); }
+    .theme-toggle .sun-icon { opacity: 0; transform: rotate(-80deg) scale(.55); }
+    .theme-toggle .moon-icon { opacity: 1; transform: rotate(0) scale(1); }
+    :root[data-theme="dark"] .theme-toggle .sun-icon { opacity: 1; transform: rotate(0) scale(1); }
+    :root[data-theme="dark"] .theme-toggle .moon-icon { opacity: 0; transform: rotate(80deg) scale(.55); }
+    :root.theme-fallback,
+    :root.theme-fallback body,
+    :root.theme-fallback .page,
+    :root.theme-fallback .hero,
+    :root.theme-fallback section,
+    :root.theme-fallback footer,
+    :root.theme-fallback div,
+    :root.theme-fallback span,
+    :root.theme-fallback a,
+    :root.theme-fallback button {
+      transition-property: background-color, border-color, color, box-shadow;
+      transition-duration: .6s;
+      transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+    }
+    ::view-transition-old(root) { animation: none; }
+    ::view-transition-new(root) {
+      animation: theme-swipe .7s cubic-bezier(.65, 0, .35, 1) both;
+      transform-origin: top right;
+    }
+    @keyframes theme-swipe {
+      from { clip-path: circle(0 at calc(100% - 36px) 36px); }
+      to { clip-path: circle(150vmax at calc(100% - 36px) 36px); }
+    }
+    .wrap { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
+    .hero {
+      position: relative;
+      min-height: 760px;
+      padding: 86px 0 78px;
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.42), transparent 72%);
+      opacity: .45;
+      pointer-events: none;
+      animation: grid-drift 28s linear infinite;
+    }
+    .hero-motion {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      mask-image: linear-gradient(to bottom, #000 0%, #000 76%, transparent 100%);
+    }
+    .motion-routes { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .motion-path {
+      fill: none;
+      stroke: color-mix(in srgb, var(--blue), transparent 58%);
+      stroke-width: 1.2;
+      stroke-dasharray: 3 13;
+      vector-effect: non-scaling-stroke;
+      animation: route-flow 18s linear infinite;
+    }
+    .motion-path.alt {
+      stroke: color-mix(in srgb, var(--teal), transparent 60%);
+      stroke-dasharray: 2 16;
+      animation-duration: 24s;
+      animation-direction: reverse;
+    }
+    .motion-path.trace {
+      stroke-width: 1.5;
+      stroke-dasharray: 34 20;
+      animation-duration: 10s;
+    }
+    .motion-point {
+      fill: var(--surface);
+      stroke: color-mix(in srgb, var(--teal), transparent 28%);
+      stroke-width: 1.5;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: point-pulse 3.8s ease-in-out infinite;
+    }
+    .motion-point:nth-of-type(2) { animation-delay: -1.4s; }
+    .motion-point:nth-of-type(3) { animation-delay: -2.7s; }
+    .hero-orbit {
+      position: absolute;
+      border: 1px solid color-mix(in srgb, var(--blue), transparent 78%);
+      border-radius: 50%;
+      animation: orbit-spin 28s linear infinite;
+    }
+    .hero-orbit::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--teal), transparent 88%);
+    }
+    .orbit-a { width: 660px; height: 660px; right: -40px; top: 18px; }
+    .orbit-b { width: 900px; height: 900px; right: -220px; top: -118px; animation-duration: 42s; animation-direction: reverse; }
+    .data-beacon {
+      position: absolute;
+      width: 46px;
+      height: 30px;
+      border: 1px solid color-mix(in srgb, var(--blue), transparent 60%);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--surface), transparent 18%);
+      box-shadow: var(--shadow-small);
+      animation: beacon-float 6s ease-in-out infinite;
+    }
+    .data-beacon::before,
+    .data-beacon::after {
+      content: "";
+      position: absolute;
+      left: 9px;
+      height: 2px;
+      border-radius: 2px;
+      background: color-mix(in srgb, var(--blue), transparent 32%);
+    }
+    .data-beacon::before { top: 9px; width: 25px; }
+    .data-beacon::after { top: 16px; width: 17px; background: color-mix(in srgb, var(--teal), transparent 32%); }
+    .beacon-a { right: 9%; top: 9%; transform: rotate(7deg); }
+    .beacon-b { right: 2%; top: 57%; transform: rotate(-6deg); animation-delay: -2.2s; }
+    .beacon-c { right: 43%; bottom: 5%; transform: rotate(4deg); animation-delay: -4.1s; }
+    @keyframes grid-drift { to { background-position: 56px 56px, 56px 56px; } }
+    @keyframes route-flow { to { stroke-dashoffset: -192; } }
+    @keyframes orbit-spin { to { transform: rotate(360deg); } }
+    @keyframes point-pulse { 0%, 100% { opacity: .45; transform: scale(.82); } 50% { opacity: 1; transform: scale(1.35); } }
+    @keyframes beacon-float { 0%, 100% { margin-top: 0; } 50% { margin-top: -12px; } }
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(520px, 1.15fr);
+      gap: 72px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 20px;
+      color: var(--teal);
+      font: 500 12px/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 24px; height: 1px; background: currentColor; }
+    h1 {
+      max-width: 620px;
+      margin: 0;
+      font-size: clamp(42px, 5.6vw, 72px);
+      line-height: .99;
+      letter-spacing: -.052em;
+      font-weight: 600;
+    }
+    .hero-copy > p {
+      max-width: 570px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.58;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+    .btn {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 19px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 600;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .btn.primary { background: var(--blue-strong); color: #fff; border-color: var(--blue-strong); }
+    .btn:hover { border-color: var(--blue); color: var(--blue); }
+    .btn.primary:hover { background: var(--blue); color: #fff; }
+    .btn svg { width: 18px; height: 18px; }
+    .facts { display: flex; flex-wrap: wrap; gap: 9px 20px; margin-top: 30px; color: var(--faint); font-size: 13px; }
+    .fact { display: inline-flex; align-items: center; gap: 7px; }
+    .fact svg { width: 15px; height: 15px; color: var(--teal); }
+
+    .app-window {
+      position: relative;
+      width: 720px;
+      border: 1px solid var(--line-strong);
+      border-radius: 17px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateX(4px);
+    }
+    .window-bar { height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 15px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+    .window-title { margin-left: auto; margin-right: auto; transform: translateX(-18px); font: 500 11px/1 var(--mono); color: var(--faint); }
+    .app-shell { display: grid; grid-template-columns: 170px 1fr; min-height: 466px; }
+    .sidebar { padding: 18px 12px; background: var(--surface-2); border-right: 1px solid var(--line); }
+    .brand-row { display: flex; align-items: center; gap: 8px; padding: 0 8px 18px; font-weight: 700; }
+    .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: var(--blue-strong); color: white; display:grid; place-items:center; }
+    .brand-mark svg { width: 15px; height: 15px; }
+    .member { display: flex; align-items: center; gap: 9px; padding: 9px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 12px; }
+    .avatar { width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+    .member small { display: block; color: var(--faint); margin-top: 1px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 9px; color: var(--muted); font-size: 12px; border-radius: 6px; margin: 2px 0; }
+    .nav-item svg { width: 14px; height: 14px; }
+    .nav-item.active { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+    .app-main { padding: 24px; min-width: 0; }
+    .demo-panel { display: none; }
+    .demo-panel.active { display: block; animation: panel-in .24s ease both; }
+    @keyframes panel-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .app-kicker { color: var(--faint); font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .app-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin: 8px 0 20px; }
+    .app-heading h2 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+    .local-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 9px; background: var(--teal-soft); color: var(--teal); font: 500 10px/1 var(--mono); }
+    .local-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .metric { padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .metric span { display: block; color: var(--faint); font-size: 10px; }
+    .metric strong { display: block; margin: 8px 0 4px; font: 600 21px/1 var(--mono); }
+    .metric small { font-size: 10px; color: var(--sage); }
+    .timeline-card { margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+    .timeline-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .timeline-head strong { font-size: 12px; }
+    .timeline-head span { color: var(--faint); font-size: 10px; }
+    .chart { display: flex; align-items: end; gap: 8px; height: 90px; border-bottom: 1px solid var(--line); padding: 0 4px; }
+    .bar { flex: 1; min-width: 10px; border-radius: 3px 3px 0 0; background: var(--blue-soft); border-top: 2px solid var(--blue); }
+    .bar:nth-child(2), .bar:nth-child(6) { background: var(--amber-soft); border-color: var(--amber); }
+    .source-row { display: flex; gap: 9px; align-items: center; margin-top: 14px; color: var(--muted); font-size: 11px; }
+    .source-icon { width: 27px; height: 31px; border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; color: var(--blue); }
+    .source-icon svg { width: 14px; }
+    .source-row b { color: var(--ink); font-weight: 500; }
+    .source-row small { display: block; color: var(--faint); }
+    .folder-tree { display: grid; gap: 9px; }
+    .folder-row { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+    .folder-icon { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); }
+    .folder-icon svg { width: 15px; }
+    .folder-row small { display: block; color: var(--faint); margin-top: 2px; }
+    .file-count { color: var(--faint); font: 400 10px/1 var(--mono); }
+    .chat-box { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .chat-thread { min-height: 250px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .message { max-width: 82%; padding: 10px 12px; border-radius: 10px; font-size: 11px; line-height: 1.55; }
+    .message.user { align-self: flex-end; background: var(--blue-strong); color: white; }
+    .message.ai { background: var(--surface-2); }
+    .citation { display: inline-flex; margin-top: 7px; padding: 4px 6px; border-radius: 4px; background: var(--blue-soft); color: var(--blue); font: 500 9px/1 var(--mono); }
+    .chat-input { border-top: 1px solid var(--line); padding: 11px; color: var(--faint); font-size: 11px; }
+    .demo-tabs { position: absolute; left: 210px; bottom: -52px; display: inline-flex; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-small); }
+    .demo-tab { border: 0; background: transparent; color: var(--muted); padding: 9px 14px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 500; }
+    .demo-tab[aria-selected="true"] { background: var(--blue-soft); color: var(--blue); }
+
+    section { padding: 98px 0; }
+    .section-head { display: grid; grid-template-columns: .8fr 1.2fr; gap: 70px; align-items: end; margin-bottom: 56px; }
+    .section-head h2 { margin: 0; font-size: clamp(34px, 4vw, 52px); line-height: 1.06; letter-spacing: -.04em; font-weight: 600; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.62; max-width: 620px; }
+    .feature-list { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); }
+    .feature { display: grid; grid-template-columns: 48px 1fr; gap: 18px; padding: 30px 30px 30px 0; border-bottom: 1px solid var(--line); }
+    .feature:nth-child(odd) { border-right: 1px solid var(--line); }
+    .feature:nth-child(even) { padding-left: 30px; }
+    .feature-num { color: var(--faint); font: 500 12px/1.5 var(--mono); }
+    .feature h3 { margin: 0 0 9px; font-size: 18px; }
+    .feature p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .privacy { background: var(--surface-2); border-block: 1px solid var(--line); }
+    .privacy-grid { display: grid; grid-template-columns: .78fr 1.22fr; gap: 80px; align-items: center; }
+    .privacy-copy h2 { font-size: clamp(34px, 4vw, 51px); line-height: 1.06; letter-spacing: -.04em; margin: 12px 0 20px; }
+    .privacy-copy p { color: var(--muted); font-size: 17px; line-height: 1.65; }
+    .boundary { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-small); }
+    .boundary-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-weight: 600; }
+    .boundary-title span { color: var(--faint); font: 400 11px/1 var(--mono); }
+    .route { display: grid; grid-template-columns: 34px 1fr auto; gap: 13px; align-items: center; padding: 15px 0; border-top: 1px solid var(--line); }
+    .route-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: var(--teal-soft); color: var(--teal); }
+    .route.cloud .route-icon { background: var(--surface-blue); color: var(--blue); }
+    .route-icon svg { width: 17px; }
+    .route b { font-size: 14px; }
+    .route p { margin: 2px 0 0; font-size: 12px; color: var(--faint); }
+    .state { border-radius: 999px; padding: 6px 9px; background: var(--teal-soft); color: var(--teal); font: 500 10px/1 var(--mono); }
+    .route.cloud .state { background: var(--surface-blue); color: var(--blue); }
+    .platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+    .platform-copy h2 { margin: 12px 0 20px; font-size: clamp(34px, 4vw, 50px); line-height: 1.07; letter-spacing: -.04em; }
+    .platform-copy p { color: var(--muted); line-height: 1.65; font-size: 17px; }
+    .os-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
+    .os { padding: 16px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); text-align: center; font-weight: 600; font-size: 13px; }
+    .os small { display: block; color: var(--faint); font: 400 10px/1.4 var(--mono); margin-top: 5px; }
+    .steps { counter-reset: step; border-top: 1px solid var(--line); }
+    .step { counter-increment: step; display: grid; grid-template-columns: 44px 1fr; gap: 18px; padding: 21px 0; border-bottom: 1px solid var(--line); }
+    .step::before { content: "0" counter(step); color: var(--blue); font: 500 12px/1.7 var(--mono); }
+    .step h3 { margin: 0 0 6px; font-size: 16px; }
+    .step p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .hero-install {
+      position: relative;
+      z-index: 3;
+      width: min(570px, calc(100% + 54px));
+      margin-top: 24px;
+    }
+    .hero-install + .actions { margin-top: 18px; }
+    .install-card {
+      padding: 0;
+    }
+    .install-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 7px;
+    }
+    .install-card h2 {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+    .install-card h2::before {
+      content: "";
+      width: 15px;
+      height: 1px;
+      background: currentColor;
+    }
+    .terminal {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      min-height: 39px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--teal), var(--line) 68%);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--surface), var(--teal-soft) 18%);
+    }
+    .terminal-prompt {
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      padding-left: 11px;
+      color: var(--teal);
+      font: 600 10px/1 var(--mono);
+      user-select: none;
+    }
+    .terminal code {
+      display: block;
+      min-width: 0;
+      padding: 10px 11px 10px 7px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      color: var(--ink);
+      font: 500 9px/1.5 var(--mono);
+      white-space: nowrap;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+    .terminal code::-webkit-scrollbar { height: 3px; }
+    .terminal code::-webkit-scrollbar-thumb { border-radius: 3px; background: var(--line-strong); }
+    .copy-command {
+      min-height: 27px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--blue);
+      cursor: pointer;
+      font: 600 9px/1 var(--mono);
+      letter-spacing: .07em;
+      transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .copy-command:hover { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-strong); }
+    .copy-command.copied { border-color: color-mix(in srgb, var(--teal), var(--line) 48%); background: var(--teal-soft); color: var(--teal); }
+    .closing { padding-top: 38px; }
+    .closing-box { position: relative; overflow: hidden; padding: 60px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--surface-blue); }
+    .closing-box::after { content: "LOCAL"; position: absolute; right: -10px; bottom: -32px; color: color-mix(in srgb, var(--blue), transparent 88%); font: 700 clamp(80px, 14vw, 170px)/.8 var(--mono); letter-spacing: -.1em; }
+    .closing-box h2 { position: relative; z-index: 1; max-width: 660px; margin: 0; font-size: clamp(34px, 5vw, 58px); line-height: 1.05; letter-spacing: -.04em; }
+    .closing-box p { position: relative; z-index: 1; max-width: 570px; color: var(--muted); font-size: 17px; line-height: 1.6; }
+    .closing-box .actions { position: relative; z-index: 1; }
+    footer { padding: 36px 0 48px; color: var(--faint); font-size: 13px; }
+    .footer-row { display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: start; }
+    .disclaimer { max-width: 760px; line-height: 1.55; }
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a { color: var(--muted); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+    @media (max-width: 980px) {
+      .hero { padding-top: 64px; min-height: auto; }
+      .hero-grid { grid-template-columns: 1fr; gap: 54px; }
+      .hero-motion { opacity: .78; }
+      .orbit-a { width: 720px; height: 720px; right: -310px; top: 300px; }
+      .orbit-b { width: 980px; height: 980px; right: -520px; top: 180px; }
+      .beacon-a { right: 5%; top: 40%; }
+      .beacon-b { right: 4%; top: 72%; }
+      .beacon-c { right: auto; left: 5%; bottom: 8%; }
+      .hero-copy { max-width: 720px; }
+      .app-window { width: 100%; transform: none; }
+      .demo-tabs { left: 50%; transform: translateX(-50%); }
+      .section-head, .privacy-grid, .platforms { grid-template-columns: 1fr; gap: 32px; }
+      .section-head { align-items: start; }
+      .privacy-grid { gap: 50px; }
+    }
+    @media (max-width: 680px) {
+      .theme-toggle {
+        top: max(12px, env(safe-area-inset-top));
+        right: max(12px, env(safe-area-inset-right));
+        width: 38px;
+        height: 38px;
+      }
+      .wrap { width: min(100% - 28px, 1160px); }
+      .hero { padding: 48px 0 78px; }
+      .hero-motion { opacity: .62; }
+      .motion-routes { width: 170%; transform: translateX(-25%); }
+      .hero-orbit { opacity: .72; }
+      .orbit-a { width: 510px; height: 510px; right: -250px; top: 390px; }
+      .orbit-b { display: none; }
+      .beacon-a { top: 44%; }
+      .beacon-b { top: 76%; }
+      .beacon-c { display: none; }
+      h1 { font-size: clamp(42px, 14vw, 58px); }
+      .hero-copy > p { font-size: 17px; }
+      .actions { display: grid; }
+      .btn { width: 100%; }
+      .facts { display: grid; gap: 10px; }
+      .app-shell { grid-template-columns: 1fr; min-height: 430px; }
+      .sidebar { display: none; }
+      .app-main { padding: 18px; }
+      .window-title { margin-right: 0; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:last-child { display: none; }
+      .demo-tabs { bottom: -52px; width: calc(100% - 28px); }
+      .demo-tab { flex: 1; padding-inline: 8px; }
+      section { padding: 74px 0; }
+      .section-head { margin-bottom: 36px; }
+      .feature-list { grid-template-columns: 1fr; }
+      .feature, .feature:nth-child(even) { border-right: 0; padding: 24px 0; grid-template-columns: 34px 1fr; }
+      .privacy-grid { gap: 38px; }
+      .boundary { padding: 18px; }
+      .route { grid-template-columns: 34px 1fr; }
+      .state { grid-column: 2; justify-self: start; }
+      .os-list { grid-template-columns: 1fr; }
+      .os { text-align: left; }
+      .hero-install { width: 100%; margin-top: 22px; }
+      .hero-install + .actions { margin-top: 17px; }
+      .terminal code { font-size: 9px; }
+      .closing-box { padding: 38px 26px 140px; }
+      .footer-row { grid-template-columns: 1fr; }
+      .footer-links { flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 15.2A8.2 8.2 0 0 1 8.8 4a8.4 8.4 0 1 0 11.2 11.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="page">
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-motion" aria-hidden="true">
+          <span class="hero-orbit orbit-a"></span>
+          <span class="hero-orbit orbit-b"></span>
+          <svg class="motion-routes" viewBox="0 0 1440 760" preserveAspectRatio="none">
+            <path class="motion-path" d="M-90 602C212 452 383 695 662 526S1098 286 1516 421" />
+            <path class="motion-path alt" d="M112-52C238 187 485 94 645 259S998 632 1504 578" />
+            <path class="motion-path trace" d="M486 804C636 623 725 564 891 517S1160 342 1490 149" />
+            <circle class="motion-point" cx="664" cy="526" r="5" />
+            <circle class="motion-point" cx="1002" cy="387" r="4" />
+            <circle class="motion-point" cx="1248" cy="294" r="5" />
+          </svg>
+          <span class="data-beacon beacon-a"></span>
+          <span class="data-beacon beacon-b"></span>
+          <span class="data-beacon beacon-c"></span>
+        </div>
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow">Local-first medical vault</div>
+            <h1 id="hero-title">Your family’s health history, finally in one calm place.</h1>
+            <p>MedBuddy turns lab PDFs, prescription photos, discharge summaries, and years of scattered records into an organized, searchable history — with AI that can stay entirely on your computer.</p>
+            <div class="hero-install" aria-labelledby="install-title">
+              <div class="install-card">
+                <div class="install-head">
+                  <h2 id="install-title">Quick Install</h2>
+                  <button class="copy-command" type="button" data-copy-target="install-command" aria-label="Copy install command">COPY</button>
+                </div>
+                <div class="terminal" aria-label="Terminal install command">
+                  <span class="terminal-prompt" aria-hidden="true">$</span>
+                  <code id="install-command">curl -fsSL https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.sh | bash</code>
+                </div>
+              </div>
+            </div>
+            <div class="actions">
+              <a class="btn primary" href="https://github.com/sashpawar11/medbuddy" target="_blank" rel="noopener noreferrer">
+                View the project on GitHub
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+              <a class="btn" href="#how-it-works">See how it works</a>
+            </div>
+            <div class="facts" aria-label="Product highlights">
+              <span class="fact"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.9 8.4 7 10 4.1-1.6 7-5.4 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7"/></svg> Local by default</span>
+              <span class="fact"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5h16M7 3v3.5M17 3v3.5M5 10h14v10H5V10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> Windows, macOS & Linux</span>
+              <span class="fact"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h16M12 4v16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Open source · GPL-3.0</span>
+            </div>
+          </div>
+
+          <div style="position:relative; padding-bottom:52px">
+            <div class="app-window" aria-label="Interactive preview of the MedBuddy interface">
+              <div class="window-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="window-title">Family medical vault</span></div>
+              <div class="app-shell">
+                <aside class="sidebar" aria-hidden="true">
+                  <div class="brand-row"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg></span> MedBuddy</div>
+                  <div class="member"><span class="avatar">M</span><span>Mom<small>Family profile</small></span></div>
+                  <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7v9H4v-9Z" stroke="currentColor" stroke-width="1.8"/></svg>Overview</div>
+                  <div class="nav-item"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h7l2 2h9v10H3V7Z" stroke="currentColor" stroke-width="1.8"/></svg>Records</div>
+                  <div class="nav-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v11H9l-4 4V5Z" stroke="currentColor" stroke-width="1.8"/></svg>Ask</div>
+                  <div class="nav-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 18V9m7 9V5m7 13v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Timeline</div>
+                </aside>
+                <div class="app-main">
+                  <div class="demo-panel active" data-panel="overview">
+                    <div class="app-kicker">Health overview</div>
+                    <div class="app-heading"><h2>Recent trends</h2><span class="local-chip">Processed locally</span></div>
+                    <div class="metrics">
+                      <div class="metric"><span>HbA1c</span><strong>5.7%</strong><small>● In range</small></div>
+                      <div class="metric"><span>LDL</span><strong>118</strong><small style="color:var(--amber)">▲ Review</small></div>
+                      <div class="metric"><span>TSH</span><strong>2.4</strong><small>● In range</small></div>
+                    </div>
+                    <div class="timeline-card">
+                      <div class="timeline-head"><strong>LDL over time</strong><span>4 reports · 18 months</span></div>
+                      <div class="chart" aria-hidden="true"><span class="bar" style="height:50%"></span><span class="bar" style="height:69%"></span><span class="bar" style="height:56%"></span><span class="bar" style="height:47%"></span><span class="bar" style="height:62%"></span><span class="bar" style="height:71%"></span><span class="bar" style="height:57%"></span></div>
+                      <div class="source-row"><span class="source-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7V3Z" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6"/></svg></span><span><b>Annual bloodwork.pdf</b><small>Source: page 2 · verified extraction</small></span></div>
+                    </div>
+                  </div>
+                  <div class="demo-panel" data-panel="records">
+                    <div class="app-kicker">Document vault</div>
+                    <div class="app-heading"><h2>Mom’s records</h2><span class="local-chip">18 files</span></div>
+                    <div class="folder-tree">
+                      <div class="folder-row"><span class="folder-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h7l2 2h9v10H3V7Z" stroke="currentColor" stroke-width="1.7"/></svg></span><span><b>Cardiology</b><small>Echoes, ECGs and visit notes</small></span><span class="file-count">7 files</span></div>
+                      <div class="folder-row"><span class="folder-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h7l2 2h9v10H3V7Z" stroke="currentColor" stroke-width="1.7"/></svg></span><span><b>Bloodwork</b><small>Lab reports by year</small></span><span class="file-count">6 files</span></div>
+                      <div class="folder-row"><span class="folder-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7h7l2 2h9v10H3V7Z" stroke="currentColor" stroke-width="1.7"/></svg></span><span><b>Prescriptions</b><small>Current and historical</small></span><span class="file-count">5 files</span></div>
+                    </div>
+                  </div>
+                  <div class="demo-panel" data-panel="ask">
+                    <div class="app-kicker">Profile-scoped chat</div>
+                    <div class="app-heading"><h2>Ask Mom’s records</h2><span class="local-chip">LM Studio</span></div>
+                    <div class="chat-box">
+                      <div class="chat-thread">
+                        <div class="message user">How has the LDL result changed since last year?</div>
+                        <div class="message ai">The recorded LDL value increased from the previous report. Open the cited pages to review both source values before your next appointment.<br><span class="citation">2 source pages</span></div>
+                      </div>
+                      <div class="chat-input">Ask about this profile’s records…</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="demo-tabs" role="tablist" aria-label="Preview MedBuddy features">
+              <button class="demo-tab" type="button" role="tab" aria-selected="true" data-target="overview">Overview</button>
+              <button class="demo-tab" type="button" role="tab" aria-selected="false" data-target="records">Records</button>
+              <button class="demo-tab" type="button" role="tab" aria-selected="false" data-target="ask">Ask</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Built for the real mess of family healthcare.</h2>
+            <p>A discharge summary on your laptop. A lab report in Downloads. A prescription photo sent in a family chat. MedBuddy brings the fragments together without turning your health history into someone else’s dataset.</p>
+          </div>
+          <div class="feature-list">
+            <article class="feature"><span class="feature-num">01</span><div><h3>One vault, separate profiles</h3><p>Keep records for yourself, children, partners, and aging parents organized under strictly separated family profiles.</p></div></article>
+            <article class="feature"><span class="feature-num">02</span><div><h3>Search the scans, not just filenames</h3><p>Offline OCR extracts text from PDFs and common image formats, making old scans and phone photos easier to find.</p></div></article>
+            <article class="feature"><span class="feature-num">03</span><div><h3>Answers tied to their sources</h3><p>Ask questions inside one profile and trace answers back to cited document pages instead of trusting an ungrounded summary.</p></div></article>
+            <article class="feature"><span class="feature-num">04</span><div><h3>See change across years</h3><p>Bring test results, appointments, and medication updates into a chronological timeline that makes long-term patterns easier to review.</p></div></article>
+            <article class="feature"><span class="feature-num">05</span><div><h3>Prepare for the next appointment</h3><p>Generate a structured overview with extracted metrics, plain-language context, and useful questions to raise with a clinician.</p></div></article>
+            <article class="feature"><span class="feature-num">06</span><div><h3>Revisit without paying twice</h3><p>Generated analyses are cached locally, so previously created overviews open instantly without reprocessing the same files.</p></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="privacy" id="privacy">
+        <div class="wrap privacy-grid">
+          <div class="privacy-copy">
+            <div class="eyebrow">Privacy you can see</div>
+            <h2>Local first isn’t a setting. It’s the default boundary.</h2>
+            <p>Your documents, extracted text, profiles, and local database stay on your machine. Use Ollama or LM Studio for offline analysis, or explicitly choose a bring-your-own-key cloud provider when you want one.</p>
+            <p>There is no telemetry or remote logging. Optional Google Drive backup is encrypted and opt-in.</p>
+          </div>
+          <div class="boundary" aria-label="Data processing options">
+            <div class="boundary-title">Choose where analysis runs <span>per provider</span></div>
+            <div class="route"><span class="route-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14v10H5V7Zm3 13h8M12 17v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><div><b>Ollama or LM Studio</b><p>Records and prompts stay on this computer</p></div><span class="state">On device</span></div>
+            <div class="route cloud"><span class="route-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7.5 18h9.2a4.3 4.3 0 0 0 .3-8.6A5.5 5.5 0 0 0 6.5 8 4.9 4.9 0 0 0 7.5 18Z" stroke="currentColor" stroke-width="1.7"/></svg></span><div><b>OpenAI, Anthropic, or Gemini</b><p>Your own key; external processing is explicitly labeled</p></div><span class="state">Optional</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works">
+        <div class="wrap platforms">
+          <div class="platform-copy">
+            <div class="eyebrow">Desktop, by design</div>
+            <h2>A focused home for years of records.</h2>
+            <p>MedBuddy is an Electron desktop application designed for private, substantial archives — not another account you need to trust with sensitive files.</p>
+            <div class="os-list" aria-label="Supported desktop platforms">
+              <div class="os">Windows<small>x64 · arm64</small></div>
+              <div class="os">macOS<small>Apple Silicon · Intel</small></div>
+              <div class="os">Linux<small>x64 · arm64</small></div>
+            </div>
+          </div>
+          <div class="steps" aria-label="How MedBuddy works">
+            <article class="step"><div><h3>Create a family profile</h3><p>Give each person a separate space, then organize their archive with nested folders.</p></div></article>
+            <article class="step"><div><h3>Drop in PDFs and images</h3><p>Import reports, scans, prescriptions, and summaries. Local OCR makes the contents searchable.</p></div></article>
+            <article class="step"><div><h3>Choose the AI boundary</h3><p>Keep processing offline with a local model, or opt into a cloud provider using your own API key.</p></div></article>
+            <article class="step"><div><h3>Review, cite, and export</h3><p>Explore overviews and timelines, open cited pages, and export a focused summary for a clinical conversation.</p></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing">
+        <div class="wrap">
+          <div class="closing-box">
+            <h2>Keep the records. Keep the context. Keep control.</h2>
+            <p>Explore the source, follow development, or build MedBuddy locally. The project is open source under GPL-3.0.</p>
+            <div class="actions"><a class="btn primary" href="https://github.com/sashpawar11/medbuddy" target="_blank" rel="noopener noreferrer">Explore MedBuddy on GitHub <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap footer-row">
+        <div class="disclaimer"><strong>Medical disclaimer:</strong> MedBuddy is an informational document-management tool. It does not provide medical advice, diagnosis, or treatment recommendations. Always consult a qualified healthcare professional.</div>
+        <div class="footer-links"><a href="#privacy">Privacy</a><a href="https://github.com/sashpawar11/medbuddy" target="_blank" rel="noopener noreferrer">Source code</a></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var themeButton = document.querySelector('.theme-toggle');
+      var themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      var manualTheme = false;
+
+      function updateThemeControl(theme) {
+        var nextTheme = theme === 'dark' ? 'light' : 'dark';
+        var label = 'Switch to ' + nextTheme + ' mode';
+        themeButton.setAttribute('aria-label', label);
+        themeButton.setAttribute('title', label);
+        themeButton.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      }
+
+      function applyTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        updateThemeControl(theme);
+      }
+
+      applyTheme(themeQuery.matches ? 'dark' : 'light');
+
+      themeButton.addEventListener('click', function () {
+        manualTheme = true;
+        var nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.startViewTransition(function () { applyTheme(nextTheme); });
+        } else {
+          root.classList.add('theme-fallback');
+          applyTheme(nextTheme);
+          window.setTimeout(function () { root.classList.remove('theme-fallback'); }, 650);
+        }
+      });
+
+      function followSystemTheme(event) {
+        if (!manualTheme) applyTheme(event.matches ? 'dark' : 'light');
+      }
+      if (themeQuery.addEventListener) themeQuery.addEventListener('change', followSystemTheme);
+      else themeQuery.addListener(followSystemTheme);
+
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('.demo-tab'));
+      var panels = Array.prototype.slice.call(document.querySelectorAll('.demo-panel'));
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var target = tab.getAttribute('data-target');
+          tabs.forEach(function (item) { item.setAttribute('aria-selected', item === tab ? 'true' : 'false'); });
+          panels.forEach(function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === target); });
+        });
+      });
+
+      var copyButton = document.querySelector('.copy-command');
+      var copyTimer;
+      function showCopyResult(label, succeeded) {
+        window.clearTimeout(copyTimer);
+        copyButton.textContent = label;
+        copyButton.classList.toggle('copied', succeeded);
+        copyButton.setAttribute('aria-label', succeeded ? 'Install command copied' : 'Copy failed');
+        copyTimer = window.setTimeout(function () {
+          copyButton.textContent = 'COPY';
+          copyButton.classList.remove('copied');
+          copyButton.setAttribute('aria-label', 'Copy install command');
+        }, 1800);
+      }
+      function fallbackCopy(text) {
+        var input = document.createElement('textarea');
+        input.value = text;
+        input.setAttribute('readonly', '');
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        var copied = document.execCommand('copy');
+        document.body.removeChild(input);
+        showCopyResult(copied ? 'COPIED' : 'RETRY', copied);
+      }
+      copyButton.addEventListener('click', function () {
+        var command = document.getElementById(copyButton.getAttribute('data-copy-target')).textContent.trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(command).then(function () {
+            showCopyResult('COPIED', true);
+          }).catch(function () {
+            fallbackCopy(command);
+          });
+        } else {
+          fallbackCopy(command);
+        }
+      });
+    }());
+  </script>
+</body>
+</html>
