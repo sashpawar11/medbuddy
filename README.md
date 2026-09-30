@@ -41,18 +41,20 @@ Prebuilt, ready-to-run installation packages and standalone bundles are publishe
 ## ✨ Key Features
 
 - **👨‍👩‍👧‍👦 Multi-Profile Family Vault**: Manage discrete records for yourself, children, and elderly parents under segregated profiles with custom avatars, dates of birth, and health notes.
-- **💬 Profile-Scoped Document Chat & Local RAG**: Interactively chat with medical records powered by local LLMs (Ollama, LM Studio) or BYOK cloud models. Features strict SQL-level profile isolation (zero cross-profile data leakage), SQLite FTS5 BM25 retrieval across chunked records, in-input profile scoping pills, `@mention` autocomplete, collapsible chain-of-thought reasoning drawer, and clickable page-level source citations.
-- **📁 Nested Folder Organization**: Hierarchical file system (e.g., `Mom → Cardiology → 2024 → Echocardiogram`) supporting multi-format files (PDFs, JPEG, PNG, TIFF, HEIC).
-- **🔍 Offline Local OCR**: Embedded **PaddleOCR** running via **ONNX Runtime** extracts text from low-contrast scans, mobile photos, and multi-page PDFs with zero internet connectivity.
+- **💬 Profile-Scoped Document Chat & Local RAG**: Interactively chat with medical records powered by local LLMs (Ollama, LM Studio, vLLM) or BYOK cloud models. Features strict SQL-level profile isolation (zero cross-profile data leakage), SQLite FTS5 BM25 retrieval across chunked records, in-input profile scoping pills, `@mention` autocomplete, collapsible chain-of-thought reasoning drawer, and clickable page-level source citations.
+- **📁 Nested Folders & Smart AI File Organizer**: Hierarchical folder system (e.g., `Mom → Cardiology → 2024`) with an automated **Document Organizer & Renamer**. Offers both instant heuristic (<10ms) and AI-assisted batch classification to standardize filenames (`<Prefix-ReportName>-<Date>.<ext>`) across 12 clinical prefixes (Bloodwork, CT, MRI, Ultrasound, Pathology, Prescriptions, etc.) and assign clinical tags.
+- **🔍 Two-Stage OCR Pipeline with Vision Fallback**: Embedded **PaddleOCR** (PP-OCRv4 via ONNX Runtime & Canvas) extracts text completely offline from scans and multi-page PDFs. Degraded scans or complex handwriting automatically fall back to **Multimodal/Vision LLM** transcription, backed by an async background queue with crash recovery and live page progress badges.
+- **👁️ Split-Screen Document Preview**: Side-by-side drawer to inspect original PDF/image documents alongside extracted OCR text, file metadata, and a one-click shortcut to launch a targeted Chat consultation on the document.
 - **🧠 Flexible Dual-Engine AI (Local vs. BYOK Cloud)**:
-  - **100% Local / Offline**: Native integration with **Ollama** (`llama3.2`, `mistral`, `deepseek-r1`, `phi3`) or **LM Studio** via OpenAI-compatible endpoints (`localhost:11434`, `localhost:1234`).
-  - **BYOK Cloud Providers**: Optional integration with OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet), or Google Gemini with token impact transparency.
-- **📊 Structured Clinical Dashboards**: Automatically extracts discrete biomarkers, flags out-of-range indicators (High/Low/Critical), generates plain-language executive summaries, and lists actionable questions for your doctor.
-- **📈 Longitudinal Health Timeline**: Chronological tracking of medical events, test results, doctor visits, and medication updates over months and years.
-- **⚡ Zero-Cost History Caching**: All generated clinical analyses are cached locally. Revisit any past dashboard instantly without re-processing files or incurring API costs.
-- **📤 Export & Share**: Export any generated health dashboard or timeline summary to PDF or image to bring to clinical consultations.
-- **☁️ Optional Encrypted Google Drive Sync**: Opt-in encrypted backup for cross-device synchronization, strictly controlled by you.
-- **🎨 Refined Modern Interface**: Dark and light modes inspired by modern productivity tools, complete with keyboard shortcuts and connection diagnostics.
+  - **100% Local / Offline**: Native presets for **LM Studio** (`localhost:1234`), **Ollama** (`localhost:11434`), **vLLM** (`localhost:8000`), or any custom OpenAI-compatible server (LocalAI, llama.cpp).
+  - **BYOK Cloud Providers**: Built-in support with key-prefix auto-detection for **OpenAI**, **OpenRouter**, **Groq**, and custom cloud endpoints with live latency diagnostics and visible provenance pills.
+- **📊 Structured Clinical Dashboards & Anomaly Detection**: Automatically extracts discrete biomarkers with visual reference-range bars (Normal/Borderline/Flagged), detects cross-record clinical anomalies (discrepancies, sharp trends, missing follow-ups), generates plain-language summaries, and synthesizes prioritized physician discussion points.
+- **📈 Longitudinal Health Timeline & Biomarker Sparklines**: Interactive Health Chronicle tracking events across years with zoom ranges (3m, 6m, 1y, All), category filters, event search, and dedicated biomarker focus mode featuring trajectory sparklines.
+- **⚡ Zero-Cost History Caching**: All generated clinical analyses are cached locally via deterministic content hashing (`sha256`). Revisit any past dashboard instantly without re-processing files or incurring API costs.
+- **💾 Local & Cloud-Synced Vault Backup / Restore**: Export or restore your entire vault or specific profiles/folders to any local directory or cloud-synced folder (Google Drive, Dropbox, OneDrive, iCloud) with JSON state snapshots and SHA256 integrity validation.
+- **📤 Export & Share**: One-click export of any generated health dashboard or timeline summary to PDF or image to bring to clinical consultations.
+- **🩺 Clinical Command Dashboard & Diagnostics Logs**: Dedicated home dashboard summarizing family profiles, recent reports, and quick actions, plus an in-app operational log viewer (`Ctrl+L` / `⌘L`) for real-time extraction and AI pipeline diagnostics.
+- **🎨 Refined Modern Interface & Shortcuts**: Dark and light modes inspired by modern productivity tools, complete with keyboard shortcuts (`Ctrl+B` toggle sidebar, `Ctrl+4` chat, `Ctrl+L` diagnostics, `Esc` dismiss drawers) and connection health diagnostics.
 
 ---
 
@@ -112,12 +114,13 @@ Carry a completely offline, searchable medical history on your laptop during tra
    - **Linux**: Make the `.AppImage` executable (`chmod +x MedBuddy-*.AppImage`) and run it, or install the `.deb`/`.rpm` package.
 2. Launch MedBuddy and create your first family member profile.
 3. Drop medical records (PDFs, scanned images) into folders.
-4. *(Optional)* Configure a local LLM in **Settings → AI Provider**:
-   - If using **Ollama**: Ensure Ollama is running (`ollama run llama3.2`) and set the endpoint to `http://localhost:11434`.
-   - If using **LM Studio**: Start local server mode at `http://localhost:1234/v1`.
-   - If using **Cloud BYOK**: Enter your OpenAI, Anthropic, or Gemini API key.
-5. Click **Analyze** on any file or folder to generate your first medical overview.
-6. Open **Chat with MedBuddy** (`Ctrl+4` / `⌘4`) to ask questions across any family profile's records with in-input `@mentions`, starter prompt chips, and verified document citations.
+4. *(Optional)* Configure your AI engine in **Settings → AI Provider**:
+   - **Local Inference**: Native presets for **LM Studio** (`localhost:1234`), **Ollama** (`localhost:11434`), or **vLLM** (`localhost:8000`).
+   - **Cloud BYOK**: Enter your API key for **OpenAI**, **OpenRouter**, or **Groq** (automatically detected from key prefix).
+5. Click **Organize** on any folder or selection to preview and batch-standardize messy scan filenames into structured clinical names and tags.
+6. Click **Analyze** on any file or folder to generate your first medical overview with biomarker range bars and clinical anomaly flags.
+7. Open **Chat with MedBuddy** (`Ctrl+4` / `⌘4`) to ask questions across any family profile's records with in-input `@mentions`, starter prompt chips, and verified document citations.
+8. Switch to the **Health Timeline** to visualize longitudinal biomarker sparklines and track health events over years.
 
 ---
 
