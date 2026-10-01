@@ -36,20 +36,26 @@ Prebuilt, ready-to-run installation packages and standalone bundles are publishe
 | **macOS** | Apple Silicon (`arm64`), Intel (`x64`) | `.dmg`, `.zip` (Universal & Native) | macOS 11+ (Big Sur through Sequoia) |
 | **Linux** | `x64`, `arm64` | `.AppImage`, `.deb` | Ubuntu, Debian, Fedora, Arch, and derivatives |
 
-### ⚡ Quick Install (Linux & macOS)
+### ⚡ Quick Install (Linux, macOS & Windows)
 
 Run the automated one-line installer in your terminal:
 
+**Linux, macOS & Windows (Git Bash / WSL / Command Prompt):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.sh | bash
 ```
 
+**Windows Native (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.ps1 | iex
+```
+
 The script will automatically:
-- Detect your OS (Linux / macOS) and CPU architecture (`x86_64` vs `arm64`)
+- Detect your OS (Linux / macOS / Windows) and CPU architecture (`x86_64` vs `arm64`)
 - Fetch the latest GitHub release and verify SHA checksums
 - **Linux**: Install the AppImage to `~/.local/share/medbuddy`, integrate into application menus with `.desktop` and high-res icons, and register the `medbuddy` CLI command (with automatic FUSE fallback)
 - **macOS**: Download and install `MedBuddy.app` into `/Applications` and configure the CLI command
-- **Windows**: Downloads the installer executable
+- **Windows**: Unpack and silently install to `%LOCALAPPDATA%\Programs\MedBuddy`, register in the **Windows Start Menu**, create a Desktop shortcut, and configure the `medbuddy` CLI command
 
 To uninstall at any time:
 ```bash
@@ -57,6 +63,7 @@ medbuddy --uninstall
 # or via installer script:
 curl -fsSL https://raw.githubusercontent.com/sashpawar11/medbuddy/main/install.sh | bash -s -- --uninstall
 ```
+*(On Windows PowerShell: `.\install.ps1 -Uninstall`)*
 
 ---
 

@@ -75,14 +75,22 @@ exports.default = async function (context) {
         path.join(onnxBinDir, 'linux', 'x64', 'libonnxruntime_providers_tensorrt.so'),
         'TensorRT execution provider library'
       );
+    } else if (targetPlatform === 'win32') {
+      // Remove ARM64 binaries on x64 builds
+      safeRemove(path.join(onnxBinDir, 'win32', 'arm64'), 'Windows ARM64 ONNX binaries');
     }
   }
 
   // 2. Strip unused @napi-rs canvas platform binaries
   const napiDir = path.join(unpackedDir, 'node_modules', '@napi-rs');
   if (fs.existsSync(napiDir)) {
-    // musl is for Alpine Linux; desktop Linux uses glibc
-    safeRemove(path.join(napiDir, 'canvas-linux-x64-musl'), '@napi-rs musl canvas binary');
+    const targetPlatform = context.electronPlatformName || process.platform;
+    if (targetPlatform === 'linux') {
+      safeRemove(path.join(napiDir, 'canvas-linux-x64-musl'), '@napi-rs musl canvas binary');
+    } else if (targetPlatform === 'win32') {
+      safeRemove(path.join(napiDir, 'canvas-linux-x64-musl'), '@napi-rs musl canvas binary');
+      safeRemove(path.join(napiDir, 'canvas-linux-x64-gnu'), '@napi-rs linux canvas binary');
+    }
   }
 
   console.log(`[pruneRelease] Optimization complete. Saved ${(totalBytesSaved / (1024 * 1024)).toFixed(1)} MB from final package.\n`);

@@ -10,11 +10,22 @@
 #
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 REPO="${MEDBUDDY_REPO:-sashpawar11/medbuddy}"
 APP_NAME="MedBuddy"
 APP_BIN="medbuddy"
 DESKTOP_WM_CLASS="medbuddy"
+
+# Global temporary directory cleanup
+TMP_CLEANUP_DIRS=()
+cleanup() {
+  for d in "${TMP_CLEANUP_DIRS[@]:-}"; do
+    if [ -n "$d" ] && [ -d "$d" ]; then
+      rm -rf "$d" 2>/dev/null || true
+    fi
+  done
+}
+trap cleanup EXIT
 
 # Color support
 if [ -t 1 ]; then
@@ -85,15 +96,19 @@ Options:
   -h, --help               Show this help message and exit
   -v, --version            Display current version and latest available release
   -u, --uninstall          Completely uninstall MedBuddy from this system
-  --target-version <ver>   Install a specific release version (e.g. v1.0.0)
+  --target-version <ver>   Install a specific release version (e.g. v1.0.1)
+  --platform <os>          Override OS detection ('linux', 'windows', or 'macos')
   --install-dir <path>     Custom directory to install the application
   --bin-dir <path>         Custom directory for executable link (e.g. ~/.local/bin)
   --skip-checksum          Skip SHA checksum verification
   --prerelease             Allow downloading pre-releases
 
 Examples:
-  # Install latest release
+  # Install latest release on Linux, macOS, or Windows (via Git Bash / WSL)
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash
+
+  # Windows Native PowerShell installation
+  irm https://raw.githubusercontent.com/${REPO}/main/install.ps1 | iex
 
   # Uninstall MedBuddy
   curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash -s -- --uninstall
@@ -128,22 +143,65 @@ fetch_url() {
 
 # Detect platform
 detect_os() {
+  # Allow manual override via environment variable or CLI flag
+  if [ -n "${MEDBUDDY_TARGET_OS:-}" ]; then
+    echo "$MEDBUDDY_TARGET_OS"
+    return 0
+  fi
+
   local os
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  os="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")"
+
+  # 1. Direct Windows environments (Git Bash, MSYS2, Cygwin)
+  case "$os" in
+    msys*|mingw*|cygwin*)
+      echo "windows"
+      return 0
+      ;;
+  esac
+
+  if [ "${OS:-}" = "Windows_NT" ]; then
+    echo "windows"
+    return 0
+  fi
+
+  # 2. Check for WSL (Windows Subsystem for Linux)
+  # When executed from Windows CMD or PowerShell via 'curl ... | bash',
+  # Windows launches WSL bash. If Windows cmd.exe / powershell.exe is accessible,
+  # the host machine is Windows and the user intends to install on Windows.
+  local is_wsl=0
+  if [ -f /proc/version ] && grep -qiE "(microsoft|wsl)" /proc/version 2>/dev/null; then
+    is_wsl=1
+  elif uname -r 2>/dev/null | grep -qiE "(microsoft|wsl)"; then
+    is_wsl=1
+  elif [ -n "${WSL_DISTRO_NAME:-}" ] || [ -n "${WSL_INTEROP:-}" ]; then
+    is_wsl=1
+  fi
+
+  if [ $is_wsl -eq 1 ]; then
+    if command -v cmd.exe >/dev/null 2>&1 || command -v powershell.exe >/dev/null 2>&1 || [ -x "/mnt/c/Windows/System32/cmd.exe" ]; then
+      echo "windows"
+      return 0
+    fi
+  fi
+
+  # 3. macOS
+  case "$os" in
+    darwin*)
+      echo "macos"
+      return 0
+      ;;
+  esac
+
+  # 4. Standard Linux
   case "$os" in
     linux*)
       echo "linux"
-      ;;
-    darwin*)
-      echo "macos"
-      ;;
-    msys*|mingw*|cygwin*)
-      echo "windows"
-      ;;
-    *)
-      echo "unsupported"
+      return 0
       ;;
   esac
+
+  echo "unsupported"
 }
 
 detect_arch() {
@@ -331,6 +389,35 @@ handle_uninstall() {
         removed_anything=1
       fi
     done
+  elif [ "$os" = "windows" ]; then
+    log_info "Uninstalling ${APP_NAME} from Windows..."
+    local ps_cmd=""
+    if command -v powershell.exe >/dev/null 2>&1; then
+      ps_cmd="powershell.exe"
+    elif [ -x "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ]; then
+      ps_cmd="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+    elif command -v cmd.exe >/dev/null 2>&1; then
+      ps_cmd="cmd.exe /c powershell"
+    fi
+
+    if [ -n "$ps_cmd" ]; then
+      $ps_cmd -NoProfile -ExecutionPolicy Bypass -Command "
+        \$uninst = \"\$env:LOCALAPPDATA\\Programs\\${APP_NAME}\\Uninstall ${APP_NAME}.exe\"
+        if (Test-Path \$uninst) {
+          Start-Process -FilePath \$uninst -ArgumentList '/S' -Wait
+        }
+        \$installDir = \"\$env:LOCALAPPDATA\\Programs\\${APP_NAME}\"
+        if (Test-Path \$installDir) { Remove-Item -Recurse -Force \$installDir -ErrorAction SilentlyContinue }
+        \$startMenu = \"\$([Environment]::GetFolderPath('Programs'))\\${APP_NAME}.lnk\"
+        if (Test-Path \$startMenu) { Remove-Item -Force \$startMenu -ErrorAction SilentlyContinue }
+        \$desktop = \"\$([Environment]::GetFolderPath('Desktop'))\\${APP_NAME}.lnk\"
+        if (Test-Path \$desktop) { Remove-Item -Force \$desktop -ErrorAction SilentlyContinue }
+        \$cmd = \"\$env:LOCALAPPDATA\\Microsoft\\WindowsApps\\${APP_BIN}.cmd\"
+        if (Test-Path \$cmd) { Remove-Item -Force \$cmd -ErrorAction SilentlyContinue }
+      "
+      removed_anything=1
+      log_success "Removed Windows application directory, Start Menu shortcut, and Desktop shortcut."
+    fi
   fi
 
   if [ $removed_anything -eq 1 ]; then
@@ -461,7 +548,7 @@ install_linux() {
     fi
 
     tmp_dir="$(mktemp -d -t medbuddy-install-XXXXXX)"
-    trap 'rm -rf "$tmp_dir"' EXIT
+    TMP_CLEANUP_DIRS+=("$tmp_dir")
 
     downloaded_file="${tmp_dir}/${asset_name}"
     log_step "Downloading ${asset_name}..."
@@ -670,7 +757,7 @@ install_macos() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d -t medbuddy-mac-XXXXXX)"
-  trap 'rm -rf "$tmp_dir"' EXIT
+  TMP_CLEANUP_DIRS+=("$tmp_dir")
 
   local dmg_file="${tmp_dir}/${dmg_name}"
   log_step "Downloading macOS disk image (${dmg_name})..."
@@ -716,39 +803,216 @@ install_macos() {
   printf "  ${BOLD}CLI Command:${RESET}  ${cli_link}\n\n"
 }
 
-# Windows notification & download
+# Windows installation routine (Git Bash, MSYS, Cygwin, or WSL host)
 install_windows() {
   local target_ver="$1"
-  print_banner
-  log_info "Detected Windows environment."
+  local skip_checksum="${2:-false}"
+  local local_file="${3:-}"
 
-  log_step "Fetching latest Windows installer info..."
+  local arch
+  arch="$(detect_arch)"
+  log_info "Detected Windows environment (${arch})"
+
+  # Find PowerShell executable (native or via WSL path)
+  local ps_cmd=""
+  if command -v powershell.exe >/dev/null 2>&1; then
+    ps_cmd="powershell.exe"
+  elif [ -x "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ]; then
+    ps_cmd="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+  elif [ -x "/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ]; then
+    ps_cmd="/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+  elif command -v cmd.exe >/dev/null 2>&1; then
+    ps_cmd="cmd.exe /c powershell"
+  fi
+
+  run_ps() {
+    local cmd="$1"
+    if [ -n "$ps_cmd" ]; then
+      $ps_cmd -NoProfile -ExecutionPolicy Bypass -Command "$cmd"
+    else
+      return 1
+    fi
+  }
+
+  to_win_path() {
+    local p="$1"
+    if command -v wslpath >/dev/null 2>&1; then
+      wslpath -w "$p" 2>/dev/null || echo "$p"
+    elif command -v cygpath >/dev/null 2>&1; then
+      cygpath -w "$p" 2>/dev/null || echo "$p"
+    else
+      echo "$p"
+    fi
+  }
+
+  log_step "Fetching latest Windows release info from GitHub..."
   local rel_info
   rel_info="$(get_release_info "$target_ver")" || {
     log_error "Could not fetch release info for ${REPO}."
     exit 1
   }
+
   local tag_name
   tag_name="$(echo "$rel_info" | extract_json_val "tag_name")"
-  local version="${tag_name#v}"
-
-  local exe_name="${APP_NAME}-Setup-${version}.exe"
-  local download_url="https://github.com/${REPO}/releases/download/${tag_name}/${exe_name}"
-
-  log_info "Downloading Windows installer: ${exe_name}..."
-  fetch_url "$download_url" "${exe_name}" || {
-    log_warn "Direct download failed. Please visit the releases page directly:"
-    log_info "https://github.com/${REPO}/releases/latest"
-    return 0
-  }
-
-  log_success "Downloaded Windows installer to current directory: ${exe_name}"
-  if command -v cmd.exe >/dev/null 2>&1; then
-    log_step "Launching Windows installer..."
-    cmd.exe /c start "${exe_name}" || true
-  else
-    printf "Run ${BOLD}./${exe_name}${RESET} to complete installation.\n"
+  if [ -z "$tag_name" ]; then
+    log_error "Could not find release tag name in response."
+    exit 1
   fi
+  local version="${tag_name#v}"
+  log_info "Installing MedBuddy ${BOLD}v${version}${RESET} (${tag_name}) on Windows..."
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d -t medbuddy-win-XXXXXX)"
+  TMP_CLEANUP_DIRS+=("$tmp_dir")
+
+  local candidate_assets=(
+    "${APP_NAME}-Setup-${version}.exe"
+    "${APP_NAME} Setup ${version}.exe"
+    "${APP_NAME}-${version}-win.zip"
+    "${APP_NAME}-${version}.zip"
+    "${APP_NAME}-Portable-${version}.exe"
+    "${APP_NAME}-${version}.exe"
+  )
+
+  local downloaded_file=""
+  local chosen_asset=""
+  local download_url=""
+
+  if [ -n "$local_file" ] && [ -f "$local_file" ]; then
+    log_info "Using local file: ${BOLD}${local_file}${RESET}"
+    downloaded_file="$local_file"
+    chosen_asset="$(basename "$local_file")"
+  else
+    for candidate in "${candidate_assets[@]}"; do
+      local encoded_cand="${candidate// /%20}"
+      local target_dest="${tmp_dir}/${candidate}"
+
+      # Check if asset URL is available in release JSON
+      if echo "$rel_info" | grep -Fq "$encoded_cand"; then
+        download_url="$(echo "$rel_info" | grep -o "\"browser_download_url\": *\"[^\"]*${encoded_cand}\"" | head -n 1 | sed 's/.*"browser_download_url": *"//' | sed 's/"$//')"
+      elif echo "$rel_info" | grep -Fq "$candidate"; then
+        download_url="$(echo "$rel_info" | grep -o "\"browser_download_url\": *\"[^\"]*${candidate}\"" | head -n 1 | sed 's/.*"browser_download_url": *"//' | sed 's/"$//')"
+      else
+        download_url="https://github.com/${REPO}/releases/download/${tag_name}/${encoded_cand}"
+      fi
+
+      log_step "Checking release asset: ${candidate}..."
+      if fetch_url "$download_url" "$target_dest" 2>/dev/null && [ -s "$target_dest" ]; then
+        downloaded_file="$target_dest"
+        chosen_asset="$candidate"
+        log_success "Downloaded: ${candidate}"
+        break
+      fi
+    done
+
+    if [ -z "$downloaded_file" ]; then
+      log_error "Could not find a downloadable Windows release asset for ${tag_name}."
+      log_info "Please check available assets at https://github.com/${REPO}/releases/tag/${tag_name}"
+      exit 1
+    fi
+
+    if [ "$skip_checksum" = "false" ]; then
+      verify_checksum "$downloaded_file" "$tag_name" "$tmp_dir"
+    fi
+  fi
+
+  local win_file
+  win_file="$(to_win_path "$downloaded_file")"
+
+  log_step "Installing MedBuddy on Windows..."
+
+  # Case A: NSIS setup installer (.exe with 'Setup' or standard installer)
+  if [[ "$chosen_asset" =~ [sS]etup.*\.exe$ ]] || [[ "$chosen_asset" =~ \.exe$ && ! "$chosen_asset" =~ [pP]ortable ]]; then
+    log_info "Running NSIS installer in silent mode (/S)..."
+    if [ -n "$ps_cmd" ]; then
+      run_ps "
+        \$p = Start-Process -FilePath '$win_file' -ArgumentList '/S' -Wait -PassThru
+        if (\$p.ExitCode -ne 0) {
+          Start-Process -FilePath '$win_file' -Wait
+        }
+      " || true
+    elif command -v cmd.exe >/dev/null 2>&1; then
+      cmd.exe /c start /wait "" "$win_file" /S || cmd.exe /c start "" "$win_file"
+    fi
+
+  # Case B: ZIP package (extract to %LOCALAPPDATA%\Programs\MedBuddy)
+  elif [[ "$chosen_asset" =~ \.zip$ ]]; then
+    log_info "Unpacking ZIP archive into %LOCALAPPDATA%\\Programs\\${APP_NAME}..."
+    if [ -n "$ps_cmd" ]; then
+      run_ps "
+        \$destDir = \"\$env:LOCALAPPDATA\\Programs\\${APP_NAME}\"
+        if (!(Test-Path \$destDir)) { New-Item -ItemType Directory -Path \$destDir -Force | Out-Null }
+        Expand-Archive -Path '$win_file' -DestinationPath \$destDir -Force
+      "
+    fi
+
+  # Case C: Portable exe
+  else
+    log_info "Installing portable executable into %LOCALAPPDATA%\\Programs\\${APP_NAME}..."
+    if [ -n "$ps_cmd" ]; then
+      run_ps "
+        \$destDir = \"\$env:LOCALAPPDATA\\Programs\\${APP_NAME}\"
+        if (!(Test-Path \$destDir)) { New-Item -ItemType Directory -Path \$destDir -Force | Out-Null }
+        Copy-Item -Path '$win_file' -Destination \"\$destDir\\${APP_NAME}.exe\" -Force
+      "
+    fi
+  fi
+
+  # Configure Windows Start Menu, Desktop shortcuts, and CLI command
+  log_step "Configuring Windows Start Menu and Desktop shortcuts..."
+  if [ -n "$ps_cmd" ]; then
+    run_ps "
+      \$installDir = \"\$env:LOCALAPPDATA\\Programs\\${APP_NAME}\"
+      \$targetExe = \"\$installDir\\${APP_NAME}.exe\"
+
+      if (!(Test-Path \$targetExe)) {
+        \$found = Get-ChildItem -Path \$installDir -Filter '${APP_NAME}.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (\$found) { \$targetExe = \$found.FullName; \$installDir = \$found.DirectoryName }
+      }
+
+      if (Test-Path \$targetExe) {
+        \$wshell = New-Object -ComObject WScript.Shell
+
+        # 1. Start Menu shortcut
+        \$startMenuDir = [Environment]::GetFolderPath('Programs')
+        \$startShortcut = \"\$startMenuDir\\${APP_NAME}.lnk\"
+        if (!(Test-Path \$startShortcut)) {
+          \$s = \$wshell.CreateShortcut(\$startShortcut)
+          \$s.TargetPath = \$targetExe
+          \$s.WorkingDirectory = \$installDir
+          \$s.IconLocation = \"\$targetExe,0\"
+          \$s.Description = 'MedBuddy - Personal family medical vault'
+          \$s.Save()
+        }
+
+        # 2. Desktop shortcut
+        \$desktopDir = [Environment]::GetFolderPath('Desktop')
+        \$desktopShortcut = \"\$desktopDir\\${APP_NAME}.lnk\"
+        if (!(Test-Path \$desktopShortcut)) {
+          \$d = \$wshell.CreateShortcut(\$desktopShortcut)
+          \$d.TargetPath = \$targetExe
+          \$d.WorkingDirectory = \$installDir
+          \$d.IconLocation = \"\$targetExe,0\"
+          \$d.Description = 'MedBuddy - Personal family medical vault'
+          \$d.Save()
+        }
+
+        # 3. CLI command in %LOCALAPPDATA%\Microsoft\WindowsApps
+        \$cliDir = \"\$env:LOCALAPPDATA\\Microsoft\\WindowsApps\"
+        if (Test-Path \$cliDir) {
+          \$cmdFile = \"\$cliDir\\${APP_BIN}.cmd\"
+          Set-Content -Path \$cmdFile -Value \"@start `\"`\" `\"\$targetExe`\" %*\" -Force
+        }
+      }
+    "
+  fi
+
+  printf "\n"
+  log_success "🎉 ${BOLD}${APP_NAME} v${version} installed successfully on Windows!${RESET}\n"
+  printf "  ${BOLD}Start Menu:${RESET}   Search or click ${GREEN}${APP_NAME}${RESET} in your Windows Start Menu\n"
+  printf "  ${BOLD}Desktop App:${RESET}  Shortcut created on your Desktop\n"
+  printf "  ${BOLD}Location:${RESET}     %%LOCALAPPDATA%%\\Programs\\${APP_NAME}\\${APP_NAME}.exe\n"
+  printf "  ${BOLD}CLI Command:${RESET}  Run ${GREEN}${APP_BIN}${RESET} from Command Prompt or PowerShell\n\n"
 }
 
 # Main routing
@@ -757,6 +1021,7 @@ main() {
   local install_dir=""
   local bin_dir=""
   local skip_checksum="false"
+  local local_file=""
   local action="install"
 
   while [ $# -gt 0 ]; do
@@ -775,6 +1040,10 @@ main() {
         ;;
       --target-version)
         target_ver="$2"
+        shift 2
+        ;;
+      --platform)
+        export MEDBUDDY_TARGET_OS="$2"
         shift 2
         ;;
       --install-dir)
@@ -826,7 +1095,7 @@ main() {
       install_macos "$target_ver" "$skip_checksum"
       ;;
     windows)
-      install_windows "$target_ver"
+      install_windows "$target_ver" "$skip_checksum" "${local_file:-}"
       ;;
     *)
       log_error "Unsupported operating system: $(uname -s)"
