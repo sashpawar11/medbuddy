@@ -113,7 +113,7 @@ class PaddleOcrService {
    */
   private async tryNativePdf(buffer: Buffer): Promise<string | null> {
     try {
-      const pdfjsLib = await import('pdfjs-dist');
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
       const pdfDoc = await loadingTask.promise;
       const pagesToProcess = Math.min(pdfDoc.numPages, OCR_PDF_PAGE_CAP);
@@ -149,8 +149,8 @@ class PaddleOcrService {
     onProgress?: (page: number, total: number) => void
   ): Promise<OcrResult> {
     try {
-      // Use pdfjs-dist to render pages with @napi-rs/canvas
-      const pdfjsLib = await import('pdfjs-dist');
+      // Use pdfjs-dist legacy build to render pages with @napi-rs/canvas in Node.js
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const { createCanvas } = await import('@napi-rs/canvas');
 
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });

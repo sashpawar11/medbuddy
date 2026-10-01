@@ -26,6 +26,7 @@ export default defineConfig({
                 'onnxruntime-node',
                 '@napi-rs/canvas',
                 'pdfjs-dist',
+                'pdfjs-dist/legacy/build/pdf.mjs',
                 'ppu-paddle-ocr',
               ],
             },

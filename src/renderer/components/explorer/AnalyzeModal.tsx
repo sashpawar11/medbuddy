@@ -110,7 +110,7 @@ export const AnalyzeModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[560px] p-6 shadow-md animate-modal-enter">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[620px] p-6 shadow-md animate-modal-enter overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
           <div className="flex items-center gap-2">
@@ -177,10 +177,10 @@ export const AnalyzeModal: React.FC<Props> = ({
         ) : (
           /* Confirmation Content per §11.1 in strict order */
           <div className="space-y-4">
-            {/* 1. Provenance pill: first thing seen */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-caption uppercase tracking-wider text-tertiary font-medium">
+            {/* 1. Provenance pill & Provider Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-[11px] uppercase tracking-wider text-tertiary font-semibold shrink-0">
                   Execution Provenance
                 </span>
                 <ProvenancePill
@@ -191,17 +191,23 @@ export const AnalyzeModal: React.FC<Props> = ({
               </div>
 
               {providers.length > 1 && (
-                <select
-                  value={selectedProviderId}
-                  onChange={(e) => setSelectedProviderId(e.target.value)}
-                  className="h-7 px-2 text-caption bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500"
-                >
-                  {providers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.kind === 'local' ? 'Local' : 'Cloud'})
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+                  <select
+                    value={selectedProviderId}
+                    onChange={(e) => setSelectedProviderId(e.target.value)}
+                    className="h-8 px-2.5 text-caption bg-surface border border-border-strong rounded-md text-primary focus:outline-none focus:border-vault-500 font-medium cursor-pointer shadow-2xs max-w-[210px] truncate"
+                    title="Switch AI Provider Profile"
+                  >
+                    {providers.map((p) => {
+                      const cleanName = p.name.replace(/\s*\((Cloud|Local)\)$/i, '');
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {cleanName} ({p.kind === 'local' ? 'Local' : 'Cloud'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               )}
             </div>
 

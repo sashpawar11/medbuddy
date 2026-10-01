@@ -155,12 +155,43 @@ export class AIProviderService {
   /**
    * Normalize endpoint URL ensuring proper protocol and path.
    */
-  private normalizeBaseUrl(url: string): string {
+  public normalizeBaseUrl(url: string): string {
     let clean = url.trim().replace(/\/+$/, '');
     if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
       clean = 'http://' + clean;
     }
     return clean;
+  }
+
+  /**
+   * Helper to build specific API endpoint URLs (chat/completions or models)
+   * while respecting standard OpenAI paths, Google Gemini OpenAI-compatible path,
+   * Ollama endpoints, or already-full endpoints.
+   */
+  public buildEndpointUrl(rawUrl: string, endpoint: 'chat/completions' | 'models'): string {
+    const baseUrl = this.normalizeBaseUrl(rawUrl);
+
+    // If the caller already provided an explicit endpoint path
+    if (baseUrl.endsWith('/chat/completions')) {
+      return endpoint === 'chat/completions' ? baseUrl : baseUrl.replace(/\/chat\/completions$/, `/${endpoint}`);
+    }
+    if (baseUrl.endsWith('/models')) {
+      return endpoint === 'models' ? baseUrl : baseUrl.replace(/\/models$/, `/${endpoint}`);
+    }
+
+    // Google Gemini OpenAI endpoint:
+    // https://generativelanguage.googleapis.com/v1beta/openai -> /chat/completions or /models
+    if (baseUrl.includes('generativelanguage.googleapis.com') || baseUrl.endsWith('/openai')) {
+      return `${baseUrl}/${endpoint}`;
+    }
+
+    // If URL already includes /v1, /v1beta, /v2, etc. in its path (e.g. https://api.openai.com/v1)
+    if (/\/v[0-9]+(beta)?(\/|$)/i.test(baseUrl)) {
+      return `${baseUrl}/${endpoint}`;
+    }
+
+    // Default OpenAI-compatible convention: append /v1/<endpoint>
+    return `${baseUrl}/v1/${endpoint}`;
   }
 
   /**
@@ -174,17 +205,18 @@ export class AIProviderService {
     logger.info('ai', `Testing connection to provider: ${baseUrl} (${profile.provider_type})`);
 
     try {
-      // Try OpenAI-compatible /models endpoint first
-      let modelsUrl = `${baseUrl}/models`;
-      if (!baseUrl.endsWith('/v1') && !baseUrl.includes('/v1/')) {
-        modelsUrl = `${baseUrl}/v1/models`;
-      }
+      // Build proper /models endpoint
+      const modelsUrl = this.buildEndpointUrl(baseUrl, 'models');
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
       if (profile.api_key && profile.api_key.trim().length > 0) {
-        headers['Authorization'] = `Bearer ${profile.api_key.trim()}`;
+        const key = profile.api_key.trim();
+        headers['Authorization'] = `Bearer ${key}`;
+        if (profile.provider_type === 'gemini' || baseUrl.includes('generativelanguage.googleapis.com')) {
+          headers['x-goog-api-key'] = key;
+        }
       }
 
       let res: InternalHttpResponse;
@@ -226,12 +258,16 @@ export class AIProviderService {
       // Extract model IDs from OpenAI format { data: [{ id: '...' }] } or Ollama { models: [{ name: '...' }] }
       if (Array.isArray(data.data)) {
         for (const item of data.data) {
-          if (item.id) availableModels.push(item.id);
+          if (item.id) {
+            // Strip any leading 'models/' prefix returned by Google Gemini / other APIs
+            const cleanId = item.id.replace(/^models\//, '');
+            availableModels.push(cleanId);
+          }
         }
       } else if (Array.isArray(data.models)) {
         for (const item of data.models) {
-          if (item.name) availableModels.push(item.name);
-          else if (item.model) availableModels.push(item.model);
+          if (item.name) availableModels.push(item.name.replace(/^models\//, ''));
+          else if (item.model) availableModels.push(item.model.replace(/^models\//, ''));
         }
       }
 
@@ -293,18 +329,19 @@ export class AIProviderService {
     const rawUrl = profile.base_url || 'http://localhost:1234/v1';
     const baseUrl = this.normalizeBaseUrl(rawUrl);
 
-    // Build chat completions URL
-    let completionsUrl = `${baseUrl}/chat/completions`;
-    if (!baseUrl.endsWith('/v1') && !baseUrl.includes('/v1/')) {
-      completionsUrl = `${baseUrl}/v1/chat/completions`;
-    }
+    // Build proper chat completions URL using robust resolution
+    const completionsUrl = this.buildEndpointUrl(baseUrl, 'chat/completions');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream, application/json',
     };
     if (profile.api_key && profile.api_key.trim().length > 0) {
-      headers['Authorization'] = `Bearer ${profile.api_key.trim()}`;
+      const key = profile.api_key.trim();
+      headers['Authorization'] = `Bearer ${key}`;
+      if (profile.provider_type === 'gemini' || baseUrl.includes('generativelanguage.googleapis.com')) {
+        headers['x-goog-api-key'] = key;
+      }
     }
 
     // Enable streaming to keep TCP socket active and provide real-time token feedback
@@ -438,7 +475,9 @@ export class AIProviderService {
       const latencyMs = Date.now() - startTime;
 
       if (!finalContent || finalContent.trim().length === 0) {
-        throw new Error('AI Provider returned an empty response. Verify model output in LM Studio / Ollama.');
+        throw new Error(
+          'AI Provider returned an empty response. Verify model output in LM Studio / Ollama (this typically indicates a GPU Out-of-Memory / context overflow crash in the local engine).'
+        );
       }
 
       logger.info('ai', `Completion finished in ${latencyMs}ms`, {

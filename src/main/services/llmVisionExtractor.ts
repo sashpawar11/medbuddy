@@ -153,7 +153,7 @@ class LlmVisionExtractor {
     }
 
     try {
-      const pdfjsLib = await import('pdfjs-dist');
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
       const { createCanvas } = await import('@napi-rs/canvas');
 
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBuffer) });

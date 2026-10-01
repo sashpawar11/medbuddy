@@ -35,21 +35,22 @@ export const ProvenancePill: React.FC<ProvenancePillProps> = ({
   }
 
   // Cloud BYOK
-  const destination = providerName && modelName
-    ? `Sent to ${providerName} (${modelName})`
-    : providerName
-    ? `Sent to ${providerName}`
+  const cleanProviderName = providerName?.replace(/\s*\((Cloud|Local)\)$/i, '');
+  const destination = cleanProviderName && modelName
+    ? `Sent to ${cleanProviderName} (${modelName})`
+    : cleanProviderName
+    ? `Sent to ${cleanProviderName}`
     : modelName
     ? `Sent to ${modelName}`
     : 'External Cloud API';
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-small font-medium bg-violet-100 border border-violet-300 text-violet-600 shrink-0 ${className}`}
-      title="Medical data will be transmitted securely to your configured cloud AI endpoint."
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-small font-medium bg-violet-100 border border-violet-300 text-violet-600 min-w-0 max-w-full ${className}`}
+      title={`Medical data will be transmitted securely to your configured cloud AI endpoint: ${destination}`}
     >
       <Cloud className="w-3.5 h-3.5 shrink-0 text-violet-600" strokeWidth={1.75} />
-      <span className="truncate max-w-[280px]">{destination}</span>
+      <span className="truncate">{destination}</span>
     </span>
   );
 };

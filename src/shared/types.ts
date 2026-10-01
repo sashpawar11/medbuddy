@@ -48,7 +48,9 @@ export type ProviderType =
   | 'openai-compatible'
   | 'openai'
   | 'openrouter'
-  | 'groq';
+  | 'groq'
+  | 'gemini'
+  | 'custom-cloud';
 
 export interface ProviderProfile {
   id: string;

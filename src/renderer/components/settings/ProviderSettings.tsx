@@ -16,6 +16,9 @@ import {
   ChevronUp,
   ExternalLink,
   RotateCcw,
+  Sparkles,
+  Zap,
+  Globe,
 } from 'lucide-react';
 import type { ProviderProfile, ConnectionTestResult, FamilyMember, ProviderType } from '../../../shared/types';
 import { ProvenancePill } from '../common/ProvenancePill';
@@ -40,6 +43,21 @@ interface LocalEnginePreset {
   recommendedModels: string[];
 }
 
+interface CloudProviderPreset {
+  id: ProviderType;
+  name: string;
+  label: string;
+  badge: string;
+  defaultUrl: string;
+  defaultModel: string;
+  description: string;
+  recommendedModels: string[];
+  keyPrefixes: string[];
+  keyPlaceholder: string;
+  helpUrl?: string;
+  helpLabel?: string;
+}
+
 const LOCAL_ENGINES: LocalEnginePreset[] = [
   {
     id: 'lm-studio',
@@ -48,25 +66,25 @@ const LOCAL_ENGINES: LocalEnginePreset[] = [
     defaultUrl: 'http://localhost:1234/v1',
     defaultModel: 'local-model',
     description: 'LM Studio local server (default port 1234)',
-    recommendedModels: ['local-model', 'llama-3.2-3b-instruct', 'qwen2.5-7b-instruct', 'mistral-7b-instruct'],
+    recommendedModels: ['local-model', 'llama-3.3-70b-instruct', 'deepseek-r1', 'qwen3.8-27b', 'llama-3.2-3b-instruct'],
   },
   {
     id: 'ollama',
     name: 'Ollama (Local)',
     label: 'Ollama',
     defaultUrl: 'http://localhost:11434/v1',
-    defaultModel: 'llama3.2',
+    defaultModel: 'llama3.3:70b',
     description: 'Ollama local engine (default port 11434)',
-    recommendedModels: ['llama3.2', 'llama3.1', 'mistral', 'qwen2.5', 'phi3.5'],
+    recommendedModels: ['llama3.3:70b', 'deepseek-r1', 'qwen3.8-27b', 'gemma4:12b', 'llama3.2', 'llama3.1', 'qwen2.5'],
   },
   {
     id: 'vllm',
     name: 'vLLM (Local)',
     label: 'vLLM',
     defaultUrl: 'http://localhost:8000/v1',
-    defaultModel: 'meta-llama/Llama-3.2-3B-Instruct',
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
     description: 'vLLM high-throughput inference server (default port 8000)',
-    recommendedModels: ['meta-llama/Llama-3.2-3B-Instruct', 'mistralai/Mistral-7B-Instruct-v0.3', 'Qwen/Qwen2.5-7B-Instruct'],
+    recommendedModels: ['meta-llama/Llama-3.3-70B-Instruct', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen3.8-27B-Instruct', 'meta-llama/Llama-3.2-3B-Instruct'],
   },
   {
     id: 'openai-compatible',
@@ -75,9 +93,130 @@ const LOCAL_ENGINES: LocalEnginePreset[] = [
     defaultUrl: 'http://localhost:8080/v1',
     defaultModel: 'local-model',
     description: 'LocalAI, llama.cpp, text-generation-webui, or other local API',
-    recommendedModels: ['local-model'],
+    recommendedModels: ['local-model', 'deepseek-r1', 'qwen3.8-27b'],
   },
 ];
+
+const CLOUD_PROVIDERS: CloudProviderPreset[] = [
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    label: 'Google Gemini',
+    badge: 'Gemini',
+    defaultUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    defaultModel: 'gemini-3.8-flash',
+    description: 'High-speed multimodal clinical reasoning with generous free tier via Google AI Studio',
+    recommendedModels: [
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-3.1-pro-preview',
+      'gemini-3.1-flash-lite',
+      'gemini-2.5-pro',
+      'gemini-2.5-flash',
+    ],
+    keyPrefixes: ['AIza'],
+    keyPlaceholder: 'AIzaSy... (Paste Google Gemini API Key)',
+    helpUrl: 'https://aistudio.google.com/app/apikey',
+    helpLabel: 'Get Gemini API Key',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    label: 'OpenAI',
+    badge: 'OpenAI',
+    defaultUrl: 'https://api.openai.com/v1',
+    defaultModel: 'gpt-6.1-sol',
+    description: 'Frontier OpenAI models (GPT-6 series, o3-mini reasoning, and GPT-4o)',
+    recommendedModels: [
+      'gpt-6.1-sol',
+      'gpt-6-luna',
+      'gpt-6-astra',
+      'o3-mini',
+      'o1',
+      'gpt-4o-mini',
+      'gpt-4o',
+    ],
+    keyPrefixes: ['sk-proj-', 'sk-'],
+    keyPlaceholder: 'sk-proj-... (Paste OpenAI API Key)',
+    helpUrl: 'https://platform.openai.com/api-keys',
+    helpLabel: 'Get OpenAI API Key',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    label: 'OpenRouter',
+    badge: 'OpenRouter',
+    defaultUrl: 'https://openrouter.ai/api/v1',
+    defaultModel: 'deepseek/deepseek-v4.1-flash',
+    description: 'Unified gateway to latest models (DeepSeek V4.1, GPT-6, Claude 3.7, Gemini 3.8)',
+    recommendedModels: [
+      'deepseek/deepseek-v4.1-flash',
+      'openai/gpt-6.1-sol',
+      'anthropic/claude-3.7-sonnet',
+      'google/gemini-3.8-flash',
+      'meta-llama/llama-3.3-70b-instruct',
+      'qwen/qwen3.8-27b',
+    ],
+    keyPrefixes: ['sk-or-'],
+    keyPlaceholder: 'sk-or-v1-... (Paste OpenRouter API Key)',
+    helpUrl: 'https://openrouter.ai/keys',
+    helpLabel: 'Get OpenRouter API Key',
+  },
+  {
+    id: 'groq',
+    name: 'Groq Cloud',
+    label: 'Groq',
+    badge: 'Groq',
+    defaultUrl: 'https://api.groq.com/openai/v1',
+    defaultModel: 'qwen/qwen3.8-27b',
+    description: 'Ultra-low-latency LPU inference for open reasoning and vision models',
+    recommendedModels: [
+      'qwen/qwen3.8-27b',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'groq/compound',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+    ],
+    keyPrefixes: ['gsk_'],
+    keyPlaceholder: 'gsk_... (Paste Groq API Key)',
+    helpUrl: 'https://console.groq.com/keys',
+    helpLabel: 'Get Groq API Key',
+  },
+  {
+    id: 'custom-cloud',
+    name: 'Custom Cloud Provider',
+    label: 'Custom Cloud',
+    badge: 'Custom',
+    defaultUrl: 'https://api.together.xyz/v1',
+    defaultModel: 'deepseek-ai/DeepSeek-V4.1',
+    description: 'Any OpenAI-compatible cloud endpoint (DeepSeek, Together AI, Mistral, Perplexity, etc.)',
+    recommendedModels: [
+      'deepseek-ai/DeepSeek-V4.1',
+      'deepseek-ai/DeepSeek-R1',
+      'meta-llama/Llama-3.3-70B-Instruct',
+      'Qwen/Qwen3.8-27B-Instruct',
+    ],
+    keyPrefixes: [],
+    keyPlaceholder: 'Enter your API key or Bearer token...',
+    helpLabel: 'Custom OpenAI-compatible cloud endpoint',
+  },
+];
+
+const getCloudPreset = (type?: string): CloudProviderPreset => {
+  return CLOUD_PROVIDERS.find((p) => p.id === type) || CLOUD_PROVIDERS[0];
+};
+
+const detectCloudPresetFromKey = (key: string): CloudProviderPreset | null => {
+  const trimmed = key.trim();
+  if (!trimmed) return null;
+  for (const preset of CLOUD_PROVIDERS) {
+    if (preset.keyPrefixes.some((prefix) => trimmed.startsWith(prefix))) {
+      return preset;
+    }
+  }
+  return null;
+};
 
 /** Mask secret per §9.2: sk-••••••••1a2b */
 const maskApiKey = (key?: string) => {
@@ -114,37 +253,7 @@ export const ProviderSettings: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
 
   const currentLocalPreset = LOCAL_ENGINES.find((e) => e.id === providerType) || LOCAL_ENGINES[0];
-
-  const getCloudDefaults = (key: string) => {
-    const trimmed = key.trim();
-    if (trimmed.startsWith('sk-or-')) {
-      return {
-        providerType: 'openrouter' as const,
-        name: 'OpenRouter (Cloud)',
-        baseUrl: 'https://openrouter.ai/api/v1',
-        defaultModel: 'meta-llama/llama-3.3-70b-instruct',
-        label: 'OpenRouter',
-      };
-    }
-    if (trimmed.startsWith('gsk_')) {
-      return {
-        providerType: 'groq' as const,
-        name: 'Groq Cloud',
-        baseUrl: 'https://api.groq.com/openai/v1',
-        defaultModel: 'llama-3.3-70b-versatile',
-        label: 'Groq',
-      };
-    }
-    return {
-      providerType: 'openai' as const,
-      name: 'OpenAI (Cloud)',
-      baseUrl: 'https://api.openai.com/v1',
-      defaultModel: 'gpt-4o-mini',
-      label: 'OpenAI',
-    };
-  };
-
-  const detectedCloud = getCloudDefaults(apiKey);
+  const currentCloudPreset = getCloudPreset(providerType);
 
   const handleEdit = (p: ProviderProfile) => {
     setEditingId(p.id);
@@ -179,11 +288,12 @@ export const ProviderSettings: React.FC<Props> = ({
   const handleKindSwitch = (newKind: 'local' | 'cloud') => {
     setKind(newKind);
     if (newKind === 'cloud') {
-      const defaults = getCloudDefaults(apiKey);
-      setProviderType(defaults.providerType);
-      setName(defaults.name);
-      setBaseUrl(defaults.baseUrl);
-      setModel(defaults.defaultModel);
+      const detected = detectCloudPresetFromKey(apiKey);
+      const targetPreset = detected || CLOUD_PROVIDERS[0]; // Google Gemini default
+      setProviderType(targetPreset.id);
+      setName(targetPreset.name);
+      setBaseUrl(targetPreset.defaultUrl);
+      setModel(targetPreset.defaultModel);
       setTimeoutSeconds(120);
       setShowAdvanced(false);
     } else {
@@ -198,14 +308,28 @@ export const ProviderSettings: React.FC<Props> = ({
     }
   };
 
+  const handleCloudPresetChange = (presetId: ProviderType) => {
+    setProviderType(presetId);
+    const preset = CLOUD_PROVIDERS.find((p) => p.id === presetId);
+    if (preset) {
+      setBaseUrl(preset.defaultUrl);
+      setModel(preset.defaultModel);
+      if (editingId === 'new' || CLOUD_PROVIDERS.some((p) => p.name === name)) {
+        setName(preset.name);
+      }
+    }
+  };
+
   const handleCloudApiKeyChange = (val: string) => {
     setApiKey(val);
-    const defaults = getCloudDefaults(val);
-    setProviderType(defaults.providerType);
-    if (!showAdvanced) {
-      setName(defaults.name);
-      setBaseUrl(defaults.baseUrl);
-      setModel(defaults.defaultModel);
+    const detected = detectCloudPresetFromKey(val);
+    if (detected && detected.id !== providerType) {
+      setProviderType(detected.id);
+      setBaseUrl(detected.defaultUrl);
+      setModel(detected.defaultModel);
+      if (editingId === 'new' || CLOUD_PROVIDERS.some((p) => p.name === name)) {
+        setName(detected.name);
+      }
     }
   };
 
@@ -225,7 +349,7 @@ export const ProviderSettings: React.FC<Props> = ({
     if (kind === 'local') {
       setBaseUrl(currentLocalPreset.defaultUrl);
     } else {
-      setBaseUrl(detectedCloud.baseUrl);
+      setBaseUrl(currentCloudPreset.defaultUrl);
     }
   };
 
@@ -254,13 +378,16 @@ export const ProviderSettings: React.FC<Props> = ({
           ? apiKey.trim()
           : undefined;
 
+      const fallbackName = kind === 'cloud' ? currentCloudPreset.name : currentLocalPreset.name;
+      const fallbackModel = kind === 'cloud' ? currentCloudPreset.defaultModel : currentLocalPreset.defaultModel;
+
       await onSaveProvider({
         id: editingId === 'new' ? undefined : editingId || undefined,
-        name: name.trim() || (kind === 'cloud' ? detectedCloud.name : currentLocalPreset.name),
+        name: name.trim() || fallbackName,
         kind,
         provider_type: providerType,
         base_url: baseUrl.trim(),
-        model: model.trim() || (kind === 'cloud' ? detectedCloud.defaultModel : currentLocalPreset.defaultModel),
+        model: model.trim() || fallbackModel,
         api_key: finalApiKey,
         timeout_seconds: Number(timeoutSeconds) || (kind === 'local' ? 900 : 120),
         is_default: isDefault ? 1 : 0,
@@ -381,12 +508,62 @@ export const ProviderSettings: React.FC<Props> = ({
             {/* CLOUD PROVIDER CONFIGURATION */}
             {kind === 'cloud' && (
               <div className="space-y-4">
-                {/* API Key Input (Just the Key!) */}
-                <div className="space-y-2.5 p-4 rounded-md bg-surface-recessed border border-border">
+                {/* Cloud Provider Preset Selector */}
+                <div>
+                  <label className="block text-small font-medium text-secondary mb-1.5">
+                    Cloud AI Provider Preset
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {CLOUD_PROVIDERS.map((preset) => {
+                      const isSelected = providerType === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleCloudPresetChange(preset.id)}
+                          className={`p-2.5 rounded border text-left transition-all ${
+                            isSelected
+                              ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-500 text-primary ring-1 ring-amber-500/40 shadow-2xs'
+                              : 'bg-surface border-border hover:border-border-strong text-secondary'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            {preset.id === 'gemini' && <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                            {preset.id === 'openai' && <Cloud className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                            {preset.id === 'openrouter' && <Globe className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+                            {preset.id === 'groq' && <Zap className="w-3.5 h-3.5 text-orange-500 shrink-0" />}
+                            {preset.id === 'custom-cloud' && <Server className="w-3.5 h-3.5 text-sky-500 shrink-0" />}
+                            <span className="font-semibold text-small truncate">{preset.label}</span>
+                          </div>
+                          <div className="text-[11px] text-tertiary truncate mt-1">
+                            {preset.badge}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-caption text-tertiary mt-1.5">
+                    {currentCloudPreset.description}
+                  </p>
+                </div>
+
+                {/* API Key Input */}
+                <div className="space-y-2 p-4 rounded-md bg-surface-recessed border border-border">
                   <div className="flex items-center justify-between">
                     <label className="block text-small font-semibold text-primary">
                       API Key <span className="text-clay-500">*</span>
                     </label>
+                    {currentCloudPreset.helpUrl && (
+                      <a
+                        href={currentCloudPreset.helpUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-caption text-vault-600 dark:text-vault-400 hover:underline inline-flex items-center gap-1 font-medium"
+                      >
+                        {currentCloudPreset.helpLabel || 'Get API Key'}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </div>
                   <div className="relative">
                     <input
@@ -394,7 +571,7 @@ export const ProviderSettings: React.FC<Props> = ({
                       required
                       value={apiKey}
                       onChange={(e) => handleCloudApiKeyChange(e.target.value)}
-                      placeholder="Paste your API key (e.g. sk-...)"
+                      placeholder={currentCloudPreset.keyPlaceholder}
                       className="w-full h-10 pl-3 pr-10 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
                       autoFocus={editingId === 'new'}
                     />
@@ -408,9 +585,106 @@ export const ProviderSettings: React.FC<Props> = ({
                     </button>
                   </div>
                   <p className="text-caption text-tertiary">
-                    Paste your API key (OpenAI, OpenRouter, Groq, or any compatible provider).
+                    {providerType === 'gemini'
+                      ? 'MedBuddy connects directly to Google Gemini via Google\'s official OpenAI-compatible endpoint. No extra proxy needed.'
+                      : providerType === 'openai'
+                      ? 'Connects directly to OpenAI Platform API with your API key.'
+                      : providerType === 'openrouter'
+                      ? 'Routes requests through OpenRouter to Claude, Llama 3, DeepSeek, Gemini, etc.'
+                      : providerType === 'groq'
+                      ? 'Ultra-low latency inference via Groq Cloud.'
+                      : 'Connects to any standard OpenAI-compatible cloud endpoint.'}
                   </p>
                 </div>
+
+                {/* Model Identifier & Profile Name Grid */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-small font-medium text-secondary mb-1">
+                        Model Identifier <span className="text-clay-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        placeholder={currentCloudPreset.defaultModel}
+                        className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-small font-medium text-secondary mb-1">
+                        Profile Name <span className="text-clay-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={currentCloudPreset.name}
+                        className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Recommended Models Chips */}
+                  {currentCloudPreset.recommendedModels.length > 0 && (
+                    <div>
+                      <label className="block text-caption font-medium text-secondary mb-1">
+                        Popular Models for {currentCloudPreset.label} (click to select):
+                      </label>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {currentCloudPreset.recommendedModels.map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setModel(m)}
+                            className={`px-2 py-0.5 text-caption font-mono rounded-sm border transition-all ${
+                              model === m
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-400 dark:border-amber-600 font-semibold shadow-2xs'
+                                : 'bg-surface hover:bg-surface-hover text-secondary border-border'
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Custom Base URL: Show prominently for Custom Cloud */}
+                {providerType === 'custom-cloud' && (
+                  <div className="p-3.5 bg-surface-recessed rounded-md border border-border space-y-2 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-small font-medium text-secondary">
+                        Base URL <span className="text-clay-500">*</span>
+                      </label>
+                      {baseUrl !== currentCloudPreset.defaultUrl && (
+                        <button
+                          type="button"
+                          onClick={handleResetUrl}
+                          className="text-[11px] text-vault-600 dark:text-vault-400 hover:underline flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-2.5 h-2.5" /> Reset to default
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder="https://api.together.xyz/v1"
+                      className="w-full h-[34px] px-3 text-body bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 focus:ring-2 focus:ring-vault-500/35 transition-colors"
+                    />
+                    <p className="text-caption text-tertiary">
+                      Endpoint must support OpenAI-compatible <code className="font-mono">/chat/completions</code>.
+                    </p>
+                  </div>
+                )}
 
                 {/* Advanced Settings Accordion for Cloud */}
                 <div className="pt-1">
@@ -420,59 +694,40 @@ export const ProviderSettings: React.FC<Props> = ({
                     className="flex items-center gap-1.5 text-caption font-medium text-secondary hover:text-primary transition-colors py-1"
                   >
                     {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    <span>{showAdvanced ? 'Hide Advanced Settings' : 'Advanced Options (Custom Model, Base URL, Timeout)'}</span>
+                    <span>{showAdvanced ? 'Hide Advanced Settings' : 'Advanced Options (Custom Base URL, Timeout)'}</span>
                   </button>
 
                   {showAdvanced && (
-                    <div className="grid grid-cols-2 gap-4 mt-3 p-3.5 bg-surface-recessed rounded-md border border-border animate-fade-in">
-                      <div>
-                        <label className="block text-caption font-medium text-secondary mb-1">
-                          Profile Name
-                        </label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary focus:outline-none focus:border-vault-500 transition-colors"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-caption font-medium text-secondary mb-1">
-                          Model Identifier
-                        </label>
-                        <input
-                          type="text"
-                          value={model}
-                          onChange={(e) => setModel(e.target.value)}
-                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
-                        />
-                      </div>
-
-                      <div className="col-span-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-caption font-medium text-secondary">
-                            Base URL
-                          </label>
-                          {baseUrl !== detectedCloud.baseUrl && (
-                            <button
-                              type="button"
-                              onClick={handleResetUrl}
-                              className="text-[11px] text-vault-600 dark:text-vault-400 hover:underline flex items-center gap-1"
-                            >
-                              <RotateCcw className="w-2.5 h-2.5" /> Reset to default ({detectedCloud.baseUrl})
-                            </button>
-                          )}
+                    <div className="space-y-3 mt-2.5 p-3.5 bg-surface-recessed rounded-md border border-border animate-fade-in">
+                      {providerType !== 'custom-cloud' && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-caption font-medium text-secondary">
+                              Base URL
+                            </label>
+                            {baseUrl !== currentCloudPreset.defaultUrl && (
+                              <button
+                                type="button"
+                                onClick={handleResetUrl}
+                                className="text-[11px] text-vault-600 dark:text-vault-400 hover:underline flex items-center gap-1 font-medium"
+                              >
+                                <RotateCcw className="w-2.5 h-2.5" /> Reset to default ({currentCloudPreset.defaultUrl})
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={baseUrl}
+                            onChange={(e) => setBaseUrl(e.target.value)}
+                            className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
+                          />
+                          <p className="text-[11px] text-tertiary mt-1">
+                            Pre-configured for {currentCloudPreset.label}. Only modify if using a custom reverse proxy or enterprise mirror.
+                          </p>
                         </div>
-                        <input
-                          type="text"
-                          value={baseUrl}
-                          onChange={(e) => setBaseUrl(e.target.value)}
-                          className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
-                        />
-                      </div>
+                      )}
 
-                      <div className="col-span-2">
+                      <div>
                         <label className="block text-caption font-medium text-secondary mb-1">
                           Request Timeout (seconds)
                         </label>
@@ -485,6 +740,9 @@ export const ProviderSettings: React.FC<Props> = ({
                           onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 120)}
                           className="w-full h-[32px] px-3 text-small bg-surface border border-border-strong rounded-sm text-primary font-mono focus:outline-none focus:border-vault-500 transition-colors"
                         />
+                        <p className="text-[11px] text-tertiary mt-1">
+                          Default is 120s for cloud inference.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -786,19 +1044,23 @@ export const ProviderSettings: React.FC<Props> = ({
 
             // Determine badge label for engine
             const engineLabel =
-              p.provider_type === 'lm-studio'
-                ? 'LM Studio'
-                : p.provider_type === 'ollama'
-                ? 'Ollama'
-                : p.provider_type === 'vllm'
-                ? 'vLLM'
+              p.provider_type === 'gemini'
+                ? 'Google Gemini'
                 : p.provider_type === 'openai'
                 ? 'OpenAI'
                 : p.provider_type === 'openrouter'
                 ? 'OpenRouter'
                 : p.provider_type === 'groq'
                 ? 'Groq'
-                : 'OpenAI-Compatible';
+                : p.provider_type === 'custom-cloud'
+                ? 'Custom Cloud'
+                : p.provider_type === 'lm-studio'
+                ? 'LM Studio'
+                : p.provider_type === 'ollama'
+                ? 'Ollama'
+                : p.provider_type === 'vllm'
+                ? 'vLLM'
+                : 'Custom / Other';
 
             return (
               <div

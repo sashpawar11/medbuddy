@@ -5,6 +5,7 @@ import os from 'os';
 import { initDatabase, getDatabase, listMembers, createMember, listFolders, createFolder, insertDocument, listDocuments, listProviders, saveProvider, storeAnalysisResult, getAnalysisByCacheKey, getAnalysisById, deleteAnalysisById, listAppLogs } from '../src/main/db/database';
 import { StructuredAnalysisResultSchema, sanitizeJsonResponse } from '../src/shared/schema';
 import { AIOrchestrator } from '../src/main/services/ai/orchestrator';
+import { aiProvider } from '../src/main/services/ai/provider';
 import { logger } from '../src/main/services/logger';
 
 async function runTests() {
@@ -267,6 +268,50 @@ async function runTests() {
   assert.strictEqual(sanitized.apiKey, '[REDACTED]', 'API keys must be redacted in logs');
   assert(sanitized.extractedText.includes('[TEXT_LEN:'), 'Extracted medical text must be replaced with length indicator');
   console.log('✅ Patient data & secret redaction in logger verified');
+
+  // 11. AI Provider Endpoint Resolution & Cloud Presets Verification
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('https://generativelanguage.googleapis.com/v1beta/openai', 'chat/completions'),
+    'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    'Gemini chat/completions endpoint must be resolved without duplicate v1'
+  );
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('https://generativelanguage.googleapis.com/v1beta/openai/', 'models'),
+    'https://generativelanguage.googleapis.com/v1beta/openai/models',
+    'Gemini models endpoint must be resolved without duplicate v1'
+  );
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('https://api.openai.com/v1', 'chat/completions'),
+    'https://api.openai.com/v1/chat/completions'
+  );
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('https://api.openai.com', 'chat/completions'),
+    'https://api.openai.com/v1/chat/completions'
+  );
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('https://openrouter.ai/api/v1', 'chat/completions'),
+    'https://openrouter.ai/api/v1/chat/completions'
+  );
+  assert.strictEqual(
+    aiProvider.buildEndpointUrl('http://localhost:1234/v1', 'chat/completions'),
+    'http://localhost:1234/v1/chat/completions'
+  );
+
+  // Test saving Google Gemini profile
+  const geminiProfile = saveProvider({
+    name: 'Google Gemini',
+    kind: 'cloud',
+    provider_type: 'gemini',
+    base_url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    model: 'gemini-2.5-flash',
+    api_key: 'AIzaSyTestGeminiKey12345',
+    timeout_seconds: 120,
+    is_default: 1,
+  });
+  assert.strictEqual(geminiProfile.provider_type, 'gemini');
+  assert.strictEqual(geminiProfile.model, 'gemini-2.5-flash');
+  assert.strictEqual(geminiProfile.is_default, 1);
+  console.log('✅ Google Gemini and Cloud Provider Presets verified');
 
   // Clean up temp DB
   db.close();
