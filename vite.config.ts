@@ -22,10 +22,9 @@ export default defineConfig({
               external: [
                 // Existing native modules
                 'better-sqlite3',
-                'pdf-parse',
                 // New OCR pipeline — native binaries and ESM-only packages
                 'onnxruntime-node',
-                'canvas',
+                '@napi-rs/canvas',
                 'pdfjs-dist',
                 'ppu-paddle-ocr',
               ],

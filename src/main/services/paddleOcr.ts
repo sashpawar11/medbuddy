@@ -108,16 +108,31 @@ class PaddleOcrService {
   }
 
   /**
-   * Extract text from a native-text PDF using pdf-parse.
+   * Extract text from a native-text PDF using pdfjs-dist.
    * Returns null if no embedded text found (scanned PDF).
    */
   private async tryNativePdf(buffer: Buffer): Promise<string | null> {
     try {
-      const pdfParse = (await import('pdf-parse')).default;
-      const data = await pdfParse(buffer);
-      const text = (data.text || '').trim();
-      if (text.length >= OCR_MIN_CHARS_THRESHOLD) {
-        return text;
+      const pdfjsLib = await import('pdfjs-dist');
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
+      const pdfDoc = await loadingTask.promise;
+      const pagesToProcess = Math.min(pdfDoc.numPages, OCR_PDF_PAGE_CAP);
+      const pageTexts: string[] = [];
+
+      for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
+        const page = await pdfDoc.getPage(pageNum);
+        const content = await page.getTextContent();
+        const text = content.items
+          .map((item: any) => ('str' in item ? item.str : ''))
+          .join(' ');
+        if (text.trim()) {
+          pageTexts.push(text.trim());
+        }
+      }
+
+      const fullText = pageTexts.join('\n\n').trim();
+      if (fullText.length >= OCR_MIN_CHARS_THRESHOLD) {
+        return fullText;
       }
       return null;
     } catch {
@@ -134,9 +149,9 @@ class PaddleOcrService {
     onProgress?: (page: number, total: number) => void
   ): Promise<OcrResult> {
     try {
-      // Use pdfjs-dist (v4, node canvas mode) to render pages
+      // Use pdfjs-dist to render pages with @napi-rs/canvas
       const pdfjsLib = await import('pdfjs-dist');
-      const { createCanvas } = await import('canvas');
+      const { createCanvas } = await import('@napi-rs/canvas');
 
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
       const pdfDoc = await loadingTask.promise;
