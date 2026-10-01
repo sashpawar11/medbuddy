@@ -148,9 +148,12 @@
       -webkit-tap-highlight-color: transparent;
       transition: background-color .24s ease, border-color .24s ease, color .24s ease, transform .24s ease;
     }
+    .theme-toggle {
+      view-transition-name: theme-toggle;
+    }
     .theme-toggle:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-1px); }
     .theme-toggle:active { transform: translateY(0) scale(.96); }
-    .theme-toggle svg { position: absolute; width: 18px; height: 18px; transition: opacity .34s ease, transform .48s cubic-bezier(.4, 0, .2, 1); }
+    .theme-toggle svg { position: absolute; width: 18px; height: 18px; transition: opacity .32s ease, transform .44s cubic-bezier(.22, 1, .36, 1); }
     .theme-toggle .sun-icon { opacity: 0; transform: rotate(-80deg) scale(.55); }
     .theme-toggle .moon-icon { opacity: 1; transform: rotate(0) scale(1); }
     :root[data-theme="dark"] .theme-toggle .sun-icon { opacity: 1; transform: rotate(0) scale(1); }
@@ -160,23 +163,30 @@
     :root.theme-fallback .page,
     :root.theme-fallback .hero,
     :root.theme-fallback section,
-    :root.theme-fallback footer,
-    :root.theme-fallback div,
-    :root.theme-fallback span,
-    :root.theme-fallback a,
-    :root.theme-fallback button {
-      transition-property: background-color, border-color, color, box-shadow;
-      transition-duration: .6s;
-      transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+    :root.theme-fallback footer {
+      transition: background-color .38s cubic-bezier(.22, 1, .36, 1),
+                  border-color .38s cubic-bezier(.22, 1, .36, 1),
+                  color .38s cubic-bezier(.22, 1, .36, 1);
     }
-    ::view-transition-old(root) { animation: none; }
+    ::view-transition-group(theme-toggle) {
+      z-index: 10000;
+      animation-duration: .34s;
+      animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+    }
+    ::view-transition-old(theme-toggle),
+    ::view-transition-new(theme-toggle) {
+      mix-blend-mode: normal;
+    }
+    ::view-transition-old(root),
     ::view-transition-new(root) {
-      animation: theme-swipe .7s cubic-bezier(.65, 0, .35, 1) both;
-      transform-origin: top right;
+      animation: none;
+      mix-blend-mode: normal;
     }
-    @keyframes theme-swipe {
-      from { clip-path: circle(0 at calc(100% - 36px) 36px); }
-      to { clip-path: circle(150vmax at calc(100% - 36px) 36px); }
+    ::view-transition-old(root) {
+      z-index: 1;
+    }
+    ::view-transition-new(root) {
+      z-index: 9999;
     }
     .wrap { width: min(1160px, calc(100% - 40px)); margin-inline: auto; }
     .hero {
@@ -795,7 +805,7 @@
             <div class="eyebrow">Privacy you can see</div>
             <h2>Local first isn’t a setting. It’s the default boundary.</h2>
             <p>Your documents, extracted text, profiles, and local database stay on your machine. Use Ollama or LM Studio for offline analysis, or explicitly choose a bring-your-own-key cloud provider when you want one.</p>
-            <p>There is no telemetry or remote logging. Optional Google Drive backup is encrypted and opt-in.</p>
+            <p>There is no telemetry or remote logging. Local folder sync option is available.</p>
           </div>
           <div class="boundary" aria-label="Data processing options">
             <div class="boundary-title">Choose where analysis runs <span>per provider</span></div>
@@ -867,15 +877,57 @@
 
       applyTheme(themeQuery.matches ? 'dark' : 'light');
 
+      var transitionInProgress = false;
+
       themeButton.addEventListener('click', function () {
+        if (transitionInProgress) return;
         manualTheme = true;
         var nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          document.startViewTransition(function () { applyTheme(nextTheme); });
-        } else {
+
+        if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           root.classList.add('theme-fallback');
           applyTheme(nextTheme);
-          window.setTimeout(function () { root.classList.remove('theme-fallback'); }, 650);
+          window.setTimeout(function () { root.classList.remove('theme-fallback'); }, 400);
+          return;
+        }
+
+        var rect = themeButton.getBoundingClientRect();
+        var x = rect.left + rect.width / 2;
+        var y = rect.top + rect.height / 2;
+        var endRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y)
+        );
+
+        transitionInProgress = true;
+        var transition = document.startViewTransition(function () {
+          applyTheme(nextTheme);
+        });
+
+        transition.ready.then(function () {
+          var clipPath = [
+            'circle(0px at ' + Math.round(x) + 'px ' + Math.round(y) + 'px)',
+            'circle(' + Math.ceil(endRadius) + 'px at ' + Math.round(x) + 'px ' + Math.round(y) + 'px)'
+          ];
+          var anim = document.documentElement.animate(
+            { clipPath: clipPath },
+            {
+              duration: 480,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              pseudoElement: '::view-transition-new(root)'
+            }
+          );
+          anim.onfinish = function () {
+            transitionInProgress = false;
+          };
+        }).catch(function () {
+          transitionInProgress = false;
+        });
+
+        if (transition.finished && transition.finished.finally) {
+          transition.finished.finally(function () {
+            transitionInProgress = false;
+          });
         }
       });
 
