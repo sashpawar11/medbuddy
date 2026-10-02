@@ -20,7 +20,7 @@ $ErrorActionPreference = 'Stop'
 $Repo = "sashpawar11/medbuddy"
 $AppName = "MedBuddy"
 $AppBin = "medbuddy"
-$ScriptVersion = "1.0.2"
+$ScriptVersion = "1.0.3"
 
 function Show-Banner {
     Write-Host @"
@@ -85,7 +85,7 @@ try {
 }
 
 $tagName = if ($release -and $release.tag_name) { $release.tag_name } else {
-    if ($TargetVersion -eq "latest") { "v1.0.2" } else { $TargetVersion }
+    if ($TargetVersion -eq "latest") { "v1.0.3" } else { $TargetVersion }
 }
 $version = $tagName.TrimStart('v')
 

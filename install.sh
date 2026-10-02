@@ -10,7 +10,7 @@
 #
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.2"
+SCRIPT_VERSION="1.0.3"
 REPO="${MEDBUDDY_REPO:-sashpawar11/medbuddy}"
 APP_NAME="MedBuddy"
 APP_BIN="medbuddy"
