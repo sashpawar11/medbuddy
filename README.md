@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0284c7?style=flat-square" alt="Platform" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License: GPL-3.0" /></a>
   <img src="https://img.shields.io/badge/Electron-v34-475569?style=flat-square&logo=electron" alt="Electron" />
-  <img src="https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Privacy-100%25%20Local-10b981?style=flat-square" alt="Local First" />
 </p>
 
@@ -111,7 +111,7 @@ Carry a completely offline, searchable medical history on your laptop during tra
 │                   MedBuddy Desktop                     │
 │                                                        │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │     React 18 + TailwindCSS + Lucide UI           │  │
+│  │     React 19 + TailwindCSS + Lucide UI           │  │
 │  │     (Dashboard, Chat Assistant, Timeline, OCR)   │  │
 │  └────────────────────────┬─────────────────────────┘  │
 │                           │ IPC Bridge                 │
