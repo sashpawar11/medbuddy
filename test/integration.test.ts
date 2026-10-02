@@ -239,6 +239,23 @@ async function runTests() {
   assert.strictEqual(retrieved?.member_id, member.id, 'Member id should be resolved');
   console.log('✅ Deterministic caching, retrieval, and parent member tagging verified');
 
+  // Test Regeneration / Cache Key Collision handling
+  const updatedOverview = { ...sampleOverview, summary: 'Regenerated health overview summary' };
+  const regenerated = storeAnalysisResult(
+    cacheKey,
+    'folder',
+    bloodworkFolder.id,
+    lmStudio!.id,
+    '1.0.0',
+    updatedOverview,
+    [doc1.id, doc2.id]
+  );
+  assert.strictEqual(regenerated.id, stored.id, 'Regenerating analysis with same cacheKey should update existing record');
+  assert.strictEqual(regenerated.result_json.summary, 'Regenerated health overview summary');
+  const retrievedAfterRegen = getAnalysisByCacheKey(cacheKey);
+  assert.strictEqual(retrievedAfterRegen?.result_json.summary, 'Regenerated health overview summary');
+  console.log('✅ Analysis regeneration and cacheKey collision update verified');
+
   // Test delete analysis
   const deleted = deleteAnalysisById(stored.id);
   assert.strictEqual(deleted, true, 'deleteAnalysisById should return true for deleted record');

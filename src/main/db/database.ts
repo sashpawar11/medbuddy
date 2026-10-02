@@ -763,26 +763,43 @@ export function storeAnalysisResult(
 
   const title = formatSummaryName(memberName, now);
 
+  const findExisting = db.prepare('SELECT id FROM analysis_results WHERE cache_key = ?');
+  const updateAnalysis = db.prepare(`
+    UPDATE analysis_results
+    SET scope_type = ?, scope_id = ?, provider_profile_id = ?, prompt_version = ?, result_json = ?, created_at = ?, title = ?
+    WHERE id = ?
+  `);
   const insertAnalysis = db.prepare(`
     INSERT INTO analysis_results (id, cache_key, scope_type, scope_id, provider_profile_id, prompt_version, result_json, created_at, title)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-
+  const deleteSources = db.prepare(`DELETE FROM analysis_sources WHERE analysis_id = ?`);
   const insertSource = db.prepare(`
     INSERT INTO analysis_sources (analysis_id, document_id)
     VALUES (?, ?)
   `);
 
   const transaction = db.transaction(() => {
-    insertAnalysis.run(id, cacheKey, scopeType, scopeId, providerProfileId, promptVersion, jsonStr, now, title);
-    for (const docId of documentIds) {
-      insertSource.run(id, docId);
+    const existing = findExisting.get(cacheKey) as { id: string } | undefined;
+    const targetId = existing ? existing.id : id;
+
+    if (existing) {
+      updateAnalysis.run(scopeType, scopeId, providerProfileId, promptVersion, jsonStr, now, title, targetId);
+      deleteSources.run(targetId);
+    } else {
+      insertAnalysis.run(targetId, cacheKey, scopeType, scopeId, providerProfileId, promptVersion, jsonStr, now, title);
     }
+
+    for (const docId of documentIds) {
+      insertSource.run(targetId, docId);
+    }
+
+    return targetId;
   });
 
-  transaction();
+  const finalId = transaction();
 
-  return getAnalysisById(id)!;
+  return getAnalysisById(finalId)!;
 }
 
 // ---------------- Logs Repository ---------------- //

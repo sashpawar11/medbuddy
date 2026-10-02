@@ -12,6 +12,7 @@ interface Props {
   scopeType: 'file' | 'selection' | 'folder';
   scopeId: string;
   scopeTitle: string;
+  initialForceRefresh?: boolean;
   documents: DocumentItem[];
   providers: ProviderProfile[];
   onStartAnalysis: (providerProfileId: string, forceRefresh?: boolean) => Promise<void>;
@@ -32,6 +33,7 @@ export const AnalyzeModal: React.FC<Props> = ({
   scopeType,
   scopeId,
   scopeTitle,
+  initialForceRefresh,
   documents,
   providers,
   onStartAnalysis,
@@ -66,8 +68,11 @@ export const AnalyzeModal: React.FC<Props> = ({
       setProgress(null);
       setError(null);
       setShowFileList(false);
+      setForceRefresh(false);
       return;
     }
+
+    setForceRefresh(initialForceRefresh ?? false);
 
     const unsubscribe = window.medbuddy.onAIProgress((event) => {
       setProgress(event);

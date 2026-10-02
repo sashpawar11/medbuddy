@@ -84,12 +84,14 @@ export const App: React.FC = () => {
     scopeId: string;
     scopeTitle: string;
     docIds: string[];
+    initialForceRefresh?: boolean;
   }>({
     isOpen: false,
     scopeType: 'folder',
     scopeId: '',
     scopeTitle: '',
     docIds: [],
+    initialForceRefresh: false,
   });
   const [organizeModal, setOrganizeModal] = useState<{
     isOpen: boolean;
@@ -344,7 +346,8 @@ export const App: React.FC = () => {
   const handleTriggerAnalysis = (
     scopeType: 'file' | 'selection' | 'folder',
     docIds: string[],
-    title: string
+    title: string,
+    initialForceRefresh?: boolean
   ) => {
     const scopeId = scopeType === 'folder' ? (selectedFolderId || '') : (docIds[0] || '');
     setAnalyzeScope({
@@ -353,6 +356,7 @@ export const App: React.FC = () => {
       scopeId,
       scopeTitle: title,
       docIds,
+      initialForceRefresh: initialForceRefresh ?? false,
     });
   };
 
@@ -551,7 +555,8 @@ export const App: React.FC = () => {
                 handleTriggerAnalysis(
                   currentAnalysis.scope_type,
                   currentAnalysis.source_documents.map((d) => d.id),
-                  currentAnalysis.scope_name || 'Regenerating Overview'
+                  currentAnalysis.scope_name || 'Regenerating Overview',
+                  true
                 );
               }}
               onDelete={handleDeleteAnalysis}
@@ -677,6 +682,7 @@ export const App: React.FC = () => {
         scopeType={analyzeScope.scopeType}
         scopeId={analyzeScope.scopeId}
         scopeTitle={analyzeScope.scopeTitle}
+        initialForceRefresh={analyzeScope.initialForceRefresh}
         documents={targetDocsForAnalysis}
         providers={providers}
         onStartAnalysis={handleStartAnalysis}
